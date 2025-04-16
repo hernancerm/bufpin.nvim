@@ -171,6 +171,9 @@ end
 
 --- Moves the current buf to the left in the pinned bufs list.
 function pin.move_left()
+  if #state.pinned_bufs == 0 then
+    return
+  end
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index ~= nil and buf_handler_index > 1 then
@@ -183,6 +186,9 @@ end
 
 --- Moves the current buf to the right in the pinned bufs list.
 function pin.move_right()
+  if #state.pinned_bufs == 0 then
+    return
+  end
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
@@ -195,6 +201,9 @@ end
 
 --- Edit the buf to the left in the pinned bufs list.
 function pin.edit_left()
+  if #state.pinned_bufs == 0 then
+    return
+  end
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index == nil and state.last_non_pinned_buf == buf_handler then
@@ -217,6 +226,9 @@ end
 
 --- Edit the buf to the right in the pinned bufs list.
 function pin.edit_right()
+  if #state.pinned_bufs == 0 then
+    return
+  end
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if
