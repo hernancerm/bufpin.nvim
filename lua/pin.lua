@@ -68,6 +68,9 @@ function pin.get()
   return state.pinned_bufs
 end
 
+-- TODO: Refactor, remove duplicate code.
+-- TODO: Add ending vertical bar.
+
 --- Sets the value for 'tabline'.
 function pin.refresh_tabline()
   local tabline = ""
@@ -189,6 +192,15 @@ function pin.edit_left()
   elseif buf_handler_index ~= nil and buf_handler_index > 1 then
     vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index - 1])
     pin.refresh_tabline()
+  elseif buf_handler_index == 1 then
+    if state.last_non_pinned_buf ~= nil then
+      vim.cmd("buffer " .. state.last_non_pinned_buf)
+      pin.refresh_tabline()
+    else
+    -- Circular editing (from the first buf in the tabline go to the right-most buf).
+      vim.cmd("buffer " .. state.pinned_bufs[#state.pinned_bufs])
+      pin.refresh_tabline()
+    end
   end
 end
 
@@ -205,6 +217,13 @@ function pin.edit_right()
     pin.refresh_tabline()
   elseif buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
     vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index + 1])
+    pin.refresh_tabline()
+  elseif
+    #state.pinned_bufs > 1
+    and (buf_handler_index == #state.pinned_bufs or buf_handler == state.last_non_pinned_buf)
+  then
+    -- Circular editing (from the last buf in the tabline go to the left-most buf).
+    vim.cmd("buffer " .. state.pinned_bufs[1])
     pin.refresh_tabline()
   end
 end
