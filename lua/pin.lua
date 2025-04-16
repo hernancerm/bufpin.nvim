@@ -287,7 +287,11 @@ end
 --- Edit the buf by index (order in which it appears in the tabline).
 function pin.edit_by_index(index)
     if index <= #state.pinned_bufs then
+      -- Edit a pinned buf.
       vim.cmd("buffer " .. state.pinned_bufs[index])
+    elseif index == #state.pinned_bufs + 1 and state.last_non_pinned_buf ~= nil then
+      -- Edit the last non pinned buf.
+      vim.cmd("buffer " .. state.last_non_pinned_buf)
     end
     pin.refresh_tabline()
 end
