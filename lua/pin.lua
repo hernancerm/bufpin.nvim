@@ -22,10 +22,14 @@ end
 -- STATE
 
 local state = {
-  pinned_bufs = {}
+  pinned_bufs = {},
+  last_unpinned_buf = nil
 }
 
 local function pin_buf(buf_handler)
+  if buf_handler == state.last_unpinned_buf then
+    state.last_unpinned_buf = nil
+  end
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index == nil then
     table.insert(state.pinned_bufs, buf_handler)
@@ -33,6 +37,9 @@ local function pin_buf(buf_handler)
 end
 
 local function unpin_buf(buf_handler)
+  if state.last_unpinned_buf == nil and buf_handler == vim.fn.bufnr() then
+    state.last_unpinned_buf = vim.fn.bufnr()
+  end
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index ~= nil then
     table.remove(state.pinned_bufs, buf_handler_index)
@@ -65,6 +72,7 @@ end
 function pin.refresh_tabline()
   local tabline = ""
   local buf_handler = vim.fn.bufnr()
+  -- Pinned bufs.
   for i, pinned_buf in ipairs(state.pinned_bufs) do
     local basename = ""
     local buf_name = vim.api.nvim_buf_get_name(pinned_buf)
@@ -86,6 +94,30 @@ function pin.refresh_tabline()
         prefix = "  "
       end
       tabline = tabline .. prefix .. basename .. " " .. pin.config.pin_char .. suffix
+    end
+  end
+  -- Last unpinned buf.
+  if state.last_unpinned_buf ~= nil then
+    local basename = ""
+    local buf_name = vim.api.nvim_buf_get_name(state.last_unpinned_buf)
+    if buf_name ~= "" then
+      basename = vim.fs.basename(buf_name)
+    else
+      basename = vim.api.nvim_eval_statusline("%f", {}).str
+    end
+    if state.last_unpinned_buf == buf_handler then
+      local prefix = "%#TabLineSel#  "
+      local suffix = "  %*"
+      tabline = tabline .. prefix .. basename .. suffix
+    else
+      -- For other bar chars, see:
+      -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
+      local prefix = "▏ "
+      local suffix = "  "
+      if #state.pinned_bufs == 0 then
+        prefix = "  "
+      end
+      tabline = tabline .. prefix .. basename .. suffix
     end
   end
   vim.o.tabline = tabline
@@ -124,7 +156,6 @@ function pin.toggle(buf_handler)
 end
 
 --- Moves the current buf to the left in the pinned bufs list.
---- Assumption: The current buf is a pinned buf. If this is not true, nothing is done.
 function pin.move_left()
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
@@ -137,7 +168,6 @@ function pin.move_left()
 end
 
 --- Moves the current buf to the right in the pinned bufs list.
---- Assumption: The current buf is a pinned buf. If this is not true, nothing is done.
 function pin.move_right()
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
@@ -150,20 +180,30 @@ function pin.move_right()
 end
 
 --- Edit the buf to the left in the pinned bufs list.
---- Assumption: The current buf is a pinned buf. If this is not true, nothing is done.
 function pin.edit_left()
-  local buf_handler_index = table_find_index(state.pinned_bufs, vim.fn.bufnr())
-  if buf_handler_index ~= nil and buf_handler_index > 1 then
+  local buf_handler = vim.fn.bufnr()
+  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
+  if buf_handler_index == nil and state.last_unpinned_buf == buf_handler then
+    vim.cmd("buffer " .. state.pinned_bufs[#state.pinned_bufs])
+    pin.refresh_tabline()
+  elseif buf_handler_index ~= nil and buf_handler_index > 1 then
     vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index - 1])
     pin.refresh_tabline()
   end
 end
 
 --- Edit the buf to the right in the pinned bufs list.
---- Assumption: The current buf is a pinned buf. If this is not true, nothing is done.
 function pin.edit_right()
-  local buf_handler_index = table_find_index(state.pinned_bufs, vim.fn.bufnr())
-  if buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
+  local buf_handler = vim.fn.bufnr()
+  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
+  if
+    buf_handler_index ~= nil
+    and state.last_unpinned_buf ~= nil
+    and buf_handler_index == #state.pinned_bufs
+  then
+    vim.cmd("buffer " .. state.last_unpinned_buf)
+    pin.refresh_tabline()
+  elseif buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
     vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index + 1])
     pin.refresh_tabline()
   end
@@ -180,6 +220,34 @@ end
 local pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 function pin.setup()
+  -- Here, the order of the definition of the autocmds is important.
+  -- When autocmds have the same event, the autocmds defined first are executed first.
+
+  -- Track the last unpinned buf.
+  vim.api.nvim_create_autocmd("BufEnter", {
+    group = pin_augroup,
+    callback = function(event)
+      local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
+      if buf_handler_index == nil then
+        state.last_unpinned_buf = event.buf
+      end
+    end
+  })
+
+  -- Remove wiped out bufs from state.
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = pin_augroup,
+    callback = function(event)
+      local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
+      if buf_handler_index ~= nil then
+        table.remove(state.pinned_bufs, buf_handler_index)
+      elseif buf_handler_index == nil and event.buf == vim.fn.bufnr() then
+        state.last_unpinned_buf = nil
+      end
+      pin.refresh_tabline()
+    end
+  })
+
   -- Redraw the tabline when switching bufs and wins.
   vim.api.nvim_create_autocmd({
     "BufNew",
@@ -193,18 +261,6 @@ function pin.setup()
   }, {
     group = pin_augroup,
     callback = pin.refresh_tabline
-  })
-
-  -- Remove wiped out bufs from the pinned bufs list.
-  vim.api.nvim_create_autocmd("BufWipeout", {
-    group = pin_augroup,
-    callback = function(event)
-      local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
-      if buf_handler_index ~= nil then
-        table.remove(state.pinned_bufs, buf_handler_index)
-      end
-      pin.refresh_tabline()
-    end
   })
 end
 
