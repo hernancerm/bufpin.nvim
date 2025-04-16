@@ -241,7 +241,7 @@ function pin.setup()
       local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
       if buf_handler_index ~= nil then
         table.remove(state.pinned_bufs, buf_handler_index)
-      elseif buf_handler_index == nil and event.buf == vim.fn.bufnr() then
+      elseif event.buf == state.last_non_pinned_buf then
         state.last_non_pinned_buf = nil
       end
       pin.refresh_tabline()
