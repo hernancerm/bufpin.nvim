@@ -123,6 +123,17 @@ function pin.refresh_tabline()
       tabline = tabline .. prefix .. basename .. suffix
     end
   end
+  if #tabline > 0
+    and not (#state.pinned_bufs == 1 and buf_handler == state.pinned_bufs[1])
+    and not (
+      #state.pinned_bufs == 0
+      and state.last_non_pinned_buf ~= nil
+      and buf_handler == state.last_non_pinned_buf
+    )
+  then
+    -- Add ending separator character.
+    tabline = tabline .. "▏"
+  end
   vim.o.tabline = tabline
 end
 
