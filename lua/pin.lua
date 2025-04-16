@@ -23,12 +23,12 @@ end
 
 local state = {
   pinned_bufs = {},
-  last_unpinned_buf = nil
+  last_non_pinned_buf = nil
 }
 
 local function pin_buf(buf_handler)
-  if buf_handler == state.last_unpinned_buf then
-    state.last_unpinned_buf = nil
+  if buf_handler == state.last_non_pinned_buf then
+    state.last_non_pinned_buf = nil
   end
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index == nil then
@@ -37,8 +37,8 @@ local function pin_buf(buf_handler)
 end
 
 local function unpin_buf(buf_handler)
-  if state.last_unpinned_buf == nil and buf_handler == vim.fn.bufnr() then
-    state.last_unpinned_buf = vim.fn.bufnr()
+  if state.last_non_pinned_buf == nil and buf_handler == vim.fn.bufnr() then
+    state.last_non_pinned_buf = vim.fn.bufnr()
   end
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if buf_handler_index ~= nil then
@@ -96,16 +96,16 @@ function pin.refresh_tabline()
       tabline = tabline .. prefix .. basename .. " " .. pin.config.pin_char .. suffix
     end
   end
-  -- Last unpinned buf.
-  if state.last_unpinned_buf ~= nil then
+  -- Last non-pinned buf.
+  if state.last_non_pinned_buf ~= nil then
     local basename = ""
-    local buf_name = vim.api.nvim_buf_get_name(state.last_unpinned_buf)
+    local buf_name = vim.api.nvim_buf_get_name(state.last_non_pinned_buf)
     if buf_name ~= "" then
       basename = vim.fs.basename(buf_name)
     else
       basename = vim.api.nvim_eval_statusline("%f", {}).str
     end
-    if state.last_unpinned_buf == buf_handler then
+    if state.last_non_pinned_buf == buf_handler then
       local prefix = "%#TabLineSel#  "
       local suffix = "  %*"
       tabline = tabline .. prefix .. basename .. suffix
@@ -183,7 +183,7 @@ end
 function pin.edit_left()
   local buf_handler = vim.fn.bufnr()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index == nil and state.last_unpinned_buf == buf_handler then
+  if buf_handler_index == nil and state.last_non_pinned_buf == buf_handler then
     vim.cmd("buffer " .. state.pinned_bufs[#state.pinned_bufs])
     pin.refresh_tabline()
   elseif buf_handler_index ~= nil and buf_handler_index > 1 then
@@ -198,10 +198,10 @@ function pin.edit_right()
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
   if
     buf_handler_index ~= nil
-    and state.last_unpinned_buf ~= nil
+    and state.last_non_pinned_buf ~= nil
     and buf_handler_index == #state.pinned_bufs
   then
-    vim.cmd("buffer " .. state.last_unpinned_buf)
+    vim.cmd("buffer " .. state.last_non_pinned_buf)
     pin.refresh_tabline()
   elseif buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
     vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index + 1])
@@ -223,13 +223,13 @@ function pin.setup()
   -- Here, the order of the definition of the autocmds is important.
   -- When autocmds have the same event, the autocmds defined first are executed first.
 
-  -- Track the last unpinned buf.
+  -- Track the last non-pinned buf.
   vim.api.nvim_create_autocmd("BufEnter", {
     group = pin_augroup,
     callback = function(event)
       local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
       if buf_handler_index == nil then
-        state.last_unpinned_buf = event.buf
+        state.last_non_pinned_buf = event.buf
       end
     end
   })
@@ -242,7 +242,7 @@ function pin.setup()
       if buf_handler_index ~= nil then
         table.remove(state.pinned_bufs, buf_handler_index)
       elseif buf_handler_index == nil and event.buf == vim.fn.bufnr() then
-        state.last_unpinned_buf = nil
+        state.last_non_pinned_buf = nil
       end
       pin.refresh_tabline()
     end
