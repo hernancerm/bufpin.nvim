@@ -63,22 +63,22 @@ end
 
 --- Sets the value for 'tabline'.
 function pin.refresh_tabline()
-  -- -- Mockup:
-  -- vim.o.tabline = " pom.xml 󰐃 %#TabLineSel# SellHostReservation.java 󰐃 %* README.md 󰐃 │ LICENSE │"
   local tabline = ""
   for i, pinned_buf in ipairs(state.pinned_bufs) do
-    local buf_basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
     if pinned_buf == vim.fn.bufnr() then
-      local prefix = "%#TabLineSel# "
-      local suffix = " %*"
-      tabline = tabline .. prefix .. buf_basename .. " " .. pin.config.pin_char .. suffix
+      local prefix = "%#TabLineSel#  "
+      local suffix = "  %*"
+      tabline = tabline .. prefix .. basename .. " " .. pin.config.pin_char .. suffix
     else
-      local prefix = "│ "
-      local suffix = " "
+      -- For other bar chars, see:
+      -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
+      local prefix = "▏ "
+      local suffix = "  "
       if i == 1 or state.pinned_bufs[i - 1] == vim.fn.bufnr() then
-        prefix = " "
+        prefix = "  "
       end
-      tabline = tabline .. prefix .. buf_basename .. " " .. pin.config.pin_char .. suffix
+      tabline = tabline .. prefix .. basename .. " " .. pin.config.pin_char .. suffix
     end
   end
   vim.o.tabline = tabline
