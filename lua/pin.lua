@@ -66,7 +66,7 @@ local function pin_buf(buf_handler)
 end
 
 local function unpin_buf(buf_handler)
-  if state.last_non_pinned_buf == nil and buf_handler == vim.fn.bufnr() then
+  if buf_handler == vim.fn.bufnr() then
     state.last_non_pinned_buf = vim.fn.bufnr()
   end
   local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
