@@ -19,9 +19,9 @@ local function table_find_index(tbl, target_value)
   return index
 end
 
----@return string? The basename for a buf, or nil when there is no filename.
+---@return string The basename for a buf, or `[No Name]` when the buf has no name.
 local function fs_buf_get_basename(buf_handler)
-  local basename = nil
+  local basename = "[No Name]"
   local buf_name = vim.api.nvim_buf_get_name(buf_handler)
   if buf_name ~= "" then
     basename = vim.fs.basename(buf_name)
@@ -69,7 +69,10 @@ end
 
 pin.config = {
   pin_char = "󰐃",
-  auto_hide_tabline = true
+  -- Must be a left-aligned char. For other bar chars see:
+  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
+  buf_separator_char = "▏",
+  auto_hide_tabline = true,
 }
 
 --- Get all pinned bufs.
@@ -82,49 +85,59 @@ local function build_tabline_buf(parts)
   return parts.prefix .. parts.value .. parts.suffix
 end
 
---- Sets the value for 'tabline'.
-function pin.refresh_tabline()
-  local tabline = ""
-  -- For other bar chars, see:
-  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
-  local vertical_bar_left = "▏ "
+local function build_tabline_pinned_bufs()
+  local output = ""
   local buf_handler = vim.fn.bufnr()
-  -- Pinned bufs.
   for i, pinned_buf in ipairs(state.pinned_bufs) do
-    local basename = fs_buf_get_basename(pinned_buf) or "[No Name]"
+    local basename = fs_buf_get_basename(pinned_buf)
     if pinned_buf == buf_handler then
-      tabline = tabline .. build_tabline_buf({
+      output = output .. build_tabline_buf({
         prefix = "%#TabLineSel#  ",
         value = basename .. " " .. pin.config.pin_char,
         suffix = "  %*"
       })
     else
-      local prefix = vertical_bar_left
+      local prefix = pin.config.buf_separator_char .. " "
       if i == 1 or state.pinned_bufs[i - 1] == buf_handler then
         prefix = "  "
       end
-      tabline = tabline .. build_tabline_buf({
+      output = output .. build_tabline_buf({
         prefix = prefix,
         value = basename .. " " .. pin.config.pin_char,
         suffix = "  "
       })
     end
   end
-  -- Last non-pinned buf.
+  return output
+end
+
+local function build_tabline_last_non_pinned_buf()
+  local output = ""
+  local buf_handler = vim.fn.bufnr()
   if state.last_non_pinned_buf ~= nil then
-    local basename = fs_buf_get_basename(state.last_non_pinned_buf) or "[No Name]"
+    local basename = fs_buf_get_basename(state.last_non_pinned_buf)
     if state.last_non_pinned_buf == buf_handler then
       local prefix = "%#TabLineSel#  "
       local suffix = "  %*"
-      tabline = tabline .. prefix .. basename .. suffix
+      output = output .. prefix .. basename .. suffix
     else
-      local prefix = vertical_bar_left
+      local prefix = pin.config.buf_separator_char .. " "
       if #state.pinned_bufs == 0 then
         prefix = "  "
       end
-      tabline = tabline .. build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
+      output = output .. build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
     end
   end
+  return output
+end
+
+--- Set the option 'tabline'.
+function pin.refresh_tabline()
+  local tabline = ""
+  tabline = tabline .. build_tabline_pinned_bufs()
+  tabline = tabline .. build_tabline_last_non_pinned_buf()
+  -- Add ending separator character.
+  local buf_handler = vim.fn.bufnr()
   if #tabline > 0
     and not (#state.pinned_bufs == 1 and buf_handler == state.pinned_bufs[1])
     and not (
@@ -133,8 +146,7 @@ function pin.refresh_tabline()
       and buf_handler == state.last_non_pinned_buf
     )
   then
-    -- Add ending separator character.
-    tabline = tabline .. vertical_bar_left
+    tabline = tabline .. pin.config.buf_separator_char
   end
   vim.o.tabline = tabline
 end
