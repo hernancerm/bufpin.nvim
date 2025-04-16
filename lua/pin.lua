@@ -29,6 +29,22 @@ local function fs_buf_get_basename(buf_handler)
   return basename
 end
 
+---@param buf_handler integer
+---@return boolean
+local function is_plugin_window(buf_handler)
+  local filetype = vim.bo[buf_handler].filetype
+  local special_non_plugin_filetypes = { nil, "", "help", "man" }
+  local matched_filetype, _ = vim.filetype.match({ buf = buf_handler })
+  -- Although the quickfix and location lists are not plugin windows, using the
+  -- plugin window format in these windows looks more sensible.
+  if vim.bo.buftype == "quickfix" then
+    return true
+  end
+  return matched_filetype == nil
+    and not vim.bo.buflisted
+    and not vim.tbl_contains(special_non_plugin_filetypes, filetype)
+end
+
 -- STATE
 
 local state = {
@@ -37,6 +53,9 @@ local state = {
 }
 
 local function pin_buf(buf_handler)
+  if is_plugin_window(buf_handler) then
+    return
+  end
   if buf_handler == state.last_non_pinned_buf then
     state.last_non_pinned_buf = nil
   end
@@ -284,7 +303,7 @@ function pin.setup()
     group = pin_augroup,
     callback = function(event)
       local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
-      if buf_handler_index == nil then
+      if buf_handler_index == nil and not is_plugin_window(event.buf) then
         state.last_non_pinned_buf = event.buf
       end
     end
