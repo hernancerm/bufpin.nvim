@@ -79,7 +79,7 @@ function pin.refresh_tabline()
     if buf_name ~= "" then
       basename = vim.fs.basename(buf_name)
     else
-      basename = vim.api.nvim_eval_statusline("%f", {}).str
+      basename = "[No Name]"
     end
     if pinned_buf == buf_handler then
       local prefix = "%#TabLineSel#  "
@@ -103,7 +103,7 @@ function pin.refresh_tabline()
     if buf_name ~= "" then
       basename = vim.fs.basename(buf_name)
     else
-      basename = vim.api.nvim_eval_statusline("%f", {}).str
+      basename = "[No Name]"
     end
     if state.last_non_pinned_buf == buf_handler then
       local prefix = "%#TabLineSel#  "
