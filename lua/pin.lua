@@ -171,17 +171,10 @@ local function build_tabline_last_non_pinned_buf()
   return output
 end
 
---- Set the option 'tabline'.
-function pin.refresh_tabline()
-  if vim.fn.exists("SessionLoad") == 1 then
-    return
-  end
-  local tabline = ""
-  tabline = tabline .. build_tabline_pinned_bufs()
-  tabline = tabline .. build_tabline_last_non_pinned_buf()
-  -- Add ending separator character.
+local function build_tabline_ending_separator_char(tabline_length)
+  local output = ""
   local bufnr = vim.fn.bufnr()
-  if #tabline > 0
+  if tabline_length > 0
     and not (#state.pinned_bufs == 1 and bufnr == state.pinned_bufs[1])
     and not (
       #state.pinned_bufs == 0
@@ -189,8 +182,21 @@ function pin.refresh_tabline()
       and bufnr == state.last_non_pinned_buf
     )
   then
-    tabline = tabline .. pin.config.buf_separator_char
+    output = pin.config.buf_separator_char
   end
+  return output
+end
+
+--- Set the option 'tabline'.
+---@param force boolean Set the tabline regardless of session loading or any other skip check.
+function pin.refresh_tabline(force)
+  if vim.fn.exists("SessionLoad") == 1 and force ~= true then
+    return
+  end
+  local tabline = ""
+  tabline = tabline .. build_tabline_pinned_bufs()
+  tabline = tabline .. build_tabline_last_non_pinned_buf()
+  tabline = tabline .. build_tabline_ending_separator_char(#tabline)
   vim.o.tabline = tabline
   if pin.config.auto_hide_tabline then
     show_tabline()
@@ -383,7 +389,7 @@ function pin.setup()
           state.last_non_pinned_buf = vim.fn.bufadd(decoded_state.last_non_pinned_buf)
         end
       end
-      pin.refresh_tabline()
+      pin.refresh_tabline(true)
     end
   })
 end
