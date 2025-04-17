@@ -45,7 +45,6 @@ while tab_number <= 4
   execute "nmap <F" . tab_number . "> <Action>(GoToTab" . tab_number . ")"
   let tab_number = tab_number + 1
 endwhile
-nmap <S-F4> <Action>(GoToLastTab)
 ```
 
 ### Solution - Neovim
@@ -53,6 +52,8 @@ nmap <S-F4> <Action>(GoToLastTab)
 This plugin, which provides the IntelliJ behavior as described above.
 
 ## Features
+
+- Store pinned buffers in session, for sessions either managed manually or through a plugin.
 
 ## Out of scope
 
@@ -87,6 +88,21 @@ pin.setup()
 Is equivalent to:
 
 ```lua
+```
+
+Default key mappings:
+
+```lua
+vim.keymap.set("n", "<Leader>p", pin.toggle, opts())
+vim.keymap.set("n", "<Leader>w", pin.wipeout, opts())
+vim.keymap.set("n", "<Up>", pin.edit_left, opts())
+vim.keymap.set("n", "<Down>", pin.edit_right, opts())
+vim.keymap.set("n", "<Left>", pin.move_left, opts())
+vim.keymap.set("n", "<Right>", pin.move_right, opts())
+vim.keymap.set("n", "<F1>", function() pin.edit_by_index(1) end, opts())
+vim.keymap.set("n", "<F2>", function() pin.edit_by_index(2) end, opts())
+vim.keymap.set("n", "<F3>", function() pin.edit_by_index(3) end, opts())
+vim.keymap.set("n", "<F4>", function() pin.edit_by_index(4) end, opts())
 ```
 
 ## Documentation

@@ -1,0 +1,76 @@
+*pin* A Harpoon-inspired buffer manager for IdeaVim users.
+
+MIT License Copyright (c) 2025 Hernán Cervera.
+
+Contents:
+
+1. Functions                                                     |pin-functions|
+
+==============================================================================
+
+The merged config (defaults with user overrides) is in `pin.config`. The
+default config is in `pin.default_config`. Below is the default config:
+>lua
+  {
+    pin_char = "󰐃",
+    auto_hide_tabline = true,
+    set_default_keymaps = true
+  }
+<
+------------------------------------------------------------------------------
+                                                                 *pin-functions*
+Functions ~
+
+                                                                     *pin.get()*
+                                  `pin.get`()
+Get all pinned bufs.
+Return ~
+`(table)`
+
+                                                         *pin.refresh_tabline()*
+                         `pin.refresh_tabline`({force})
+Set the option 'tabline'.
+Parameters ~
+{force} `(boolean?)` Set the tabline regardless of session loading or any other skip check.
+
+                                                                     *pin.pin()*
+                               `pin.pin`({bufnr})
+Pin the current buf.
+
+                                                                   *pin.unpin()*
+                              `pin.unpin`({bufnr})
+Unpin the current buf.
+
+                                                                  *pin.toggle()*
+                             `pin.toggle`({bufnr})
+Toggle the pin state of the provided buf.
+Parameters ~
+{bufnr} `(integer)` Buf handler.
+
+                                                                 *pin.wipeout()*
+                             `pin.wipeout`({bufnr})
+Wipeout (completely remove) the provided buf.
+Parameters ~
+{bufnr} `(integer)` Buf handler.
+
+                                                               *pin.move_left()*
+                               `pin.move_left`()
+Moves the current buf to the left in the pinned bufs list.
+
+                                                              *pin.move_right()*
+                               `pin.move_right`()
+Moves the current buf to the right in the pinned bufs list.
+
+                                                               *pin.edit_left()*
+                               `pin.edit_left`()
+Edit the buf to the left in the pinned bufs list.
+
+                                                              *pin.edit_right()*
+                               `pin.edit_right`()
+Edit the buf to the right in the pinned bufs list.
+
+                                                           *pin.edit_by_index()*
+                          `pin.edit_by_index`({index})
+Edit the buf by index (order in which it appears in the tabline).
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
