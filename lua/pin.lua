@@ -12,8 +12,8 @@ local pin = {}
 local h = {}
 
 function pin.setup(config)
-  -- Here, the order of the definition of the autocmds is important.
-  -- When autocmds have the same event, the autocmds defined first are executed first.
+  -- Here, the order of the definition of the autocmds is important. When autocmds
+  -- have the same event, the autocmds defined first are executed first.
 
   -- Cleanup.
   if #vim.api.nvim_get_autocmds({ group = h.pin_augroup }) > 0 then
@@ -31,7 +31,7 @@ function pin.setup(config)
       if bufnr_index == nil and not h.is_plugin_window(event.buf) then
         h.state.last_non_pinned_buf = event.buf
       end
-    end
+    end,
   })
 
   -- Remove wiped out bufs from state.
@@ -45,7 +45,7 @@ function pin.setup(config)
         h.state.last_non_pinned_buf = nil
       end
       pin.refresh_tabline()
-    end
+    end,
   })
 
   -- Redraw the tabline when switching bufs and wins.
@@ -60,7 +60,7 @@ function pin.setup(config)
     "WinEnter",
   }, {
     group = h.pin_augroup,
-    callback = pin.refresh_tabline
+    callback = pin.refresh_tabline,
   })
 
   -- Re-build state from session.
@@ -69,7 +69,7 @@ function pin.setup(config)
     callback = function()
       if vim.g.PinState ~= nil then
         local decoded_state = vim.json.decode(vim.g.PinState)
-         -- Reset `state.pinned_bufs` to its default.
+        -- Reset `state.pinned_bufs` to its default.
         h.state.pinned_bufs = {}
         for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
           table.insert(h.state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
@@ -77,16 +77,21 @@ function pin.setup(config)
         -- Reset `state.last_non_pinned_buf` to its default.
         h.state.last_non_pinned_buf = nil
         if decoded_state.last_non_pinned_buf ~= nil then
-          h.state.last_non_pinned_buf = vim.fn.bufadd(decoded_state.last_non_pinned_buf)
+          h.state.last_non_pinned_buf =
+            vim.fn.bufadd(decoded_state.last_non_pinned_buf)
         end
       end
       pin.refresh_tabline(true)
-    end
+    end,
   })
 
   if pin.config.set_default_keymaps then
     local function opts(options)
-      return vim.tbl_deep_extend("force", vim.deepcopy({ silent = true }), options or {})
+      return vim.tbl_deep_extend(
+        "force",
+        vim.deepcopy({ silent = true }),
+        options or {}
+      )
     end
     vim.keymap.set("n", "<Leader>p", pin.toggle, opts())
     vim.keymap.set("n", "<Leader>w", pin.wipeout, opts())
@@ -94,10 +99,18 @@ function pin.setup(config)
     vim.keymap.set("n", "<Down>", pin.edit_right, opts())
     vim.keymap.set("n", "<Left>", pin.move_left, opts())
     vim.keymap.set("n", "<Right>", pin.move_right, opts())
-    vim.keymap.set("n", "<F1>", function() pin.edit_by_index(1) end, opts())
-    vim.keymap.set("n", "<F2>", function() pin.edit_by_index(2) end, opts())
-    vim.keymap.set("n", "<F3>", function() pin.edit_by_index(3) end, opts())
-    vim.keymap.set("n", "<F4>", function() pin.edit_by_index(4) end, opts())
+    vim.keymap.set("n", "<F1>", function()
+      pin.edit_by_index(1)
+    end, opts())
+    vim.keymap.set("n", "<F2>", function()
+      pin.edit_by_index(2)
+    end, opts())
+    vim.keymap.set("n", "<F3>", function()
+      pin.edit_by_index(3)
+    end, opts())
+    vim.keymap.set("n", "<F4>", function()
+      pin.edit_by_index(4)
+    end, opts())
   end
 end
 
@@ -109,10 +122,10 @@ local function assign_default_config()
   --minidoc_replace_end
   --minidoc_replace_start {
   pin.default_config = {
-  --minidoc_replace_end
+    --minidoc_replace_end
     pin_char = "󰐃",
     auto_hide_tabline = true,
-    set_default_keymaps = true
+    set_default_keymaps = true,
   }
   --minidoc_afterlines_end
 end
@@ -139,7 +152,8 @@ function pin.refresh_tabline(force)
   local buf_separator_char = "▏"
   tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
   tabline = tabline .. h.build_tabline_last_non_pinned_buf(buf_separator_char)
-  tabline = tabline .. h.build_tabline_ending_separator_char(#tabline, buf_separator_char)
+  tabline = tabline
+    .. h.build_tabline_ending_separator_char(#tabline, buf_separator_char)
   vim.o.tabline = tabline
   if pin.config.auto_hide_tabline then
     h.show_tabline()
@@ -238,7 +252,7 @@ function pin.edit_left()
       vim.cmd("buffer " .. h.state.last_non_pinned_buf)
       pin.refresh_tabline()
     else
-    -- Circular editing (from the first buf in the tabline go to the right-most buf).
+      -- Circular editing.
       vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
       pin.refresh_tabline()
     end
@@ -264,9 +278,12 @@ function pin.edit_right()
     pin.refresh_tabline()
   elseif
     #h.state.pinned_bufs > 1
-    and (bufnr_index == #h.state.pinned_bufs or bufnr == h.state.last_non_pinned_buf)
+    and (
+      bufnr_index == #h.state.pinned_bufs
+      or bufnr == h.state.last_non_pinned_buf
+    )
   then
-    -- Circular editing (from the last buf in the tabline go to the left-most buf).
+    -- Circular editing.
     vim.cmd("buffer " .. h.state.pinned_bufs[1])
     pin.refresh_tabline()
   end
@@ -274,14 +291,16 @@ end
 
 --- Edit the buf by index (order in which it appears in the tabline).
 function pin.edit_by_index(index)
-    if index <= #h.state.pinned_bufs then
-      -- Edit a pinned buf.
-      vim.cmd("buffer " .. h.state.pinned_bufs[index])
-    elseif index == #h.state.pinned_bufs + 1 and h.state.last_non_pinned_buf ~= nil then
-      -- Edit the last non pinned buf.
-      vim.cmd("buffer " .. h.state.last_non_pinned_buf)
-    end
-    pin.refresh_tabline()
+  if index <= #h.state.pinned_bufs then
+    -- Edit a pinned buf.
+    vim.cmd("buffer " .. h.state.pinned_bufs[index])
+  elseif
+    index == #h.state.pinned_bufs + 1 and h.state.last_non_pinned_buf ~= nil
+  then
+    -- Edit the last non pinned buf.
+    vim.cmd("buffer " .. h.state.last_non_pinned_buf)
+  end
+  pin.refresh_tabline()
 end
 
 -- Set module default config.
@@ -302,20 +321,28 @@ function h.get_config_with_fallback(config, default_config)
     vim.tbl_deep_extend("force", vim.deepcopy(default_config), config or {})
   vim.validate("config.pin_char", config.pin_char, "string")
   vim.validate("config.auto_hide_tabline", config.auto_hide_tabline, "boolean")
-  vim.validate("config.set_default_keymaps", config.set_default_keymaps, "boolean")
+  vim.validate(
+    "config.set_default_keymaps",
+    config.set_default_keymaps,
+    "boolean"
+  )
   return config
 end
 
---- For session persistence. Store state in `vim.g.PinState`. Deserialize in the autocmd event
---- `SessionLoadPost.` In `pinned_bufs` and `last_non_pinned_buf`, full file names are serialized.
---- Note: Neovim has no `SessionWritePre` event: <https://github.com/neovim/neovim/issues/22814>.
+--- For session persistence. Store state in `vim.g.PinState`. Deserialize in the
+--- autocmd event `SessionLoadPost.` In `pinned_bufs` and `last_non_pinned_buf`,
+--- full file names are serialized. Note: Neovim has no `SessionWritePre` event:
+--- <https://github.com/neovim/neovim/issues/22814>.
 function h.serialize_state()
   vim.g.PinState = vim.json.encode({
-    pinned_bufs = vim.iter(h.state.pinned_bufs):map(function(bufnr)
-      return vim.api.nvim_buf_get_name(bufnr)
-    end):totable(),
+    pinned_bufs = vim
+      .iter(h.state.pinned_bufs)
+      :map(function(bufnr)
+        return vim.api.nvim_buf_get_name(bufnr)
+      end)
+      :totable(),
     last_non_pinned_buf = h.state.last_non_pinned_buf
-      and vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf)
+      and vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf),
   })
 end
 
@@ -333,21 +360,23 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
   for i, pinned_buf in ipairs(h.state.pinned_bufs) do
     local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
     if pinned_buf == bufnr then
-      output = output .. h.build_tabline_buf({
-        prefix = "%#TabLineSel#  ",
-        value = basename .. " " .. pin.config.pin_char,
-        suffix = "  %*"
-      })
+      output = output
+        .. h.build_tabline_buf({
+          prefix = "%#TabLineSel#  ",
+          value = basename .. " " .. pin.config.pin_char,
+          suffix = "  %*",
+        })
     else
       local prefix = buf_separator_char .. " "
       if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
         prefix = "  "
       end
-      output = output .. h.build_tabline_buf({
-        prefix = prefix,
-        value = basename .. " " .. pin.config.pin_char,
-        suffix = "  "
-      })
+      output = output
+        .. h.build_tabline_buf({
+          prefix = prefix,
+          value = basename .. " " .. pin.config.pin_char,
+          suffix = "  ",
+        })
     end
   end
   return output
@@ -361,7 +390,8 @@ function h.build_tabline_last_non_pinned_buf(buf_separator_char)
     return output
   end
   local bufnr = vim.fn.bufnr()
-  local basename = vim.fs.basename(vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf))
+  local basename =
+    vim.fs.basename(vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf))
   if h.state.last_non_pinned_buf == bufnr then
     local prefix = "%#TabLineSel#  "
     local suffix = "  %*"
@@ -371,7 +401,8 @@ function h.build_tabline_last_non_pinned_buf(buf_separator_char)
     if #h.state.pinned_bufs == 0 then
       prefix = "  "
     end
-    output = output .. h.build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
+    output = output
+      .. h.build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
   end
   return output
 end
@@ -382,7 +413,8 @@ end
 function h.build_tabline_ending_separator_char(tabline_length, buf_separator_char)
   local output = ""
   local bufnr = vim.fn.bufnr()
-  if tabline_length > 0
+  if
+    tabline_length > 0
     and not (#h.state.pinned_bufs == 1 and bufnr == h.state.pinned_bufs[1])
     and not (
       #h.state.pinned_bufs == 0
@@ -461,7 +493,7 @@ h.pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
-  last_non_pinned_buf = nil
+  last_non_pinned_buf = nil,
 }
 
 return pin
