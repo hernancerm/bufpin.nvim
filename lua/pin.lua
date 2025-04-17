@@ -12,6 +12,8 @@
 --- #tag pin-introduction
 --- Introduction ~
 ---
+--- Pitch: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
+---
 --- Quickstart
 ---
 --- To enable the plugin you need to call the |pin.setup()| function. To use the
@@ -121,6 +123,9 @@ function h.assign_default_config()
   --minidoc_replace_start {
   pin.default_config = {
     --minidoc_replace_end
+    -- In Nerd Fonts is "nf-md-pin".
+    -- - <https://www.nerdfonts.com/cheat-sheet>
+    -- - <https://www.compart.com/en/unicode/U+F0403>.
     pin_char = "󰐃",
     auto_hide_tabline = true,
     set_default_keymaps = true,
