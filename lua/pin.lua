@@ -39,8 +39,8 @@ local function log(message, level)
   )
 end
 
---- For session persistence. Store state in `vim.g.PinState`.
---- For `pinned_bufs` and `last_non_pinned_buf`, the full file names are serialized.
+--- For session persistence. Store state in `vim.g.PinState`. Deserialize in the autocmd event
+--- `SessionLoadPost.` In `pinned_bufs` and `last_non_pinned_buf`, full file names are serialized.
 --- Note: Neovim has no `SessionWritePre` event: <https://github.com/neovim/neovim/issues/22814>.
 local function serialize_state()
   vim.g.PinState = vim.json.encode({
@@ -382,9 +382,13 @@ function pin.setup()
     callback = function()
       if vim.g.PinState ~= nil then
         local decoded_state = vim.json.decode(vim.g.PinState)
+         -- Reset `state.pinned_bufs` to its default.
+        state.pinned_bufs = {}
         for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
           table.insert(state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
         end
+        -- Reset `state.last_non_pinned_buf` to its default.
+        state.last_non_pinned_buf = nil
         if decoded_state.last_non_pinned_buf ~= nil then
           state.last_non_pinned_buf = vim.fn.bufadd(decoded_state.last_non_pinned_buf)
         end
