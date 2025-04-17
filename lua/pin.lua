@@ -2,7 +2,55 @@
 
 local pin = {}
 
--- UTIL
+-- TODO: Differentiate files named the same but in different dirs.
+
+-- GLOBALS
+
+-- Internals.
+local constants = {
+  LOG_FILEPATH = vim.fn.stdpath("data") .. "/pin.lua/pin.log"
+}
+
+-- Internals.
+local state = {
+  pinned_bufs = {},
+  last_non_pinned_buf = nil
+}
+
+-- This is part of the API.
+pin.config = {
+  pin_char = "󰐃",
+  -- Must be a left-aligned char. For other bar chars see:
+  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
+  buf_separator_char = "▏",
+  auto_hide_tabline = true,
+}
+
+-- HELPERS
+
+---@param message string
+---@param level integer? As per |vim.log.levels|.
+local function log(message, level)
+  level = level or vim.log.levels.INFO
+  vim.fn.writefile(
+    { string.format("%s - %s\n", vim.fn.get({ "D", "I", "W", "E" }, level - 1), message) },
+    constants.LOG_FILEPATH,
+    "a"
+  )
+end
+
+--- For session persistence. Store state in `vim.g.PinState`.
+--- For `pinned_bufs` and `last_non_pinned_buf`, the full file names are serialized.
+--- Note: Neovim has no `SessionWritePre` event: <https://github.com/neovim/neovim/issues/22814>.
+local function serialize_state()
+  vim.g.PinState = vim.json.encode({
+    pinned_bufs = vim.iter(state.pinned_bufs):map(function(bufnr)
+      return vim.api.nvim_buf_get_name(bufnr)
+    end):totable(),
+    last_non_pinned_buf = state.last_non_pinned_buf
+      and vim.api.nvim_buf_get_name(state.last_non_pinned_buf)
+  })
+end
 
 --- Find the index of a value in a list-like table.
 ---@param tbl table Numerically indexed table (list).
@@ -19,22 +67,12 @@ local function table_find_index(tbl, target_value)
   return index
 end
 
----@return string The basename for a buf, or `[No Name]` when the buf has no name.
-local function fs_buf_get_basename(buf_handler)
-  local basename = "[No Name]"
-  local buf_name = vim.api.nvim_buf_get_name(buf_handler)
-  if buf_name ~= "" then
-    basename = vim.fs.basename(buf_name)
-  end
-  return basename
-end
-
----@param buf_handler integer
+---@param bufnr integer
 ---@return boolean
-local function is_plugin_window(buf_handler)
-  local filetype = vim.bo[buf_handler].filetype
+local function is_plugin_window(bufnr)
+  local filetype = vim.bo[bufnr].filetype
   local special_non_plugin_filetypes = { nil, "", "help", "man" }
-  local matched_filetype, _ = vim.filetype.match({ buf = buf_handler })
+  local matched_filetype, _ = vim.filetype.match({ buf = bufnr })
   -- Although the quickfix and location lists are not plugin windows, using the
   -- plugin window format in these windows looks more sensible.
   if vim.bo.buftype == "quickfix" then
@@ -45,33 +83,23 @@ local function is_plugin_window(buf_handler)
     and not vim.tbl_contains(special_non_plugin_filetypes, filetype)
 end
 
--- STATE
-
-local state = {
-  pinned_bufs = {},
-  last_non_pinned_buf = nil
-}
-
-local function pin_buf(buf_handler)
-  if is_plugin_window(buf_handler) then
-    return
-  end
-  if buf_handler == state.last_non_pinned_buf then
+local function pin_by_bufnr(bufnr)
+  if bufnr == state.last_non_pinned_buf then
     state.last_non_pinned_buf = nil
   end
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index == nil then
-    table.insert(state.pinned_bufs, buf_handler)
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
+  if bufnr_index == nil then
+    table.insert(state.pinned_bufs, bufnr)
   end
 end
 
-local function unpin_buf(buf_handler)
-  if buf_handler == vim.fn.bufnr() then
+local function unpin_by_bufnr(bufnr)
+  if bufnr == vim.fn.bufnr() then
     state.last_non_pinned_buf = vim.fn.bufnr()
   end
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index ~= nil then
-    table.remove(state.pinned_bufs, buf_handler_index)
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
+  if bufnr_index ~= nil then
+    table.remove(state.pinned_bufs, bufnr_index)
   end
 end
 
@@ -86,14 +114,6 @@ end
 
 -- API
 
-pin.config = {
-  pin_char = "󰐃",
-  -- Must be a left-aligned char. For other bar chars see:
-  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
-  buf_separator_char = "▏",
-  auto_hide_tabline = true,
-}
-
 --- Get all pinned bufs.
 ---@return table
 function pin.get()
@@ -106,10 +126,10 @@ end
 
 local function build_tabline_pinned_bufs()
   local output = ""
-  local buf_handler = vim.fn.bufnr()
+  local bufnr = vim.fn.bufnr()
   for i, pinned_buf in ipairs(state.pinned_bufs) do
-    local basename = fs_buf_get_basename(pinned_buf)
-    if pinned_buf == buf_handler then
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+    if pinned_buf == bufnr then
       output = output .. build_tabline_buf({
         prefix = "%#TabLineSel#  ",
         value = basename .. " " .. pin.config.pin_char,
@@ -117,7 +137,7 @@ local function build_tabline_pinned_bufs()
       })
     else
       local prefix = pin.config.buf_separator_char .. " "
-      if i == 1 or state.pinned_bufs[i - 1] == buf_handler then
+      if i == 1 or state.pinned_bufs[i - 1] == bufnr then
         prefix = "  "
       end
       output = output .. build_tabline_buf({
@@ -132,72 +152,77 @@ end
 
 local function build_tabline_last_non_pinned_buf()
   local output = ""
-  local buf_handler = vim.fn.bufnr()
-  if state.last_non_pinned_buf ~= nil then
-    local basename = fs_buf_get_basename(state.last_non_pinned_buf)
-    if state.last_non_pinned_buf == buf_handler then
-      local prefix = "%#TabLineSel#  "
-      local suffix = "  %*"
-      output = output .. prefix .. basename .. suffix
-    else
-      local prefix = pin.config.buf_separator_char .. " "
-      if #state.pinned_bufs == 0 then
-        prefix = "  "
-      end
-      output = output .. build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
+  if state.last_non_pinned_buf == nil then
+    return output
+  end
+  local bufnr = vim.fn.bufnr()
+  local basename = vim.fs.basename(vim.api.nvim_buf_get_name(state.last_non_pinned_buf))
+  if state.last_non_pinned_buf == bufnr then
+    local prefix = "%#TabLineSel#  "
+    local suffix = "  %*"
+    output = output .. prefix .. basename .. suffix
+  else
+    local prefix = pin.config.buf_separator_char .. " "
+    if #state.pinned_bufs == 0 then
+      prefix = "  "
     end
+    output = output .. build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
   end
   return output
 end
 
 --- Set the option 'tabline'.
 function pin.refresh_tabline()
+  if vim.fn.exists("SessionLoad") == 1 then
+    return
+  end
   local tabline = ""
   tabline = tabline .. build_tabline_pinned_bufs()
   tabline = tabline .. build_tabline_last_non_pinned_buf()
   -- Add ending separator character.
-  local buf_handler = vim.fn.bufnr()
+  local bufnr = vim.fn.bufnr()
   if #tabline > 0
-    and not (#state.pinned_bufs == 1 and buf_handler == state.pinned_bufs[1])
+    and not (#state.pinned_bufs == 1 and bufnr == state.pinned_bufs[1])
     and not (
       #state.pinned_bufs == 0
       and state.last_non_pinned_buf ~= nil
-      and buf_handler == state.last_non_pinned_buf
+      and bufnr == state.last_non_pinned_buf
     )
   then
     tabline = tabline .. pin.config.buf_separator_char
   end
   vim.o.tabline = tabline
+  if pin.config.auto_hide_tabline then
+    show_tabline()
+  end
+  serialize_state()
 end
 
 --- Pin the current buf.
-function pin.pin(buf_handler)
-  buf_handler = buf_handler or vim.fn.bufnr()
-  pin_buf(buf_handler)
-  pin.refresh_tabline()
-  if pin.config.auto_hide_tabline then
-    show_tabline()
+function pin.pin(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
+  if is_plugin_window(bufnr) or vim.api.nvim_buf_get_name(bufnr) == "" then
+    return
   end
+  pin_by_bufnr(bufnr)
+  pin.refresh_tabline()
 end
 
 --- Unpin the current buf.
-function pin.unpin(buf_handler)
-  buf_handler = buf_handler or vim.fn.bufnr()
-  unpin_buf(buf_handler)
+function pin.unpin(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
+  unpin_by_bufnr(bufnr)
   pin.refresh_tabline()
-  if pin.config.auto_hide_tabline then
-    show_tabline()
-  end
 end
 
 --- Toggle the pin state of the provided buf.
----@param buf_handler integer Buf handler.
-function pin.toggle(buf_handler)
-  local buf_handler_index = table_find_index(state.pinned_bufs, vim.fn.bufnr())
-  if buf_handler_index ~= nil then
-    pin.unpin(buf_handler)
+---@param bufnr integer Buf handler.
+function pin.toggle(bufnr)
+  local bufnr_index = table_find_index(state.pinned_bufs, vim.fn.bufnr())
+  if bufnr_index ~= nil then
+    pin.unpin(bufnr)
   else
-    pin.pin(buf_handler)
+    pin.pin(bufnr)
   end
   pin.refresh_tabline()
 end
@@ -207,12 +232,12 @@ function pin.move_left()
   if #state.pinned_bufs == 0 then
     return
   end
-  local buf_handler = vim.fn.bufnr()
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index ~= nil and buf_handler_index > 1 then
-    local swap = state.pinned_bufs[buf_handler_index - 1]
-    state.pinned_bufs[buf_handler_index - 1] = buf_handler
-    state.pinned_bufs[buf_handler_index] = swap
+  local bufnr = vim.fn.bufnr()
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
+  if bufnr_index ~= nil and bufnr_index > 1 then
+    local swap = state.pinned_bufs[bufnr_index - 1]
+    state.pinned_bufs[bufnr_index - 1] = bufnr
+    state.pinned_bufs[bufnr_index] = swap
     pin.refresh_tabline()
   end
 end
@@ -222,12 +247,12 @@ function pin.move_right()
   if #state.pinned_bufs == 0 then
     return
   end
-  local buf_handler = vim.fn.bufnr()
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
-    local swap = state.pinned_bufs[buf_handler_index + 1]
-    state.pinned_bufs[buf_handler_index + 1] = buf_handler
-    state.pinned_bufs[buf_handler_index] = swap
+  local bufnr = vim.fn.bufnr()
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
+  if bufnr_index ~= nil and bufnr_index < #state.pinned_bufs then
+    local swap = state.pinned_bufs[bufnr_index + 1]
+    state.pinned_bufs[bufnr_index + 1] = bufnr
+    state.pinned_bufs[bufnr_index] = swap
     pin.refresh_tabline()
   end
 end
@@ -237,15 +262,15 @@ function pin.edit_left()
   if #state.pinned_bufs == 0 then
     return
   end
-  local buf_handler = vim.fn.bufnr()
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
-  if buf_handler_index == nil and state.last_non_pinned_buf == buf_handler then
+  local bufnr = vim.fn.bufnr()
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
+  if bufnr_index == nil and state.last_non_pinned_buf == bufnr then
     vim.cmd("buffer " .. state.pinned_bufs[#state.pinned_bufs])
     pin.refresh_tabline()
-  elseif buf_handler_index ~= nil and buf_handler_index > 1 then
-    vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index - 1])
+  elseif bufnr_index ~= nil and bufnr_index > 1 then
+    vim.cmd("buffer " .. state.pinned_bufs[bufnr_index - 1])
     pin.refresh_tabline()
-  elseif buf_handler_index == 1 then
+  elseif bufnr_index == 1 then
     if state.last_non_pinned_buf ~= nil then
       vim.cmd("buffer " .. state.last_non_pinned_buf)
       pin.refresh_tabline()
@@ -262,21 +287,21 @@ function pin.edit_right()
   if #state.pinned_bufs == 0 then
     return
   end
-  local buf_handler = vim.fn.bufnr()
-  local buf_handler_index = table_find_index(state.pinned_bufs, buf_handler)
+  local bufnr = vim.fn.bufnr()
+  local bufnr_index = table_find_index(state.pinned_bufs, bufnr)
   if
-    buf_handler_index ~= nil
+    bufnr_index ~= nil
     and state.last_non_pinned_buf ~= nil
-    and buf_handler_index == #state.pinned_bufs
+    and bufnr_index == #state.pinned_bufs
   then
     vim.cmd("buffer " .. state.last_non_pinned_buf)
     pin.refresh_tabline()
-  elseif buf_handler_index ~= nil and buf_handler_index < #state.pinned_bufs then
-    vim.cmd("buffer " .. state.pinned_bufs[buf_handler_index + 1])
+  elseif bufnr_index ~= nil and bufnr_index < #state.pinned_bufs then
+    vim.cmd("buffer " .. state.pinned_bufs[bufnr_index + 1])
     pin.refresh_tabline()
   elseif
     #state.pinned_bufs > 1
-    and (buf_handler_index == #state.pinned_bufs or buf_handler == state.last_non_pinned_buf)
+    and (bufnr_index == #state.pinned_bufs or bufnr == state.last_non_pinned_buf)
   then
     -- Circular editing (from the last buf in the tabline go to the left-most buf).
     vim.cmd("buffer " .. state.pinned_bufs[1])
@@ -302,12 +327,15 @@ function pin.setup()
   -- Here, the order of the definition of the autocmds is important.
   -- When autocmds have the same event, the autocmds defined first are executed first.
 
+  -- Create log filepath dir.
+  vim.fn.mkdir(vim.fn.fnamemodify(constants.LOG_FILEPATH, ":h"), "p")
+
   -- Track the last non-pinned buf.
   vim.api.nvim_create_autocmd("BufEnter", {
     group = pin_augroup,
     callback = function(event)
-      local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
-      if buf_handler_index == nil and not is_plugin_window(event.buf) then
+      local bufnr_index = table_find_index(state.pinned_bufs, event.buf)
+      if bufnr_index == nil and not is_plugin_window(event.buf) then
         state.last_non_pinned_buf = event.buf
       end
     end
@@ -317,9 +345,9 @@ function pin.setup()
   vim.api.nvim_create_autocmd("BufWipeout", {
     group = pin_augroup,
     callback = function(event)
-      local buf_handler_index = table_find_index(state.pinned_bufs, event.buf)
-      if buf_handler_index ~= nil then
-        table.remove(state.pinned_bufs, buf_handler_index)
+      local bufnr_index = table_find_index(state.pinned_bufs, event.buf)
+      if bufnr_index ~= nil then
+        table.remove(state.pinned_bufs, bufnr_index)
       elseif event.buf == state.last_non_pinned_buf then
         state.last_non_pinned_buf = nil
       end
@@ -340,6 +368,23 @@ function pin.setup()
   }, {
     group = pin_augroup,
     callback = pin.refresh_tabline
+  })
+
+  -- Re-build state from session.
+  vim.api.nvim_create_autocmd("SessionLoadPost", {
+    group = pin_augroup,
+    callback = function()
+      if vim.g.PinState ~= nil then
+        local decoded_state = vim.json.decode(vim.g.PinState)
+        for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
+          table.insert(state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
+        end
+        if decoded_state.last_non_pinned_buf ~= nil then
+          state.last_non_pinned_buf = vim.fn.bufadd(decoded_state.last_non_pinned_buf)
+        end
+      end
+      pin.refresh_tabline()
+    end
   })
 end
 
