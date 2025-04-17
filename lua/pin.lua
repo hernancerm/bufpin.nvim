@@ -1,5 +1,3 @@
--- Pin. Harpoon-inspired buffer manager.
-
 local pin = {}
 
 -- TODO: Differentiate files named the same but in different dirs.
