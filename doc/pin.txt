@@ -4,9 +4,33 @@ MIT License Copyright (c) 2025 Hernán Cervera.
 
 Contents:
 
-1. Functions                                                     |pin-functions|
+1. Introduction                                               |pin-introduction|
+2. Configuration                                             |pin-configuration|
+3. Functions                                                     |pin-functions|
 
 ==============================================================================
+                                                              *pin-introduction*
+Introduction ~
+
+Quickstart
+
+To enable the plugin you need to call the |pin.setup()| function. To use the
+defaults, call it without arguments:
+>lua
+  require("pin").setup()
+<
+                                                                   *pin.setup()*
+                             `pin.setup`({config})
+Module setup.
+Parameters ~
+{config} `(table?)` Merged with the default config (|pin.default_config|) and
+the former takes precedence on duplicate keys.
+
+------------------------------------------------------------------------------
+                                                                    *pin.config*
+                                                            *pin.default_config*
+                                                             *pin-configuration*
+Configuration ~
 
 The merged config (defaults with user overrides) is in `pin.config`. The
 default config is in `pin.default_config`. Below is the default config:
@@ -14,8 +38,42 @@ default config is in `pin.default_config`. Below is the default config:
   {
     pin_char = "󰐃",
     auto_hide_tabline = true,
-    set_default_keymaps = true
+    set_default_keymaps = true,
   }
+<
+                                                           *pin.config.pin_char*
+`(string)`
+Char to indicate in the tabline that a buf is pinned.
+
+                                                  *pin.config.auto_hide_tabline*
+`(boolean)`
+When there are no pinned bufs, hide the tabline.
+
+                                                *pin.config.set_default_keymaps*
+`(boolean)`
+Set this to false to set your own key maps.
+
+Default key maps:
+>lua
+  local opts = { silent = true }
+  vim.keymap.set("n", "<Leader>p", pin.toggle, opts)
+  vim.keymap.set("n", "<Leader>w", pin.wipeout, opts)
+  vim.keymap.set("n", "<Up>", pin.edit_left, opts)
+  vim.keymap.set("n", "<Down>", pin.edit_right, opts)
+  vim.keymap.set("n", "<Left>", pin.move_left, opts)
+  vim.keymap.set("n", "<Right>", pin.move_right, opts)
+  vim.keymap.set("n", "<F1>", function()
+    pin.edit_by_index(1)
+  end, opts)
+  vim.keymap.set("n", "<F2>", function()
+    pin.edit_by_index(2)
+  end, opts)
+  vim.keymap.set("n", "<F3>", function()
+    pin.edit_by_index(3)
+  end, opts)
+  vim.keymap.set("n", "<F4>", function()
+    pin.edit_by_index(4)
+  end, opts)
 <
 ------------------------------------------------------------------------------
                                                                  *pin-functions*
@@ -23,54 +81,35 @@ Functions ~
 
                                                                      *pin.get()*
                                   `pin.get`()
-Get all pinned bufs.
+Get all the pinned bufs. This is the actual list, not a copy.
 Return ~
-`(table)`
+`(table)` List of buf handlers.
 
                                                          *pin.refresh_tabline()*
                          `pin.refresh_tabline`({force})
-Set the option 'tabline'.
+Set the option 'tabline'. The tabline is not drawn during a session
+(|session-file|) load. To force draw send `force` as `true`.
 Parameters ~
-{force} `(boolean?)` Set the tabline regardless of session loading or any other skip check.
+{force} `(boolean?)`
 
                                                                      *pin.pin()*
                                `pin.pin`({bufnr})
-Pin the current buf.
+Parameters ~
+{bufnr} `(integer)`
 
                                                                    *pin.unpin()*
                               `pin.unpin`({bufnr})
-Unpin the current buf.
+Parameters ~
+{bufnr} `(integer)`
 
                                                                   *pin.toggle()*
                              `pin.toggle`({bufnr})
-Toggle the pin state of the provided buf.
 Parameters ~
-{bufnr} `(integer)` Buf handler.
+{bufnr} `(integer)`
 
                                                                  *pin.wipeout()*
                              `pin.wipeout`({bufnr})
-Wipeout (completely remove) the provided buf.
 Parameters ~
-{bufnr} `(integer)` Buf handler.
-
-                                                               *pin.move_left()*
-                               `pin.move_left`()
-Moves the current buf to the left in the pinned bufs list.
-
-                                                              *pin.move_right()*
-                               `pin.move_right`()
-Moves the current buf to the right in the pinned bufs list.
-
-                                                               *pin.edit_left()*
-                               `pin.edit_left`()
-Edit the buf to the left in the pinned bufs list.
-
-                                                              *pin.edit_right()*
-                               `pin.edit_right`()
-Edit the buf to the right in the pinned bufs list.
-
-                                                           *pin.edit_by_index()*
-                          `pin.edit_by_index`({index})
-Edit the buf by index (order in which it appears in the tabline).
+{bufnr} `(integer)`
 
  vim:tw=78:ts=8:noet:ft=help:norl:

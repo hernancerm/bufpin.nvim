@@ -4,13 +4,28 @@
 ---
 --- Contents:
 ---
---- 1. Functions                                                     |pin-functions|
+--- 1. Introduction                                               |pin-introduction|
+--- 2. Configuration                                             |pin-configuration|
+--- 3. Functions                                                     |pin-functions|
 ---
 --- ==============================================================================
+--- #tag pin-introduction
+--- Introduction ~
+---
+--- Quickstart
+---
+--- To enable the plugin you need to call the |pin.setup()| function. To use the
+--- defaults, call it without arguments:
+--- >lua
+---   require("pin").setup()
+--- <
 
 local pin = {}
 local h = {}
 
+--- Module setup.
+---@param config table? Merged with the default config (|pin.default_config|) and
+--- the former takes precedence on duplicate keys.
 function pin.setup(config)
   -- Here, the order of the definition of the autocmds is important. When autocmds
   -- have the same event, the autocmds defined first are executed first.
@@ -85,40 +100,23 @@ function pin.setup(config)
     end,
   })
 
+  -- Set default key maps.
   if pin.config.set_default_keymaps then
-    local function opts(options)
-      return vim.tbl_deep_extend(
-        "force",
-        vim.deepcopy({ silent = true }),
-        options or {}
-      )
-    end
-    vim.keymap.set("n", "<Leader>p", pin.toggle, opts())
-    vim.keymap.set("n", "<Leader>w", pin.wipeout, opts())
-    vim.keymap.set("n", "<Up>", pin.edit_left, opts())
-    vim.keymap.set("n", "<Down>", pin.edit_right, opts())
-    vim.keymap.set("n", "<Left>", pin.move_left, opts())
-    vim.keymap.set("n", "<Right>", pin.move_right, opts())
-    vim.keymap.set("n", "<F1>", function()
-      pin.edit_by_index(1)
-    end, opts())
-    vim.keymap.set("n", "<F2>", function()
-      pin.edit_by_index(2)
-    end, opts())
-    vim.keymap.set("n", "<F3>", function()
-      pin.edit_by_index(3)
-    end, opts())
-    vim.keymap.set("n", "<F4>", function()
-      pin.edit_by_index(4)
-    end, opts())
+    h.set_default_keymaps()
   end
 end
+
+--- #delimiter
+--- #tag pin.config
+--- #tag pin.default_config
+--- #tag pin-configuration
+--- Configuration ~
 
 --- The merged config (defaults with user overrides) is in `pin.config`. The
 --- default config is in `pin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 --minidoc_replace_start
-local function assign_default_config()
+function h.assign_default_config()
   --minidoc_replace_end
   --minidoc_replace_start {
   pin.default_config = {
@@ -130,18 +128,58 @@ local function assign_default_config()
   --minidoc_afterlines_end
 end
 
+--- #tag pin.config.pin_char
+--- `(string)`
+--- Char to indicate in the tabline that a buf is pinned.
+---
+--- #tag pin.config.auto_hide_tabline
+--- `(boolean)`
+--- When there are no pinned bufs, hide the tabline.
+---
+--- #tag pin.config.set_default_keymaps
+--- `(boolean)`
+--- Set this to false to set your own key maps.
+
+--- Default key maps:
+---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
+--minidoc_replace_start
+function h.set_default_keymaps()
+  --minidoc_replace_end
+  local opts = { silent = true }
+  vim.keymap.set("n", "<Leader>p", pin.toggle, opts)
+  vim.keymap.set("n", "<Leader>w", pin.wipeout, opts)
+  vim.keymap.set("n", "<Up>", pin.edit_left, opts)
+  vim.keymap.set("n", "<Down>", pin.edit_right, opts)
+  vim.keymap.set("n", "<Left>", pin.move_left, opts)
+  vim.keymap.set("n", "<Right>", pin.move_right, opts)
+  vim.keymap.set("n", "<F1>", function()
+    pin.edit_by_index(1)
+  end, opts)
+  vim.keymap.set("n", "<F2>", function()
+    pin.edit_by_index(2)
+  end, opts)
+  vim.keymap.set("n", "<F3>", function()
+    pin.edit_by_index(3)
+  end, opts)
+  vim.keymap.set("n", "<F4>", function()
+    pin.edit_by_index(4)
+  end, opts)
+  --minidoc_afterlines_end
+end
+
 --- #delimiter
 --- #tag pin-functions
 --- Functions ~
 
---- Get all pinned bufs.
----@return table
+--- Get all the pinned bufs. This is the actual list, not a copy.
+---@return table List of buf handlers.
 function pin.get()
   return h.state.pinned_bufs
 end
 
---- Set the option 'tabline'.
----@param force boolean? Set the tabline regardless of session loading or any other skip check.
+--- Set the option 'tabline'. The tabline is not drawn during a session
+--- (|session-file|) load. To force draw send `force` as `true`.
+---@param force boolean?
 function pin.refresh_tabline(force)
   if vim.fn.exists("SessionLoad") == 1 and force ~= true then
     return
@@ -161,7 +199,7 @@ function pin.refresh_tabline(force)
   h.serialize_state()
 end
 
---- Pin the current buf.
+---@param bufnr integer
 function pin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if h.is_plugin_window(bufnr) or vim.api.nvim_buf_get_name(bufnr) == "" then
@@ -171,15 +209,14 @@ function pin.pin(bufnr)
   pin.refresh_tabline()
 end
 
---- Unpin the current buf.
+---@param bufnr integer
 function pin.unpin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   h.unpin_by_bufnr(bufnr)
   pin.refresh_tabline()
 end
 
---- Toggle the pin state of the provided buf.
----@param bufnr integer Buf handler.
+---@param bufnr integer
 function pin.toggle(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
@@ -191,8 +228,7 @@ function pin.toggle(bufnr)
   pin.refresh_tabline()
 end
 
---- Wipeout (completely remove) the provided buf.
----@param bufnr integer Buf handler.
+---@param bufnr integer
 function pin.wipeout(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
@@ -204,7 +240,6 @@ function pin.wipeout(bufnr)
   pin.refresh_tabline()
 end
 
---- Moves the current buf to the left in the pinned bufs list.
 function pin.move_left()
   if #h.state.pinned_bufs == 0 then
     return
@@ -219,7 +254,6 @@ function pin.move_left()
   end
 end
 
---- Moves the current buf to the right in the pinned bufs list.
 function pin.move_right()
   if #h.state.pinned_bufs == 0 then
     return
@@ -234,7 +268,6 @@ function pin.move_right()
   end
 end
 
---- Edit the buf to the left in the pinned bufs list.
 function pin.edit_left()
   if #h.state.pinned_bufs == 0 then
     return
@@ -259,7 +292,6 @@ function pin.edit_left()
   end
 end
 
---- Edit the buf to the right in the pinned bufs list.
 function pin.edit_right()
   if #h.state.pinned_bufs == 0 then
     return
@@ -289,7 +321,6 @@ function pin.edit_right()
   end
 end
 
---- Edit the buf by index (order in which it appears in the tabline).
 function pin.edit_by_index(index)
   if index <= #h.state.pinned_bufs then
     -- Edit a pinned buf.
@@ -304,7 +335,7 @@ function pin.edit_by_index(index)
 end
 
 -- Set module default config.
-assign_default_config()
+h.assign_default_config()
 
 -- -----
 --- #end
@@ -313,7 +344,7 @@ assign_default_config()
 --- which is not supplied by the user, the value in the default config will be
 --- used. The user's config has precedence; the default config is the fallback.
 ---@param config? table User supplied config.
----@param default_config table Bareline's default config.
+---@param default_config table Fallback config.
 ---@return table
 function h.get_config_with_fallback(config, default_config)
   vim.validate("config", config, "table", true)
