@@ -188,7 +188,7 @@ local function build_tabline_ending_separator_char(tabline_length)
 end
 
 --- Set the option 'tabline'.
----@param force boolean Set the tabline regardless of session loading or any other skip check.
+---@param force boolean? Set the tabline regardless of session loading or any other skip check.
 function pin.refresh_tabline(force)
   if vim.fn.exists("SessionLoad") == 1 and force ~= true then
     return
