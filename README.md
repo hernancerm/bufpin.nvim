@@ -3,7 +3,7 @@
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
 
-Demo showing the managed (pinned) bufs in the tabline:
+Demo showing the managed (pinned) bufs in the tabline (with the config `{ pin_marker = "[P]" }`):
 
 [![asciicast](https://asciinema.org/a/716176.svg)](https://asciinema.org/a/716176)
 
@@ -23,7 +23,7 @@ codebase, and I face the same problem, and so I proceed by applying the same sol
 confusion many times a day gets annoying. Have you ever noticed this janitorial exercise and be
 bothered by it?
 
-### Solution - IntelliJ
+### Solution
 
 I want a solution that works uniformly both in IntelliJ and Neovim. I want to always _see_ the small
 list of files instead of memorizing them. My solution is to display the list of files as tabs. In
@@ -35,7 +35,7 @@ For IntelliJ, set the tab limit to 1:
 Settings > Editor > Editor Tabs > Tab limit: 1
 ```
 
-And having key mappings like these for IdeaVim:
+And set these key mappings for IdeaVim:
 
 ```text
 nmap <Space>p <Action>(PinActiveEditorTab)
@@ -50,10 +50,6 @@ while tab_number <= 4
   let tab_number = tab_number + 1
 endwhile
 ```
-
-### Solution - Neovim
-
-The solution for Neovim is this plugin, which provides the IntelliJ behavior as described above.
 
 ## Features
 
@@ -139,6 +135,7 @@ Please refer to the help file: [pin.txt](./doc/pin.txt).
 
 - [Harpoon](https://github.com/ThePrimeagen/harpoon)
 - [IntelliJ IDEA](https://www.jetbrains.com/idea/)
+- [IdeaVim](https://github.com/JetBrains/ideavim)
 
 ## Contributing
 
