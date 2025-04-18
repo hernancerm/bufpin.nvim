@@ -5,7 +5,7 @@ A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 
 Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the buf is pinned):
 
-[![asciicast](https://asciinema.org/a/716176.svg)](https://asciinema.org/a/716176)
+[![asciicast](https://asciinema.org/a/716260.svg)](https://asciinema.org/a/716260)
 
 **This is a plugin for Neovim, not for IntelliJ. This plugin mimics in Neovim a behavior
 that can be had in IntelliJ.**
