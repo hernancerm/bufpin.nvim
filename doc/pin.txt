@@ -14,8 +14,11 @@ Introduction ~
 
 Pitch: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
 
-Quickstart
-
+All which is accessible by `require("pin")` is also by the Lua global `Pin`.
+This is useful for setting key maps which expect an arg, e.g.:
+>lua
+  vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
+<
 To enable the plugin you need to call the |pin.setup()| function. To use the
 defaults, call it without arguments:
 >lua
@@ -25,8 +28,8 @@ defaults, call it without arguments:
                              `pin.setup`({config})
 Module setup.
 Parameters ~
-{config} `(table?)` Merged with the default config (|pin.default_config|) and
-the former takes precedence on duplicate keys.
+{config} `(table?)` Merged with the default config (|pin.default_config|). The
+former takes precedence on duplicate keys.
 
 ------------------------------------------------------------------------------
                                                                     *pin.config*
@@ -51,11 +54,11 @@ Listed here: <https://www.nerdfonts.com/cheat-sheet>.
 
                                                   *pin.config.auto_hide_tabline*
 `(boolean)`
-When there are no pinned bufs, hide the tabline.
+When true, when there are no pinned bufs, hide the tabline.
 
                                                 *pin.config.set_default_keymaps*
 `(boolean)`
-Set this to false to set your own key maps.
+When true, the below key maps are set:
 
 Default key maps:
 >lua

@@ -14,8 +14,11 @@
 ---
 --- Pitch: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
 ---
---- Quickstart
----
+--- All which is accessible by `require("pin")` is also by the Lua global `Pin`.
+--- This is useful for setting key maps which expect an arg, e.g.:
+--- >lua
+---   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
+--- <
 --- To enable the plugin you need to call the |pin.setup()| function. To use the
 --- defaults, call it without arguments:
 --- >lua
@@ -26,8 +29,8 @@ local pin = {}
 local h = {}
 
 --- Module setup.
----@param config table? Merged with the default config (|pin.default_config|) and
---- the former takes precedence on duplicate keys.
+---@param config table? Merged with the default config (|pin.default_config|). The
+--- former takes precedence on duplicate keys.
 function pin.setup(config)
   -- Here, the order of the definition of the autocmds is important. When autocmds
   -- have the same event, the autocmds defined first are executed first.
@@ -138,11 +141,11 @@ end
 ---
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`
---- When there are no pinned bufs, hide the tabline.
+--- When true, when there are no pinned bufs, hide the tabline.
 ---
 --- #tag pin.config.set_default_keymaps
 --- `(boolean)`
---- Set this to false to set your own key maps.
+--- When true, the below key maps are set:
 
 --- Default key maps:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)

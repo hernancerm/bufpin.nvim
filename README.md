@@ -38,7 +38,7 @@ Solution idea:
 How do I get this experience in IntelliJ?:
 
 - IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
-- IdeaVim: To have the same key maps as the default key maps of this plugin, set these:
+- IdeaVim: In `~/.ideavimrc` add this to match the default key maps of this plugin:
 
 ```text
 nmap      <Space>p  <Action>(PinActiveEditorTab)
