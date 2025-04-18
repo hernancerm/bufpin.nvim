@@ -17,7 +17,7 @@ that can be had in IntelliJ.**
 In both IntelliJ and Neovim, there is no way to keep a list of files which does not get polluted
 during codebase navigation. In IntelliJ, a tab is opened per visited file. In Neovim, a buffer is
 created per visited file. In both IntelliJ and Neovim I have to do a periodic janitorial exercise to
-keep in sight the files I care about, either closing tabs (IntelliJ) or wiping out buffers (Neovim).
+keep in sight the files I care about, either closing tabs (IntelliJ) or deleting buffers (Neovim).
 Have you ever noticed this yourself and be bothered by it?
 
 I want a solution that works uniformly in both IntelliJ and Neovim.
@@ -113,7 +113,7 @@ Default key mappings:
 local o = { silent = true }
 local kset = vim.keymap.set
 kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
 kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
 kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
 kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)

@@ -62,7 +62,7 @@ Default key maps:
   local o = { silent = true }
   local kset = vim.keymap.set
   kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
   kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
   kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
   kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
@@ -104,8 +104,15 @@ Parameters ~
 Parameters ~
 {bufnr} `(integer)`
 
+                                                                  *pin.delete()*
+                             `pin.delete`({bufnr})
+Use this function to |:bdelete| the buf.
+Parameters ~
+{bufnr} `(integer)`
+
                                                                  *pin.wipeout()*
                              `pin.wipeout`({bufnr})
+Use this function to |:bwipeout| the buf.
 Parameters ~
 {bufnr} `(integer)`
 

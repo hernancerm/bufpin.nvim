@@ -51,8 +51,8 @@ function pin.setup(config)
     end,
   })
 
-  -- Remove wiped out bufs from state.
-  vim.api.nvim_create_autocmd("BufWipeout", {
+  -- Remove bufs from state.
+  vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     group = h.pin_augroup,
     callback = function(event)
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
@@ -153,7 +153,7 @@ function h.set_default_keymaps()
   local o = { silent = true }
   local kset = vim.keymap.set
   kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
   kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
   kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
   kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
@@ -227,6 +227,20 @@ function pin.toggle(bufnr)
   pin.refresh_tabline()
 end
 
+--- Use this function to |:bdelete| the buf.
+---@param bufnr integer
+function pin.delete(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
+  if vim.bo.modified then
+    vim.cmd(bufnr .. "bdelete")
+  else
+    pin.unpin(bufnr)
+    vim.cmd(bufnr .. "bdelete")
+  end
+  pin.refresh_tabline()
+end
+
+--- Use this function to |:bwipeout| the buf.
 ---@param bufnr integer
 function pin.wipeout(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
