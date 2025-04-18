@@ -38,16 +38,16 @@ The merged config (defaults with user overrides) is in `pin.config`. The
 default config is in `pin.default_config`. Below is the default config:
 >lua
   {
-    pin_marker = "[P]",
+    pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
 <
-                                                         *pin.config.pin_marker*
+                                                      *pin.config.pin_indicator*
 `(string)`
-Sequence of chars to indicate in the tabline that a buf is pinned.
-Suggested pin icon: Search for "nf-md-pin" (U+F0403) (󰐃) in:
-<https://www.nerdfonts.com/cheat-sheet>
+Sequence of chars used in the tabline to indicate that a buf is pinned.
+Suggested char (requires Nerd Fonts): "nf-md-pin" (U+F0403) (󰐃).
+Listed here: <https://www.nerdfonts.com/cheat-sheet>.
 
                                                   *pin.config.auto_hide_tabline*
 `(boolean)`
@@ -59,25 +59,18 @@ Set this to false to set your own key maps.
 
 Default key maps:
 >lua
-  local opts = { silent = true }
-  vim.keymap.set("n", "<Leader>p", pin.toggle, opts)
-  vim.keymap.set("n", "<Leader>w", pin.wipeout, opts)
-  vim.keymap.set("n", "<Up>", pin.edit_left, opts)
-  vim.keymap.set("n", "<Down>", pin.edit_right, opts)
-  vim.keymap.set("n", "<Left>", pin.move_left, opts)
-  vim.keymap.set("n", "<Right>", pin.move_right, opts)
-  vim.keymap.set("n", "<F1>", function()
-    pin.edit_by_index(1)
-  end, opts)
-  vim.keymap.set("n", "<F2>", function()
-    pin.edit_by_index(2)
-  end, opts)
-  vim.keymap.set("n", "<F3>", function()
-    pin.edit_by_index(3)
-  end, opts)
-  vim.keymap.set("n", "<F4>", function()
-    pin.edit_by_index(4)
-  end, opts)
+  local o = { silent = true }
+  local kset = vim.keymap.set
+  kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+  kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
+  kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
+  kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
+  kset("n",  "<Right>",    ":cal v:lua.Pin.move_to_right()<CR>", o)
+  kset("n",  "<F1>",       ":cal v:lua.Pin.edit_by_index(1)<CR>", o)
+  kset("n",  "<F2>",       ":cal v:lua.Pin.edit_by_index(2)<CR>", o)
+  kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
+  kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
 <
 ------------------------------------------------------------------------------
                                                                  *pin-functions*

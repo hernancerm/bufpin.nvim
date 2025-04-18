@@ -123,18 +123,18 @@ function h.assign_default_config()
   --minidoc_replace_start {
   pin.default_config = {
     --minidoc_replace_end
-    pin_marker = "[P]",
+    pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
   --minidoc_afterlines_end
 end
 
---- #tag pin.config.pin_marker
+--- #tag pin.config.pin_indicator
 --- `(string)`
---- Sequence of chars to indicate in the tabline that a buf is pinned.
---- Suggested pin icon: Search for "nf-md-pin" (U+F0403) (󰐃) in:
---- <https://www.nerdfonts.com/cheat-sheet>
+--- Sequence of chars used in the tabline to indicate that a buf is pinned.
+--- Suggested char (requires Nerd Fonts): "nf-md-pin" (U+F0403) (󰐃).
+--- Listed here: <https://www.nerdfonts.com/cheat-sheet>.
 ---
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`
@@ -148,27 +148,22 @@ end
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 --minidoc_replace_start
 function h.set_default_keymaps()
+  -- stylua: ignore start
   --minidoc_replace_end
-  local opts = { silent = true }
-  vim.keymap.set("n", "<Leader>p", pin.toggle, opts)
-  vim.keymap.set("n", "<Leader>w", pin.wipeout, opts)
-  vim.keymap.set("n", "<Up>", pin.edit_left, opts)
-  vim.keymap.set("n", "<Down>", pin.edit_right, opts)
-  vim.keymap.set("n", "<Left>", pin.move_left, opts)
-  vim.keymap.set("n", "<Right>", pin.move_right, opts)
-  vim.keymap.set("n", "<F1>", function()
-    pin.edit_by_index(1)
-  end, opts)
-  vim.keymap.set("n", "<F2>", function()
-    pin.edit_by_index(2)
-  end, opts)
-  vim.keymap.set("n", "<F3>", function()
-    pin.edit_by_index(3)
-  end, opts)
-  vim.keymap.set("n", "<F4>", function()
-    pin.edit_by_index(4)
-  end, opts)
+  local o = { silent = true }
+  local kset = vim.keymap.set
+  kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+  kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
+  kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
+  kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
+  kset("n",  "<Right>",    ":cal v:lua.Pin.move_to_right()<CR>", o)
+  kset("n",  "<F1>",       ":cal v:lua.Pin.edit_by_index(1)<CR>", o)
+  kset("n",  "<F2>",       ":cal v:lua.Pin.edit_by_index(2)<CR>", o)
+  kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
+  kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
   --minidoc_afterlines_end
+  -- stylua: ignore end
 end
 
 --- #delimiter
@@ -244,7 +239,7 @@ function pin.wipeout(bufnr)
   pin.refresh_tabline()
 end
 
-function pin.move_left()
+function pin.move_to_left()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -258,7 +253,7 @@ function pin.move_left()
   end
 end
 
-function pin.move_right()
+function pin.move_to_right()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -354,7 +349,7 @@ function h.get_config_with_fallback(config, default_config)
   vim.validate("config", config, "table", true)
   config =
     vim.tbl_deep_extend("force", vim.deepcopy(default_config), config or {})
-  vim.validate("config.pin_marker", config.pin_marker, "string")
+  vim.validate("config.pin_indicator", config.pin_indicator, "string")
   vim.validate("config.auto_hide_tabline", config.auto_hide_tabline, "boolean")
   vim.validate(
     "config.set_default_keymaps",
@@ -398,7 +393,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       output = output
         .. h.build_tabline_buf({
           prefix = "%#TabLineSel#  ",
-          value = basename .. " " .. pin.config.pin_marker,
+          value = basename .. " " .. pin.config.pin_indicator,
           suffix = "  %*",
         })
     else
@@ -409,7 +404,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       output = output
         .. h.build_tabline_buf({
           prefix = prefix,
-          value = basename .. " " .. pin.config.pin_marker,
+          value = basename .. " " .. pin.config.pin_indicator,
           suffix = "  ",
         })
     end
@@ -531,4 +526,5 @@ h.state = {
   last_non_pinned_buf = nil,
 }
 
+_G.Pin = pin
 return pin

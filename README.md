@@ -7,56 +7,63 @@ Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the 
 
 [![asciicast](https://asciinema.org/a/716176.svg)](https://asciinema.org/a/716176)
 
-Please note: This is a plugin for Neovim, not for IntelliJ. Pin does not change any behavior in
-IntelliJ or IdeaVim. The goal of this plugin is to mimic in Neovim an experience that can be had in
-IntelliJ with IdeaVim.
+**This is a plugin for Neovim, not for IntelliJ. This plugin mimics in Neovim a behavior
+that can be had in IntelliJ.**
 
 ## Pitch
 
 ### Problem
 
-For work I use IntelliJ with IdeaVim. I find myself frequenting a small list of files. As I explore
-the codebase, each file I jump to creates a tab. Quickly there are too many tabs open and then I ask
-myself, where is that important file that I was looking at? "It always gets lost in the tabs", I
-think. So I close the tabs I don't care about. Aha! There is the file. Then I keep exploring the
-codebase, and I face the same problem, and so I proceed by applying the same solution. Facing this
-confusion many times a day gets annoying. Have you ever noticed this janitorial exercise and be
-bothered by it?
+In both IntelliJ and Neovim, there is no way to keep a list of files which does not get polluted
+during codebase navigation. In IntelliJ, a tab is opened per visited file. In Neovim, a buffer is
+created per visited file. In both IntelliJ and Neovim I have to do a periodic janitorial exercise to
+keep in sight the files I care about, either closing tabs (IntelliJ) or wiping out buffers (Neovim).
+Have you ever noticed this yourself and be bothered by it?
+
+I want a solution that works uniformly in both IntelliJ and Neovim.
 
 ### Solution
 
-I want a solution that works uniformly both in IntelliJ and Neovim. I want to always _see_ the small
-list of files instead of memorizing them. My solution is to display the list of files as tabs. In
-IntelliJ that is as pinned tabs and in Neovim it's through a tabline provided by this plugin.
+Solution idea:
 
-For IntelliJ, set the tab limit to 1:
+- How do I track the files I care about?
+  - Through "pinning" via a dedicated key map.
+  - This is the standard idea of pinning as in IntelliJ.
+- How do I keep in sight the list of files?
+  - Display the files in tabs as it's standard in IntelliJ.
+- What happens when navigating among non pinned files?
+  - Only 1 non-pinned file is shown. Others are removed automatically.
+
+
+How do I get this experience in IntelliJ?:
+
+- IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
+- IdeaVim: To have the same key maps as the default key maps of this plugin, set these:
 
 ```text
-Settings > Editor > Editor Tabs > Tab limit: 1
+nmap      <Space>p  <Action>(PinActiveEditorTab)
+nmap      <Space>w  <Action>(CloseContent)
+nmap      <Up>      <Action>(PreviousTab)
+nmap      <Down>    <Action>(NextTab)
+nnoremap  <Left>    :tabmove -1<CR>
+nnoremap  <Right>   :tabmove +1<CR>
+nmap      <F1>      <Action>(GoToTab1)
+nmap      <F2>      <Action>(GoToTab2)
+nmap      <F3>      <Action>(GoToTab3)
+nmap      <F4>      <Action>(GoToTab4)
 ```
 
-And set these key mappings for IdeaVim:
+How do I get this experience in Neovim?:
 
-```text
-nmap <Space>p <Action>(PinActiveEditorTab)
-nmap <Space>w <Action>(CloseContent)
-nmap <Up> <Action>(PreviousTab)
-nmap <Down> <Action>(NextTab)
-nnoremap <Left> :tabmove -1<CR>
-nnoremap <Right> :tabmove +1<CR>
-let tab_number = 1
-while tab_number <= 4
-  execute "nmap <F" . tab_number . "> <Action>(GoToTab" . tab_number . ")"
-  let tab_number = tab_number + 1
-endwhile
-```
+- This plugin.
 
 ## Features
 
 - Display the pinned bufs in the tabline.
 - Expose an API to track the pinned bufs.
 - Out of the box key mappings to manage pinned bufs.
-- Store the pinned bufs in session, for sessions either managed manually or through a plugin.
+- Store the pinned bufs in sessions both managed manually or through a plugin (e.g.,
+  [vim-obsession](https://github.com/tpope/vim-obsession)).
 - Auto-hide the tabline when there are no pinned bufs.
 
 ## Out of scope
@@ -94,7 +101,7 @@ Is equivalent to:
 ```lua
 local pin = require("pin")
 pin.setup({
-  pin_marker = "[P]",
+  pin_indicator = "[P]",
   auto_hide_tabline = true,
   set_default_keymaps = true,
 })
@@ -103,25 +110,18 @@ pin.setup({
 Default key mappings:
 
 ```lua
-local opts = { silent = true }
-vim.keymap.set("n", "<Leader>p", pin.toggle, opts)
-vim.keymap.set("n", "<Leader>w", pin.wipeout, opts)
-vim.keymap.set("n", "<Up>", pin.edit_left, opts)
-vim.keymap.set("n", "<Down>", pin.edit_right, opts)
-vim.keymap.set("n", "<Left>", pin.move_left, opts)
-vim.keymap.set("n", "<Right>", pin.move_right, opts)
-vim.keymap.set("n", "<F1>", function()
-  pin.edit_by_index(1)
-end, opts)
-vim.keymap.set("n", "<F2>", function()
-  pin.edit_by_index(2)
-end, opts)
-vim.keymap.set("n", "<F3>", function()
-  pin.edit_by_index(3)
-end, opts)
-vim.keymap.set("n", "<F4>", function()
-  pin.edit_by_index(4)
-end, opts)
+local o = { silent = true }
+local kset = vim.keymap.set
+kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
+kset("n",  "<Leader>w",  ":cal v:lua.Pin.wipeout()<CR>", o)
+kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
+kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
+kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
+kset("n",  "<Right>",    ":cal v:lua.Pin.move_to_right()<CR>", o)
+kset("n",  "<F1>",       ":cal v:lua.Pin.edit_by_index(1)<CR>", o)
+kset("n",  "<F2>",       ":cal v:lua.Pin.edit_by_index(2)<CR>", o)
+kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
+kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
 ```
 
 ## Documentation
