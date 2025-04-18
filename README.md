@@ -3,6 +3,8 @@
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
 
+[![asciicast](https://asciinema.org/a/716174.svg)](https://asciinema.org/a/716174)
+
 Please note: This is a plugin for Neovim, not for IntelliJ. Pin does not change any behavior in
 IntelliJ or IdeaVim. The goal of this plugin is to mimic in Neovim an experience that can be had in
 IntelliJ with IdeaVim.
