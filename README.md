@@ -99,7 +99,7 @@ pin.setup({
   -- In Nerd Fonts is "nf-md-pin".
   -- - <https://www.nerdfonts.com/cheat-sheet>
   -- - <https://www.compart.com/en/unicode/U+F0403>.
-  pin_char = "󰐃",
+  pin_marker = "󰐃",
   auto_hide_tabline = true,
   set_default_keymaps = true,
 })

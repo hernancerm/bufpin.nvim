@@ -126,16 +126,16 @@ function h.assign_default_config()
     -- In Nerd Fonts is "nf-md-pin".
     -- - <https://www.nerdfonts.com/cheat-sheet>
     -- - <https://www.compart.com/en/unicode/U+F0403>.
-    pin_char = "󰐃",
+    pin_marker = "󰐃",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
   --minidoc_afterlines_end
 end
 
---- #tag pin.config.pin_char
+--- #tag pin.config.pin_marker
 --- `(string)`
---- Char to indicate in the tabline that a buf is pinned.
+--- Sequence of chars to indicate in the tabline that a buf is pinned.
 ---
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`
@@ -355,7 +355,7 @@ function h.get_config_with_fallback(config, default_config)
   vim.validate("config", config, "table", true)
   config =
     vim.tbl_deep_extend("force", vim.deepcopy(default_config), config or {})
-  vim.validate("config.pin_char", config.pin_char, "string")
+  vim.validate("config.pin_marker", config.pin_marker, "string")
   vim.validate("config.auto_hide_tabline", config.auto_hide_tabline, "boolean")
   vim.validate(
     "config.set_default_keymaps",
@@ -399,7 +399,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       output = output
         .. h.build_tabline_buf({
           prefix = "%#TabLineSel#  ",
-          value = basename .. " " .. pin.config.pin_char,
+          value = basename .. " " .. pin.config.pin_marker,
           suffix = "  %*",
         })
     else
@@ -410,7 +410,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       output = output
         .. h.build_tabline_buf({
           prefix = prefix,
-          value = basename .. " " .. pin.config.pin_char,
+          value = basename .. " " .. pin.config.pin_marker,
           suffix = "  ",
         })
     end

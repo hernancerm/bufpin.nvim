@@ -41,14 +41,14 @@ default config is in `pin.default_config`. Below is the default config:
     -- In Nerd Fonts is "nf-md-pin".
     -- - <https://www.nerdfonts.com/cheat-sheet>
     -- - <https://www.compart.com/en/unicode/U+F0403>.
-    pin_char = "󰐃",
+    pin_marker = "󰐃",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
 <
-                                                           *pin.config.pin_char*
+                                                         *pin.config.pin_marker*
 `(string)`
-Char to indicate in the tabline that a buf is pinned.
+Sequence of chars to indicate in the tabline that a buf is pinned.
 
                                                   *pin.config.auto_hide_tabline*
 `(boolean)`
