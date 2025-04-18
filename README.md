@@ -3,7 +3,7 @@
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
 
-Demo showing the managed (pinned) bufs in the tabline (with the config `{ pin_marker = "[P]" }`):
+Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the buf is pinned):
 
 [![asciicast](https://asciinema.org/a/716176.svg)](https://asciinema.org/a/716176)
 
@@ -94,10 +94,7 @@ Is equivalent to:
 ```lua
 local pin = require("pin")
 pin.setup({
-  -- In Nerd Fonts is "nf-md-pin".
-  -- - <https://www.nerdfonts.com/cheat-sheet>
-  -- - <https://www.compart.com/en/unicode/U+F0403>.
-  pin_marker = "󰐃",
+  pin_marker = "[P]",
   auto_hide_tabline = true,
   set_default_keymaps = true,
 })

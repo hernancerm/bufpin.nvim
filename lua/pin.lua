@@ -123,10 +123,7 @@ function h.assign_default_config()
   --minidoc_replace_start {
   pin.default_config = {
     --minidoc_replace_end
-    -- In Nerd Fonts is "nf-md-pin".
-    -- - <https://www.nerdfonts.com/cheat-sheet>
-    -- - <https://www.compart.com/en/unicode/U+F0403>.
-    pin_marker = "󰐃",
+    pin_marker = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
@@ -136,6 +133,8 @@ end
 --- #tag pin.config.pin_marker
 --- `(string)`
 --- Sequence of chars to indicate in the tabline that a buf is pinned.
+--- Suggested pin icon: Search for "nf-md-pin" (U+F0403) (󰐃) in:
+--- <https://www.nerdfonts.com/cheat-sheet>
 ---
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`

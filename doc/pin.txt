@@ -38,10 +38,7 @@ The merged config (defaults with user overrides) is in `pin.config`. The
 default config is in `pin.default_config`. Below is the default config:
 >lua
   {
-    -- In Nerd Fonts is "nf-md-pin".
-    -- - <https://www.nerdfonts.com/cheat-sheet>
-    -- - <https://www.compart.com/en/unicode/U+F0403>.
-    pin_marker = "󰐃",
+    pin_marker = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
   }
@@ -49,6 +46,8 @@ default config is in `pin.default_config`. Below is the default config:
                                                          *pin.config.pin_marker*
 `(string)`
 Sequence of chars to indicate in the tabline that a buf is pinned.
+Suggested pin icon: Search for "nf-md-pin" (U+F0403) (󰐃) in:
+<https://www.nerdfonts.com/cheat-sheet>
 
                                                   *pin.config.auto_hide_tabline*
 `(boolean)`
