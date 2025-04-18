@@ -3,6 +3,8 @@
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
 
+Demo showing the managed (pinned) bufs in the tabline:
+
 [![asciicast](https://asciinema.org/a/716176.svg)](https://asciinema.org/a/716176)
 
 Please note: This is a plugin for Neovim, not for IntelliJ. Pin does not change any behavior in
