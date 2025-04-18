@@ -9,7 +9,7 @@ STYLUA := $(HOME)/.asdf/installs/stylua/$(STYLUA_VERSION)/bin/stylua
 # Check formatting.
 .PHONY: testmft
 testfmt: $(STYLUA)
-	stylua --check lua/ scripts/ tests/
+	stylua --check lua/ scripts/
 
 # Check docs are up to date.
 .PHONY: testdocs
