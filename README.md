@@ -55,12 +55,11 @@ The solution for Neovim is this plugin, which provides the IntelliJ behavior as 
 
 ## Features
 
-- Out of the box key mappings to manage pinned bufs.
-- Expose an API to track a list of bufs. These tracked bufs are the "pinned" bufs.
-- Store the pinned bufs in session, for sessions either managed manually or through a plugin.
 - Display the pinned bufs in the tabline.
+- Expose an API to track the pinned bufs.
+- Out of the box key mappings to manage pinned bufs.
+- Store the pinned bufs in session, for sessions either managed manually or through a plugin.
 - Auto-hide the tabline when there are no pinned bufs.
-- Display, at the end of the tabline, the last visited non pinned buf.
 
 ## Out of scope
 
