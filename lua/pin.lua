@@ -14,15 +14,19 @@
 ---
 --- Pitch: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
 ---
+--- To enable the plugin you need to call the |pin.setup()| function. To use the
+--- defaults, call it without arguments:
+--- >lua
+---   require("pin").setup()
+--- <
 --- All which is accessible by `require("pin")` is also by the Lua global `Pin`.
 --- This is useful for setting key maps which expect an arg, e.g.:
 --- >lua
 ---   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
 --- <
---- To enable the plugin you need to call the |pin.setup()| function. To use the
---- defaults, call it without arguments:
+--- For the pinned bufs to be persisted in session, add this to your `init.lua`:
 --- >lua
----   require("pin").setup()
+---   vim.opt.sessionoptions:append("globals")
 --- <
 
 local pin = {}
