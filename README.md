@@ -104,6 +104,7 @@ pin.setup({
   pin_indicator = "[P]",
   auto_hide_tabline = true,
   set_default_keymaps = true,
+  exclude = function(_) end,
 })
 ```
 
