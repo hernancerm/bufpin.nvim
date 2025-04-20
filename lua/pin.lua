@@ -441,46 +441,45 @@ function h.build_tabline_buf(parts)
   return parts.prefix .. parts.value .. parts.suffix
 end
 
+--- Assumption: All pinned bufs exist.
+--- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
 ---@param buf_separator_char string
 ---@return string
 function h.build_tabline_pinned_bufs(buf_separator_char)
   local output = ""
   local bufnr = vim.fn.bufnr()
   for i, pinned_buf in ipairs(h.state.pinned_bufs) do
-    if vim.fn.bufexists(pinned_buf) == 1 then
-      local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
-      if pinned_buf == bufnr then
-        output = output
-          .. h.build_tabline_buf({
-            prefix = "%#TabLineSel#  ",
-            value = basename .. " " .. pin.config.pin_indicator,
-            suffix = "  %*",
-          })
-      else
-        local prefix = buf_separator_char .. " "
-        if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
-          prefix = "  "
-        end
-        output = output
-          .. h.build_tabline_buf({
-            prefix = prefix,
-            value = basename .. " " .. pin.config.pin_indicator,
-            suffix = "  ",
-          })
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+    if pinned_buf == bufnr then
+      output = output
+        .. h.build_tabline_buf({
+          prefix = "%#TabLineSel#  ",
+          value = basename .. " " .. pin.config.pin_indicator,
+          suffix = "  %*",
+        })
+    else
+      local prefix = buf_separator_char .. " "
+      if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
+        prefix = "  "
       end
+      output = output
+        .. h.build_tabline_buf({
+          prefix = prefix,
+          value = basename .. " " .. pin.config.pin_indicator,
+          suffix = "  ",
+        })
     end
   end
   return output
 end
 
+--- Assumption: If the last non-pinned buf is non-nil, it exists.
+--- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
 ---@param buf_separator_char string
 ---@return string
 function h.build_tabline_last_non_pinned_buf(buf_separator_char)
   local output = ""
-  if
-    h.state.last_non_pinned_buf == nil
-    or vim.fn.bufexists(h.state.last_non_pinned_buf) == 0
-  then
+  if h.state.last_non_pinned_buf == nil then
     return output
   end
   local bufnr = vim.fn.bufnr()
@@ -501,6 +500,8 @@ function h.build_tabline_last_non_pinned_buf(buf_separator_char)
   return output
 end
 
+--- Assumption: If the last non-pinned buf is non-nil, it exists.
+--- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
 ---@param tabline_length integer
 ---@param buf_separator_char string
 ---@return string
