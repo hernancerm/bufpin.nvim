@@ -162,13 +162,7 @@ end
 ---
 --- #tag pin.config.set_default_keymaps
 --- `(boolean)`
---- When true, the below key maps are set:
----
---- #tag pin.config.exclude
---- `(fun(bufnr:integer):boolean)`
---- When the fn returns true, the buf (`bufnr`) is ignored. This means that
---- calling `pin.pin()` on it has no effect and the buf never gets tracked as the
---- last visited non-pinned buf.
+--- When true, the default key maps, listed below, are set.
 
 --- Default key maps:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
@@ -191,6 +185,12 @@ function h.set_default_keymaps()
   --minidoc_afterlines_end
   -- stylua: ignore end
 end
+
+--- #tag pin.config.exclude
+--- `(fun(bufnr:integer):boolean)`
+--- When the function returns true, the buf (`bufnr`) is ignored. This means that
+--- calling |pin.pin()| on it has no effect and the buf never gets tracked as the
+--- last visited non-pinned buf.
 
 --- #delimiter
 --- #tag pin-functions

@@ -63,13 +63,7 @@ When true, when there are no pinned bufs, hide the tabline.
 
                                                 *pin.config.set_default_keymaps*
 `(boolean)`
-When true, the below key maps are set:
-
-                                                            *pin.config.exclude*
-`(fun(bufnr:integer):boolean)`
-When the fn returns true, the buf (`bufnr`) is ignored. This means that
-calling `pin.pin()` on it has no effect and the buf never gets tracked as the
-last visited non-pinned buf.
+When true, the default key maps, listed below, are set.
 
 Default key maps:
 >lua
@@ -86,6 +80,12 @@ Default key maps:
   kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
   kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
 <
+                                                            *pin.config.exclude*
+`(fun(bufnr:integer):boolean)`
+When the function returns true, the buf (`bufnr`) is ignored. This means that
+calling |pin.pin()| on it has no effect and the buf never gets tracked as the
+last visited non-pinned buf.
+
 ------------------------------------------------------------------------------
                                                                  *pin-functions*
 Functions ~
