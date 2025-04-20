@@ -198,8 +198,14 @@ end
 
 --- Get all the pinned bufs. This is the actual list, not a copy.
 ---@return table List of buf handlers.
-function pin.get()
+function pin.get_pinned_bufs()
   return h.state.pinned_bufs
+end
+
+--- Get the last visited non pinned buf.
+---@return integer? Buf handler.
+function pin.get_last_non_pinned_buf()
+  return h.state.last_non_pinned_buf
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
@@ -213,6 +219,7 @@ function pin.refresh_tabline(force)
   -- Must be a left-aligned char. For other bar chars see:
   -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
   local buf_separator_char = "▏"
+  h.prune_nonexistent_bufs_from_state()
   tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
   tabline = tabline .. h.build_tabline_last_non_pinned_buf(buf_separator_char)
   tabline = tabline
@@ -407,15 +414,24 @@ end
 --- full file names are serialized. Note: Neovim has no `SessionWritePre` event:
 --- <https://github.com/neovim/neovim/issues/22814>.
 function h.serialize_state()
+  local last_non_pinned_buf = nil
+  if
+    h.state.last_non_pinned_buf ~= nil
+    and vim.fn.bufexists(h.state.last_non_pinned_buf) == 1
+  then
+    last_non_pinned_buf = vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf)
+  end
   vim.g.PinState = vim.json.encode({
     pinned_bufs = vim
       .iter(h.state.pinned_bufs)
+      :filter(function(bufnr)
+        return vim.fn.bufexists(bufnr) == 1
+      end)
       :map(function(bufnr)
         return vim.api.nvim_buf_get_name(bufnr)
       end)
       :totable(),
-    last_non_pinned_buf = h.state.last_non_pinned_buf
-      and vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf),
+    last_non_pinned_buf = last_non_pinned_buf,
   })
 end
 
@@ -431,25 +447,27 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
   local output = ""
   local bufnr = vim.fn.bufnr()
   for i, pinned_buf in ipairs(h.state.pinned_bufs) do
-    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
-    if pinned_buf == bufnr then
-      output = output
-        .. h.build_tabline_buf({
-          prefix = "%#TabLineSel#  ",
-          value = basename .. " " .. pin.config.pin_indicator,
-          suffix = "  %*",
-        })
-    else
-      local prefix = buf_separator_char .. " "
-      if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
-        prefix = "  "
+    if vim.fn.bufexists(pinned_buf) == 1 then
+      local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+      if pinned_buf == bufnr then
+        output = output
+          .. h.build_tabline_buf({
+            prefix = "%#TabLineSel#  ",
+            value = basename .. " " .. pin.config.pin_indicator,
+            suffix = "  %*",
+          })
+      else
+        local prefix = buf_separator_char .. " "
+        if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
+          prefix = "  "
+        end
+        output = output
+          .. h.build_tabline_buf({
+            prefix = prefix,
+            value = basename .. " " .. pin.config.pin_indicator,
+            suffix = "  ",
+          })
       end
-      output = output
-        .. h.build_tabline_buf({
-          prefix = prefix,
-          value = basename .. " " .. pin.config.pin_indicator,
-          suffix = "  ",
-        })
     end
   end
   return output
@@ -459,7 +477,10 @@ end
 ---@return string
 function h.build_tabline_last_non_pinned_buf(buf_separator_char)
   local output = ""
-  if h.state.last_non_pinned_buf == nil then
+  if
+    h.state.last_non_pinned_buf == nil
+    or vim.fn.bufexists(h.state.last_non_pinned_buf) == 0
+  then
     return output
   end
   local bufnr = vim.fn.bufnr()
@@ -536,6 +557,21 @@ end
 function h.is_win_floating(win_id)
   -- See |api-floatwin| to learn how to check whether a win is floating.
   return vim.api.nvim_win_get_config(win_id).relative ~= ""
+end
+
+function h.prune_nonexistent_bufs_from_state()
+  h.state.pinned_bufs = vim
+    .iter(h.state.pinned_bufs)
+    :filter(function(bufnr)
+      return vim.fn.bufexists(bufnr) == 1
+    end)
+    :totable()
+  if
+    h.state.last_non_pinned_buf ~= nil
+    and vim.fn.bufexists(h.state.last_non_pinned_buf) == 0
+  then
+    h.state.last_non_pinned_buf = nil
+  end
 end
 
 ---@param bufnr integer

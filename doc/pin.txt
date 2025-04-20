@@ -90,11 +90,17 @@ last visited non-pinned buf.
                                                                  *pin-functions*
 Functions ~
 
-                                                                     *pin.get()*
-                                  `pin.get`()
+                                                         *pin.get_pinned_bufs()*
+                            `pin.get_pinned_bufs`()
 Get all the pinned bufs. This is the actual list, not a copy.
 Return ~
 `(table)` List of buf handlers.
+
+                                                 *pin.get_last_non_pinned_buf()*
+                        `pin.get_last_non_pinned_buf`()
+Get the last visited non pinned buf.
+Return ~
+`(integer)` `(optional)` Buf handler.
 
                                                          *pin.refresh_tabline()*
                          `pin.refresh_tabline`({force})
