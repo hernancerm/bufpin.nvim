@@ -51,6 +51,9 @@ function pin.setup(config)
   vim.api.nvim_create_autocmd("BufEnter", {
     group = h.pin_augroup,
     callback = function(event)
+      if pin.config.exclude(event.buf) then
+        return
+      end
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
       if bufnr_index == nil and not h.is_plugin_window(event.buf) then
         h.state.last_non_pinned_buf = event.buf
@@ -133,6 +136,7 @@ function h.assign_default_config()
     pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
+    exclude = function(_) end,
   }
   --minidoc_afterlines_end
 end
@@ -150,6 +154,12 @@ end
 --- #tag pin.config.set_default_keymaps
 --- `(boolean)`
 --- When true, the below key maps are set:
+---
+--- #tag pin.config.exclude
+--- `(fun(bufnr:integer):boolean)`
+--- When the fn returns true, the buf (`bufnr`) is ignored. This means that
+--- calling `pin.pin()` on it has no effect and the buf never gets tracked as the
+--- last visited non-pinned buf.
 
 --- Default key maps:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
@@ -208,6 +218,9 @@ end
 ---@param bufnr integer
 function pin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
+  if pin.config.exclude(bufnr) then
+    return
+  end
   if h.is_plugin_window(bufnr) or vim.api.nvim_buf_get_name(bufnr) == "" then
     return
   end

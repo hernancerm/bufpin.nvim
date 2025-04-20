@@ -48,6 +48,7 @@ default config is in `pin.default_config`. Below is the default config:
     pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
+    exclude = function(_) end,
   }
 <
                                                       *pin.config.pin_indicator*
@@ -63,6 +64,12 @@ When true, when there are no pinned bufs, hide the tabline.
                                                 *pin.config.set_default_keymaps*
 `(boolean)`
 When true, the below key maps are set:
+
+                                                            *pin.config.exclude*
+`(fun(bufnr:integer):boolean)`
+When the fn returns true, the buf (`bufnr`) is ignored. This means that
+calling `pin.pin()` on it has no effect and the buf never gets tracked as the
+last visited non-pinned buf.
 
 Default key maps:
 >lua
