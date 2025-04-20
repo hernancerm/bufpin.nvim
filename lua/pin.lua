@@ -51,7 +51,11 @@ function pin.setup(config)
   vim.api.nvim_create_autocmd("BufEnter", {
     group = h.pin_augroup,
     callback = function(event)
-      if pin.config.exclude(event.buf) then
+      if
+        vim.api.nvim_buf_get_name(event.buf) == ""
+        or pin.config.exclude(event.buf)
+        or h.is_win_floating(0)
+      then
         return
       end
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
@@ -87,7 +91,12 @@ function pin.setup(config)
     "WinEnter",
   }, {
     group = h.pin_augroup,
-    callback = pin.refresh_tabline,
+    callback = function()
+      if h.is_win_floating(0) then
+        return
+      end
+      pin.refresh_tabline()
+    end,
   })
 
   -- Re-build state from session.
@@ -520,6 +529,13 @@ function h.is_plugin_window(bufnr)
   return matched_filetype == nil
     and not vim.bo.buflisted
     and not vim.tbl_contains(special_non_plugin_filetypes, filetype)
+end
+
+---@param win_id integer
+---@return boolean
+function h.is_win_floating(win_id)
+  -- See |api-floatwin| to learn how to check whether a win is floating.
+  return vim.api.nvim_win_get_config(win_id).relative ~= ""
 end
 
 ---@param bufnr integer
