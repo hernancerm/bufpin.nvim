@@ -52,15 +52,11 @@ function pin.setup(config)
   vim.api.nvim_create_autocmd("BufEnter", {
     group = h.pin_augroup,
     callback = function(event)
-      if
-        vim.api.nvim_buf_get_name(event.buf) == ""
-        or pin.config.exclude(event.buf)
-        or h.is_win_floating(0)
-      then
+      if h.should_exclude_buf(event.buf) then
         return
       end
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
-      if bufnr_index == nil and not h.is_plugin_window(event.buf) then
+      if bufnr_index == nil then
         h.state.last_non_pinned_buf = event.buf
       end
     end,
@@ -247,7 +243,7 @@ function pin.pin(bufnr)
   if pin.config.exclude(bufnr) then
     return
   end
-  if h.is_plugin_window(bufnr) or vim.api.nvim_buf_get_name(bufnr) == "" then
+  if h.should_exclude_buf(bufnr) then
     return
   end
   h.pin_by_bufnr(bufnr)
@@ -549,7 +545,7 @@ end
 
 ---@param bufnr integer
 ---@return boolean
-function h.is_plugin_window(bufnr)
+function h.is_plugin_buf(bufnr)
   local filetype = vim.bo[bufnr].filetype
   local special_non_plugin_filetypes = { nil, "", "help", "man" }
   local matched_filetype, _ = vim.filetype.match({ buf = bufnr })
@@ -614,6 +610,15 @@ function h.show_tabline()
   else
     vim.o.showtabline = 0
   end
+end
+
+--- Exclusions additional to `pin.config.exclude`.
+---@param bufnr integer
+function h.should_exclude_buf(bufnr)
+  return h.is_plugin_buf(bufnr)
+    or vim.api.nvim_buf_get_name(bufnr) == ""
+    or vim.bo[bufnr].filetype == "help"
+    or h.is_win_floating(0)
 end
 
 h.pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
