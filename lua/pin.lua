@@ -617,7 +617,7 @@ end
 function h.should_exclude_buf(bufnr)
   return h.is_plugin_buf(bufnr)
     or vim.api.nvim_buf_get_name(bufnr) == ""
-    or vim.bo[bufnr].filetype == "help"
+    or vim.bo[bufnr].buftype == "help"
     or h.is_win_floating(0)
 end
 
