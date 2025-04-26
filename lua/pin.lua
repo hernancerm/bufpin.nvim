@@ -92,7 +92,7 @@ function pin.setup(config)
   }, {
     group = h.pin_augroup,
     callback = function()
-      if h.is_win_floating(0) then
+      if h.is_floating_win(0) then
         return
       end
       pin.refresh_tabline()
@@ -243,9 +243,6 @@ end
 ---@param bufnr integer
 function pin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
-  if pin.config.exclude(bufnr) then
-    return
-  end
   if h.should_exclude_buf(bufnr) then
     return
   end
@@ -564,7 +561,7 @@ end
 
 ---@param win_id integer
 ---@return boolean
-function h.is_win_floating(win_id)
+function h.is_floating_win(win_id)
   -- See |api-floatwin| to learn how to check whether a win is floating.
   return vim.api.nvim_win_get_config(win_id).relative ~= ""
 end
@@ -615,13 +612,16 @@ function h.show_tabline()
   end
 end
 
---- Exclusions additional to `pin.config.exclude`.
+--- Whether the buf should be excluded from pins and the last non-pinned buf
+--- according to the exclusion check from `pin.config.exclude` plus other checks.
 ---@param bufnr integer
+---@return boolean
 function h.should_exclude_buf(bufnr)
-  return h.is_plugin_buf(bufnr)
+  return pin.config.exclude(bufnr)
     or vim.api.nvim_buf_get_name(bufnr) == ""
     or vim.bo[bufnr].buftype == "help"
-    or h.is_win_floating(0)
+    or h.is_plugin_buf(bufnr)
+    or h.is_floating_win(0)
 end
 
 h.pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
