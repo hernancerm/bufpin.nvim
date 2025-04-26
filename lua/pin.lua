@@ -6,7 +6,8 @@
 ---
 --- 1. Introduction                                               |pin-introduction|
 --- 2. Configuration                                             |pin-configuration|
---- 3. Functions                                                     |pin-functions|
+--- 3. Highlight groups                                       |pin-highlight-groups|
+--- 4. Functions                                                     |pin-functions|
 ---
 --- ==============================================================================
 --- #tag pin-introduction
@@ -191,6 +192,15 @@ end
 --- When the function returns true, the buf (`bufnr`) is ignored. This means that
 --- calling |pin.pin()| on it has no effect and the buf never gets tracked as the
 --- last visited non-pinned buf.
+
+--- #delimiter
+--- #tag pin-highlight-groups
+--- Highlight groups ~
+---
+--- Only built-in highlight groups are used.
+---
+--- * Active buffer: |hl-TabLineSel|
+--- * Tabline background: |hl-TabLineFill|
 
 --- #delimiter
 --- #tag pin-functions
