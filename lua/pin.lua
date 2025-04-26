@@ -72,7 +72,10 @@ function pin.setup(config)
       elseif event.buf == h.state.last_non_pinned_buf then
         h.state.last_non_pinned_buf = nil
       end
-      pin.refresh_tabline()
+      -- Mag buffers (from a personal plugin) are properly removed in this
+      -- callback given the use of `vim.defer_fn()`, instead of just calling
+      -- `pin.refresh_tabline()`. The issue is on <C-6> from Mag to non-Mag bufs.
+      vim.defer_fn(pin.refresh_tabline, 50)
     end,
   })
 
