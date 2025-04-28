@@ -190,7 +190,9 @@ end
 --- `(fun(bufnr:integer):boolean)`
 --- When the function returns true, the buf (`bufnr`) is ignored. This means that
 --- calling |pin.pin()| on it has no effect and the buf never gets tracked as the
---- last visited non-pinned buf.
+--- last visited non-pinned buf. Some bufs are excluded regardless of this option:
+--- bufs without a name ([No Name]), Vim help files, detected plugin bufs (e.g.,
+--- nvimtree) and floating wins.
 
 --- #delimiter
 --- #tag pin-highlight-groups
