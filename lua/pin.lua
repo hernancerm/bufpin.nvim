@@ -447,6 +447,13 @@ function h.build_tabline_buf(parts)
   return parts.prefix .. parts.value .. parts.suffix
 end
 
+-- TODO: Move this somewhere else.
+vim.cmd([[
+function! PinTlOnClickEdit(minwid,clicks,button,modifiers)
+  execute 'buffer' a:minwid
+endfunction
+]])
+
 --- Assumption: All pinned bufs exist.
 --- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
 ---@param buf_separator_char string
@@ -456,11 +463,18 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
   local bufnr = vim.fn.bufnr()
   for i, pinned_buf in ipairs(h.state.pinned_bufs) do
     local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+    local value = "%"
+      .. pinned_buf
+      .. "@PinTlOnClickEdit@"
+      .. basename
+      .. " "
+      .. pin.config.pin_indicator
+      .. "%X"
     if pinned_buf == bufnr then
       output = output
         .. h.build_tabline_buf({
           prefix = "%#TabLineSel#  ",
-          value = basename .. " " .. pin.config.pin_indicator,
+          value = value,
           suffix = "  %*",
         })
     else
@@ -471,7 +485,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       output = output
         .. h.build_tabline_buf({
           prefix = prefix,
-          value = basename .. " " .. pin.config.pin_indicator,
+          value = value,
           suffix = "  ",
         })
     end
