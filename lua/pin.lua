@@ -397,7 +397,7 @@ h.assign_default_config()
 
 -- Vimscript functions.
 vim.cmd([[
-function! PinTlOnClickEdit(minwid,clicks,button,modifiers)
+function! PinTlOnClickBuf(minwid,clicks,button,modifiers)
   if a:clicks == 1
     if a:button == 'l'
       execute 'buffer' a:minwid
@@ -460,7 +460,7 @@ end
 function h.build_tabline_buf(parts)
   return "%"
     .. parts.bufnr
-    .. "@PinTlOnClickEdit@"
+    .. "@PinTlOnClickBuf@"
     .. parts.prefix
     .. parts.value
     .. parts.suffix
