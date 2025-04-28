@@ -395,6 +395,13 @@ h.assign_default_config()
 -- -----
 --- #end
 
+-- Vimscript functions.
+vim.cmd([[
+function! PinTlOnClickEdit(minwid,clicks,button,modifiers)
+  execute 'buffer' a:minwid
+endfunction
+]])
+
 --- Merge user-supplied config with the plugin's default config. For every key
 --- which is not supplied by the user, the value in the default config will be
 --- used. The user's config has precedence; the default config is the fallback.
@@ -441,18 +448,18 @@ function h.serialize_state()
   })
 end
 
----@param parts table With keys `prefix`, `value` and `suffix`.
+--- The `bufnr` is used for mouse click support.
+---@param parts table With keys `bufnr`, `prefix`, `value` and `suffix`.
 ---@return string
 function h.build_tabline_buf(parts)
-  return parts.prefix .. parts.value .. parts.suffix
+  return "%"
+    .. parts.bufnr
+    .. "@PinTlOnClickEdit@"
+    .. parts.prefix
+    .. parts.value
+    .. parts.suffix
+    .. "%X"
 end
-
--- TODO: Move this somewhere else.
-vim.cmd([[
-function! PinTlOnClickEdit(minwid,clicks,button,modifiers)
-  execute 'buffer' a:minwid
-endfunction
-]])
 
 --- Assumption: All pinned bufs exist.
 --- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
@@ -463,18 +470,12 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
   local bufnr = vim.fn.bufnr()
   for i, pinned_buf in ipairs(h.state.pinned_bufs) do
     local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
-    local value = "%"
-      .. pinned_buf
-      .. "@PinTlOnClickEdit@"
-      .. basename
-      .. " "
-      .. pin.config.pin_indicator
-      .. "%X"
     if pinned_buf == bufnr then
       output = output
         .. h.build_tabline_buf({
+          bufnr = pinned_buf,
           prefix = "%#TabLineSel#  ",
-          value = value,
+          value = basename .. " " .. pin.config.pin_indicator,
           suffix = "  %*",
         })
     else
@@ -484,8 +485,9 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
       end
       output = output
         .. h.build_tabline_buf({
+          bufnr = pinned_buf,
           prefix = prefix,
-          value = value,
+          value = basename .. " " .. pin.config.pin_indicator,
           suffix = "  ",
         })
     end
@@ -515,7 +517,12 @@ function h.build_tabline_last_non_pinned_buf(buf_separator_char)
       prefix = "  "
     end
     output = output
-      .. h.build_tabline_buf({ prefix = prefix, value = basename, suffix = "  " })
+      .. h.build_tabline_buf({
+        bufnr = h.state.last_non_pinned_buf,
+        prefix = prefix,
+        value = basename,
+        suffix = "  ",
+      })
   end
   return output
 end
