@@ -398,7 +398,13 @@ h.assign_default_config()
 -- Vimscript functions.
 vim.cmd([[
 function! PinTlOnClickEdit(minwid,clicks,button,modifiers)
-  execute 'buffer' a:minwid
+  if a:clicks == 1
+    if a:button == 'l'
+      execute 'buffer' a:minwid
+    elseif a:button == 'm'
+      execute 'bdelete' a:minwid
+    endif
+  endif
 endfunction
 ]])
 
