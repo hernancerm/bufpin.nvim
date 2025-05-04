@@ -133,6 +133,17 @@ kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
 
 Please refer to the help file: [pin.txt](./doc/pin.txt).
 
+## Suggested complementary plugins
+
+These plugins are completely independent from pin.nvim, but can enhance the experience with
+pin.nvim:
+
+- [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
+  location when navigating among bufs.
+- [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
+  layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
+  buf, so nvim-tree does not take the full screen and instead the alt buf is shown.
+
 ## Inspiration
 
 - [Harpoon](https://github.com/ThePrimeagen/harpoon)
