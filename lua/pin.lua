@@ -146,6 +146,7 @@ function h.assign_default_config()
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
+    use_mini_bufremove = false,
   }
   --minidoc_afterlines_end
 end
@@ -193,6 +194,12 @@ end
 --- last visited non-pinned buf. Some bufs are excluded regardless of this option:
 --- bufs without a name ([No Name]), Vim help files, detected plugin bufs (e.g.,
 --- nvimtree) and floating wins.
+
+--- #tag pin.config.use_mini_bufremove
+--- `(boolean)`
+--- You need to have installed <https://github.com/echasnovski/mini.bufremove> for
+--- this option to work as `true`. When `true`, all buf deletions and wipeouts are
+--- done using the `mini.bufremove` plugin, thus preserving window layouts.
 
 --- #delimiter
 --- #tag pin-highlight-groups
@@ -271,28 +278,46 @@ function pin.toggle(bufnr)
   pin.refresh_tabline()
 end
 
---- Use this function to |:bdelete| the buf.
+--- Use this function to delete the buf.
 ---@param bufnr integer
 function pin.delete(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
-    vim.cmd(bufnr .. "bdelete")
+    if pin.config.use_mini_bufremove then
+      require("mini.bufremove").delete(bufnr)
+    else
+      vim.cmd(bufnr .. "bdelete")
+    end
   else
-    pin.unpin(bufnr)
-    vim.cmd(bufnr .. "bdelete")
+    if pin.config.use_mini_bufremove then
+      pin.unpin(bufnr)
+      require("mini.bufremove").delete(bufnr)
+    else
+      pin.unpin(bufnr)
+      vim.cmd(bufnr .. "bdelete")
+    end
   end
   pin.refresh_tabline()
 end
 
---- Use this function to |:bwipeout| the buf.
+--- Use this function to wipeout the buf.
 ---@param bufnr integer
 function pin.wipeout(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
-    vim.cmd(bufnr .. "bwipeout")
+    if pin.config.use_mini_bufremove then
+      require("mini.bufremove").wipeout(bufnr)
+    else
+      vim.cmd(bufnr .. "bwipeout")
+    end
   else
-    pin.unpin(bufnr)
-    vim.cmd(bufnr .. "bwipeout")
+    if pin.config.use_mini_bufremove then
+      pin.unpin(bufnr)
+      require("mini.bufremove").wipeout(bufnr)
+    else
+      pin.unpin(bufnr)
+      vim.cmd(bufnr .. "bwipeout")
+    end
   end
   pin.refresh_tabline()
 end

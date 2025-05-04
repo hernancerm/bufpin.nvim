@@ -50,6 +50,7 @@ default config is in `pin.default_config`. Below is the default config:
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
+    use_mini_bufremove = false,
   }
 <
                                                       *pin.config.pin_indicator*
@@ -88,6 +89,12 @@ calling |pin.pin()| on it has no effect and the buf never gets tracked as the
 last visited non-pinned buf. Some bufs are excluded regardless of this option:
 bufs without a name ([No Name]), Vim help files, detected plugin bufs (e.g.,
 nvimtree) and floating wins.
+
+                                                 *pin.config.use_mini_bufremove*
+`(boolean)`
+You need to have installed <https://github.com/echasnovski/mini.bufremove> for
+this option to work as `true`. When `true`, all buf deletions and wipeouts are
+done using the `mini.bufremove` plugin, thus preserving window layouts.
 
 ------------------------------------------------------------------------------
                                                           *pin-highlight-groups*
@@ -138,13 +145,13 @@ Parameters ~
 
                                                                   *pin.delete()*
                              `pin.delete`({bufnr})
-Use this function to |:bdelete| the buf.
+Use this function to delete the buf.
 Parameters ~
 {bufnr} `(integer)`
 
                                                                  *pin.wipeout()*
                              `pin.wipeout`({bufnr})
-Use this function to |:bwipeout| the buf.
+Use this function to wipeout the buf.
 Parameters ~
 {bufnr} `(integer)`
 
