@@ -64,6 +64,8 @@ How do I get this experience in Neovim?:
 - Out of the box key mappings to manage pinned bufs.
 - Store the pinned bufs in sessions both managed manually or through a plugin (e.g.,
   [vim-obsession](https://github.com/tpope/vim-obsession)).
+- Opt-in integration with [mini.bufremove](https://github.com/echasnovski/mini.bufremove) to
+  preserve window layout.
 - Auto-hide the tabline when there are no pinned bufs.
 
 ## Out of scope
@@ -105,6 +107,8 @@ pin.setup({
   auto_hide_tabline = true,
   set_default_keymaps = true,
   exclude = function(_) end,
+  use_mini_bufremove = false,
+  remove_with = "delete",
 })
 ```
 
@@ -114,7 +118,7 @@ Default key mappings:
 local o = { silent = true }
 local kset = vim.keymap.set
 kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
+kset("n",  "<Leader>w",  ":cal v:lua.Pin.remove()<CR>", o)
 kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
 kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
 kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)

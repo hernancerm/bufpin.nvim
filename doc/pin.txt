@@ -51,6 +51,7 @@ default config is in `pin.default_config`. Below is the default config:
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
+    remove_with = "delete",
   }
 <
                                                       *pin.config.pin_indicator*
@@ -72,7 +73,7 @@ Default key maps:
   local o = { silent = true }
   local kset = vim.keymap.set
   kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.remove()<CR>", o)
   kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
   kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
   kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
@@ -95,6 +96,11 @@ nvimtree) and floating wins.
 You need to have installed <https://github.com/echasnovski/mini.bufremove> for
 this option to work as `true`. When `true`, all buf deletions and wipeouts are
 done using the `mini.bufremove` plugin, thus preserving window layouts.
+
+                                                        *pin.config.remove_with*
+`"delete"|"wipeout"`
+Set how buf removal is done for both the function |pin.remove()| and the mouse
+middle click input on a buf in the tabline.
 
 ------------------------------------------------------------------------------
                                                           *pin-highlight-groups*
@@ -143,15 +149,11 @@ Parameters ~
 Parameters ~
 {bufnr} `(integer)`
 
-                                                                  *pin.delete()*
-                             `pin.delete`({bufnr})
-Use this function to delete the buf.
-Parameters ~
-{bufnr} `(integer)`
-
-                                                                 *pin.wipeout()*
-                             `pin.wipeout`({bufnr})
-Use this function to wipeout the buf.
+                                                                  *pin.remove()*
+                             `pin.remove`({bufnr})
+Remove a buffer either by deleting it or wiping it out. This function obeys
+the config key |pin.config.remove_with|. Use this function to remove any
+pinned buf and the last visited non-pinned buf.
 Parameters ~
 {bufnr} `(integer)`
 

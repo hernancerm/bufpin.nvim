@@ -147,6 +147,7 @@ function h.assign_default_config()
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
+    remove_with = "delete",
   }
   --minidoc_afterlines_end
 end
@@ -156,11 +157,11 @@ end
 --- Sequence of chars used in the tabline to indicate that a buf is pinned.
 --- Suggested char (requires Nerd Fonts): "nf-md-pin" (U+F0403) (󰐃).
 --- Listed here: <https://www.nerdfonts.com/cheat-sheet>.
----
+
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`
 --- When true, when there are no pinned bufs, hide the tabline.
----
+
 --- #tag pin.config.set_default_keymaps
 --- `(boolean)`
 --- When true, the default key maps, listed below, are set.
@@ -174,7 +175,7 @@ function h.set_default_keymaps()
   local o = { silent = true }
   local kset = vim.keymap.set
   kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Pin.delete()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Pin.remove()<CR>", o)
   kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
   kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
   kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
@@ -200,6 +201,11 @@ end
 --- You need to have installed <https://github.com/echasnovski/mini.bufremove> for
 --- this option to work as `true`. When `true`, all buf deletions and wipeouts are
 --- done using the `mini.bufremove` plugin, thus preserving window layouts.
+
+--- #tag pin.config.remove_with
+--- `"delete"|"wipeout"`
+--- Set how buf removal is done for both the function |pin.remove()| and the mouse
+--- middle click input on a buf in the tabline.
 
 --- #delimiter
 --- #tag pin-highlight-groups
@@ -278,48 +284,20 @@ function pin.toggle(bufnr)
   pin.refresh_tabline()
 end
 
---- Use this function to delete the buf.
+--- Remove a buffer either by deleting it or wiping it out. This function obeys
+--- the config key |pin.config.remove_with|. Use this function to remove any
+--- pinned buf and the last visited non-pinned buf.
 ---@param bufnr integer
-function pin.delete(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
-  if vim.bo.modified then
-    if pin.config.use_mini_bufremove then
-      require("mini.bufremove").delete(bufnr)
-    else
-      vim.cmd(bufnr .. "bdelete")
-    end
+function pin.remove(bufnr)
+  if pin.config.remove_with == "delete" then
+    h.delete_buf(bufnr)
+  elseif pin.config.remove_with == "wipeout" then
+    h.wipeout_buf(bufnr)
   else
-    if pin.config.use_mini_bufremove then
-      pin.unpin(bufnr)
-      require("mini.bufremove").delete(bufnr)
-    else
-      pin.unpin(bufnr)
-      vim.cmd(bufnr .. "bdelete")
-    end
+    h.print_user_error(
+      "Config key 'pin.config.remove_with' is neither 'delete' nor 'wipeout'"
+    )
   end
-  pin.refresh_tabline()
-end
-
---- Use this function to wipeout the buf.
----@param bufnr integer
-function pin.wipeout(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
-  if vim.bo.modified then
-    if pin.config.use_mini_bufremove then
-      require("mini.bufremove").wipeout(bufnr)
-    else
-      vim.cmd(bufnr .. "bwipeout")
-    end
-  else
-    if pin.config.use_mini_bufremove then
-      pin.unpin(bufnr)
-      require("mini.bufremove").wipeout(bufnr)
-    else
-      pin.unpin(bufnr)
-      vim.cmd(bufnr .. "bwipeout")
-    end
-  end
-  pin.refresh_tabline()
 end
 
 function pin.move_to_left()
@@ -429,7 +407,7 @@ function! PinTlOnClickBuf(minwid,clicks,button,modifiers)
     if a:button == 'l'
       execute 'buffer' a:minwid
     elseif a:button == 'm'
-      execute 'bdelete' a:minwid
+      call v:lua.Pin.remove(a:minwid)
     endif
   endif
 endfunction
@@ -479,6 +457,50 @@ function h.serialize_state()
       :totable(),
     last_non_pinned_buf = last_non_pinned_buf,
   })
+end
+
+--- Delete a buf, unpinning if necessary and conditionally using mini.bufremove.
+---@param bufnr integer
+function h.delete_buf(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
+  if vim.bo.modified then
+    if pin.config.use_mini_bufremove then
+      require("mini.bufremove").delete(bufnr)
+    else
+      vim.cmd(bufnr .. "bdelete")
+    end
+  else
+    if pin.config.use_mini_bufremove then
+      pin.unpin(bufnr)
+      require("mini.bufremove").delete(bufnr)
+    else
+      pin.unpin(bufnr)
+      vim.cmd(bufnr .. "bdelete")
+    end
+  end
+  pin.refresh_tabline()
+end
+
+--- Wipeout a buf, unpinning if necessary and conditionally using mini.bufremove.
+---@param bufnr integer
+function h.wipeout_buf(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
+  if vim.bo.modified then
+    if pin.config.use_mini_bufremove then
+      require("mini.bufremove").wipeout(bufnr)
+    else
+      vim.cmd(bufnr .. "bwipeout")
+    end
+  else
+    if pin.config.use_mini_bufremove then
+      pin.unpin(bufnr)
+      require("mini.bufremove").wipeout(bufnr)
+    else
+      pin.unpin(bufnr)
+      vim.cmd(bufnr .. "bwipeout")
+    end
+  end
+  pin.refresh_tabline()
 end
 
 --- The `bufnr` is used for mouse click support.
@@ -664,6 +686,10 @@ function h.show_tabline()
   else
     vim.o.showtabline = 0
   end
+end
+
+function h.print_user_error(message)
+  vim.api.nvim_echo({ { message, "Error" } }, true, {})
 end
 
 --- Whether the buf should be excluded from pins and the last non-pinned buf
