@@ -140,9 +140,13 @@ pin.nvim:
 
 - [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
   location when navigating among bufs.
+  - How to integrate with pin.nvim?: Just install it.
 - [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
   layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
-  buf, so nvim-tree does not take the full screen and instead the alt buf is shown.
+  buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
+  where the buf was removed.
+  - How to integrate with pin.nvim?: Install it and set `use_mini_bufremove = true` in pin.nvim's
+    config.
 
 ## Inspiration
 
