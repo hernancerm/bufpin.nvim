@@ -220,41 +220,6 @@ end
 --- #tag pin-functions
 --- Functions ~
 
---- Get all the pinned bufs. This is the actual list, not a copy.
----@return table List of buf handlers.
-function pin.get_pinned_bufs()
-  return h.state.pinned_bufs
-end
-
---- Get the last visited non pinned buf.
----@return integer? Buf handler.
-function pin.get_last_non_pinned_buf()
-  return h.state.last_non_pinned_buf
-end
-
---- Set the option 'tabline'. The tabline is not drawn during a session
---- (|session-file|) load. To force draw send `force` as `true`.
----@param force boolean?
-function pin.refresh_tabline(force)
-  if vim.fn.exists("SessionLoad") == 1 and force ~= true then
-    return
-  end
-  local tabline = ""
-  -- Must be a left-aligned char. For other bar chars see:
-  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
-  local buf_separator_char = "▏"
-  h.prune_nonexistent_bufs_from_state()
-  tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
-  tabline = tabline .. h.build_tabline_last_non_pinned_buf(buf_separator_char)
-  tabline = tabline
-    .. h.build_tabline_ending_separator_char(#tabline, buf_separator_char)
-  vim.o.tabline = tabline
-  if pin.config.auto_hide_tabline then
-    h.show_tabline()
-  end
-  h.serialize_state()
-end
-
 ---@param bufnr integer
 function pin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
@@ -392,6 +357,41 @@ function pin.edit_by_index(index)
     vim.cmd("buffer " .. h.state.last_non_pinned_buf)
   end
   pin.refresh_tabline()
+end
+
+--- Get all the pinned bufs. This is the actual list, not a copy.
+---@return table List of buf handlers.
+function pin.get_pinned_bufs()
+  return h.state.pinned_bufs
+end
+
+--- Get the last visited non pinned buf.
+---@return integer? Buf handler.
+function pin.get_last_non_pinned_buf()
+  return h.state.last_non_pinned_buf
+end
+
+--- Set the option 'tabline'. The tabline is not drawn during a session
+--- (|session-file|) load. To force draw send `force` as `true`.
+---@param force boolean?
+function pin.refresh_tabline(force)
+  if vim.fn.exists("SessionLoad") == 1 and force ~= true then
+    return
+  end
+  local tabline = ""
+  -- Must be a left-aligned char. For other bar chars see:
+  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
+  local buf_separator_char = "▏"
+  h.prune_nonexistent_bufs_from_state()
+  tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
+  tabline = tabline .. h.build_tabline_last_non_pinned_buf(buf_separator_char)
+  tabline = tabline
+    .. h.build_tabline_ending_separator_char(#tabline, buf_separator_char)
+  vim.o.tabline = tabline
+  if pin.config.auto_hide_tabline then
+    h.show_tabline()
+  end
+  h.serialize_state()
 end
 
 -- Set module default config.
