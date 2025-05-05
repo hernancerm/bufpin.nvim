@@ -13,7 +13,7 @@
 --- #tag pin-introduction
 --- Introduction ~
 ---
---- Pitch: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
+--- Context: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
 ---
 --- To enable the plugin you need to call the |pin.setup()| function. To use the
 --- defaults, call it without arguments:
@@ -24,10 +24,6 @@
 --- This is useful for setting key maps which expect an arg, e.g.:
 --- >lua
 ---   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
---- <
---- For the pinned bufs to be persisted in session, add this to your `init.lua`:
---- >lua
----   vim.opt.sessionoptions:append("globals")
 --- <
 
 local pin = {}

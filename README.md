@@ -3,16 +3,16 @@
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
 
+<!--
 Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the buf is pinned):
 
 [![asciicast](https://asciinema.org/a/716260.svg)](https://asciinema.org/a/716260)
+-->
 
-**This is a plugin for Neovim, not for IntelliJ. This plugin mimics in Neovim a behavior
-that can be had in IntelliJ.**
+**This is a plugin for Neovim, not for IntelliJ. This plugin allows Neovim to mimic a particular
+behavior in IntelliJ.**
 
-## Pitch
-
-### Problem
+## Problem
 
 In both IntelliJ and Neovim, there is no way to keep a list of files which does not get polluted
 during codebase navigation. In IntelliJ, a tab is opened per visited file. In Neovim, a buffer is
@@ -22,7 +22,7 @@ Have you ever noticed this yourself and be bothered by it?
 
 I want a solution that works uniformly in both IntelliJ and Neovim.
 
-### Solution
+## Solution
 
 Solution idea:
 
@@ -52,10 +52,6 @@ nmap      <F2>      <Action>(GoToTab2)
 nmap      <F3>      <Action>(GoToTab3)
 nmap      <F4>      <Action>(GoToTab4)
 ```
-
-How do I get this experience in Neovim?:
-
-- This plugin.
 
 ## Features
 
@@ -140,13 +136,18 @@ pin.nvim:
 
 - [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
   location when navigating among bufs.
-  - How to integrate with pin.nvim?: Just install it.
+  - How to integrate with pin.nvim?:
+    - Just install the plugin.
 - [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
   layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
   buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
   where the buf was removed.
-  - How to integrate with pin.nvim?: Install it and set `use_mini_bufremove = true` in pin.nvim's
-    config.
+  - How to integrate with pin.nvim?:
+    - Install the plugin and set `use_mini_bufremove = true` in pin.nvim's config.
+- [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
+  bufs.
+  - How to integrate with pin.nvim?:
+    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your `init.lua`.
 
 ## Inspiration
 
