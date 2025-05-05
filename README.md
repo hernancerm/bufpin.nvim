@@ -20,20 +20,19 @@ created per visited file. In both IntelliJ and Neovim I have to do a periodic ja
 keep in sight the files I care about, either closing tabs (IntelliJ) or deleting buffers (Neovim).
 Have you ever noticed this yourself and be bothered by it?
 
-I want a solution that works uniformly in both IntelliJ and Neovim.
+I want a solution that is mostly uniformly in both IntelliJ and Neovim.
 
 ## Solution
 
 Solution idea:
 
 - How do I track the files I care about?
-  - Through "pinning" via a dedicated key map.
-  - This is the standard idea of pinning as in IntelliJ.
+  - IntelliJ and Neovim: Through "pinning" files via a dedicated key map.
 - How do I keep in sight the list of files?
-  - Display the files in tabs as it's standard in IntelliJ.
+  - IntelliJ and Neovim: Display the files in tabs as it's standard in IntelliJ.
 - What happens when navigating among non pinned files?
-  - Only 1 non-pinned file is shown. Others are removed automatically.
-
+  - IntelliJ: A maximum of 1 non-pinned file is shown.
+  - Neovim: The tabline only ever shows pinned files.
 
 How do I get this experience in IntelliJ?:
 
@@ -99,7 +98,6 @@ Is equivalent to:
 ```lua
 local pin = require("pin")
 pin.setup({
-  pin_indicator = "[P]",
   auto_hide_tabline = true,
   set_default_keymaps = true,
   exclude = function(_) end,

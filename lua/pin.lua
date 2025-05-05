@@ -20,8 +20,9 @@
 --- >lua
 ---   require("pin").setup()
 --- <
---- All which is accessible by `require("pin")` is also by the Lua global `Pin`.
---- This is useful for setting key maps which expect an arg, e.g.:
+--- After calling |pin.setup()| the Lua global `Pin` gets defined. This global
+--- variable provides acces to everything that `require("pin")` does. This is
+--- useful for setting key maps on functions which expect an arg, e.g.:
 --- >lua
 ---   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
 --- <
@@ -44,20 +45,6 @@ function pin.setup(config)
   -- Merge user and default configs.
   pin.config = h.get_config_with_fallback(config, pin.default_config)
 
-  -- Track the last non-pinned buf.
-  vim.api.nvim_create_autocmd("BufEnter", {
-    group = h.pin_augroup,
-    callback = function(event)
-      if h.should_exclude_buf(event.buf) then
-        return
-      end
-      local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
-      if bufnr_index == nil then
-        h.state.last_non_pinned_buf = event.buf
-      end
-    end,
-  })
-
   -- Remove bufs from state.
   vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     group = h.pin_augroup,
@@ -65,13 +52,7 @@ function pin.setup(config)
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
       if bufnr_index ~= nil then
         table.remove(h.state.pinned_bufs, bufnr_index)
-      elseif event.buf == h.state.last_non_pinned_buf then
-        h.state.last_non_pinned_buf = nil
       end
-      -- Mag buffers (from a personal plugin) are properly removed in this
-      -- callback given the use of `vim.defer_fn()`, instead of just calling
-      -- `pin.refresh_tabline()`. The issue is on <C-6> from Mag to non-Mag bufs.
-      vim.defer_fn(pin.refresh_tabline, 50)
     end,
   })
 
@@ -88,9 +69,6 @@ function pin.setup(config)
   }, {
     group = h.pin_augroup,
     callback = function()
-      if h.is_floating_win(0) then
-        return
-      end
       pin.refresh_tabline()
     end,
   })
@@ -106,12 +84,6 @@ function pin.setup(config)
         for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
           table.insert(h.state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
         end
-        -- Reset `state.last_non_pinned_buf` to its default.
-        h.state.last_non_pinned_buf = nil
-        if decoded_state.last_non_pinned_buf ~= nil then
-          h.state.last_non_pinned_buf =
-            vim.fn.bufadd(decoded_state.last_non_pinned_buf)
-        end
       end
       pin.refresh_tabline(true)
     end,
@@ -121,6 +93,8 @@ function pin.setup(config)
   if pin.config.set_default_keymaps then
     h.set_default_keymaps()
   end
+
+  _G.Pin = pin
 end
 
 --- #delimiter
@@ -138,7 +112,6 @@ function h.assign_default_config()
   --minidoc_replace_start {
   pin.default_config = {
     --minidoc_replace_end
-    pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
@@ -147,12 +120,6 @@ function h.assign_default_config()
   }
   --minidoc_afterlines_end
 end
-
---- #tag pin.config.pin_indicator
---- `(string)`
---- Sequence of chars used in the tabline to indicate that a buf is pinned.
---- Suggested char (requires Nerd Fonts): "nf-md-pin" (U+F0403) (󰐃).
---- Listed here: <https://www.nerdfonts.com/cheat-sheet>.
 
 --- #tag pin.config.auto_hide_tabline
 --- `(boolean)`
@@ -187,10 +154,9 @@ end
 --- #tag pin.config.exclude
 --- `(fun(bufnr:integer):boolean)`
 --- When the function returns true, the buf (`bufnr`) is ignored. This means that
---- calling |pin.pin()| on it has no effect and the buf never gets tracked as the
---- last visited non-pinned buf. Some bufs are excluded regardless of this option:
---- bufs without a name ([No Name]), Vim help files, detected plugin bufs (e.g.,
---- nvimtree) and floating wins.
+--- calling |pin.pin()| on it has no effect. Some bufs are excluded regardless of
+--- this option: bufs without a name ([No Name]), Vim help files, detected plugin
+--- bufs (e.g., nvimtree) and floating wins.
 
 --- #tag pin.config.use_mini_bufremove
 --- `(boolean)`
@@ -245,9 +211,8 @@ function pin.toggle(bufnr)
   pin.refresh_tabline()
 end
 
---- Remove a buffer either by deleting it or wiping it out. This function obeys
---- the config key |pin.config.remove_with|. Use this function to remove any
---- pinned buf and the last visited non-pinned buf.
+--- Remove a buf either by deleting it or wiping it out. This function obeys the
+--- config key |pin.config.remove_with|. Use this function to remove pinned bufs.
 ---@param bufnr integer
 function pin.remove(bufnr)
   if pin.config.remove_with == "delete" then
@@ -293,23 +258,16 @@ function pin.edit_left()
   if #h.state.pinned_bufs == 0 then
     return
   end
-  local bufnr = vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
-  if bufnr_index == nil and h.state.last_non_pinned_buf == bufnr then
-    vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
-    pin.refresh_tabline()
-  elseif bufnr_index ~= nil and bufnr_index > 1 then
+  local bufnr_index = h.table_find_index(h.state.pinned_bufs, vim.fn.bufnr())
+  if bufnr_index == nil then
+    return
+  elseif bufnr_index > 1 then
     vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index - 1])
     pin.refresh_tabline()
   elseif bufnr_index == 1 then
-    if h.state.last_non_pinned_buf ~= nil then
-      vim.cmd("buffer " .. h.state.last_non_pinned_buf)
-      pin.refresh_tabline()
-    else
-      -- Circular editing.
-      vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
-      pin.refresh_tabline()
-    end
+    -- Circular editing.
+    vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
+    pin.refresh_tabline()
   end
 end
 
@@ -317,40 +275,23 @@ function pin.edit_right()
   if #h.state.pinned_bufs == 0 then
     return
   end
-  local bufnr = vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
-  if
-    bufnr_index ~= nil
-    and h.state.last_non_pinned_buf ~= nil
-    and bufnr_index == #h.state.pinned_bufs
-  then
-    vim.cmd("buffer " .. h.state.last_non_pinned_buf)
-    pin.refresh_tabline()
-  elseif bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufs then
+  local bufnr_index = h.table_find_index(h.state.pinned_bufs, vim.fn.bufnr())
+  if bufnr_index == nil then
+    return
+  elseif bufnr_index < #h.state.pinned_bufs then
     vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index + 1])
     pin.refresh_tabline()
-  elseif
-    #h.state.pinned_bufs > 1
-    and (
-      bufnr_index == #h.state.pinned_bufs
-      or bufnr == h.state.last_non_pinned_buf
-    )
-  then
+  elseif bufnr_index == #h.state.pinned_bufs then
     -- Circular editing.
     vim.cmd("buffer " .. h.state.pinned_bufs[1])
     pin.refresh_tabline()
   end
 end
 
+---@param index integer Index of a pinned buf in the list |pin.get_pinned_bufs()|.
 function pin.edit_by_index(index)
   if index <= #h.state.pinned_bufs then
-    -- Edit a pinned buf.
     vim.cmd("buffer " .. h.state.pinned_bufs[index])
-  elseif
-    index == #h.state.pinned_bufs + 1 and h.state.last_non_pinned_buf ~= nil
-  then
-    -- Edit the last non pinned buf.
-    vim.cmd("buffer " .. h.state.last_non_pinned_buf)
   end
   pin.refresh_tabline()
 end
@@ -359,12 +300,6 @@ end
 ---@return table List of buf handlers.
 function pin.get_pinned_bufs()
   return h.state.pinned_bufs
-end
-
---- Get the last visited non pinned buf.
----@return integer? Buf handler.
-function pin.get_last_non_pinned_buf()
-  return h.state.last_non_pinned_buf
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
@@ -380,9 +315,7 @@ function pin.refresh_tabline(force)
   local buf_separator_char = "▏"
   h.prune_nonexistent_bufs_from_state()
   tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
-  tabline = tabline .. h.build_tabline_last_non_pinned_buf(buf_separator_char)
-  tabline = tabline
-    .. h.build_tabline_ending_separator_char(#tabline, buf_separator_char)
+  tabline = tabline .. h.build_tabline_ending_separator_char(buf_separator_char)
   vim.o.tabline = tabline
   if pin.config.auto_hide_tabline then
     h.show_tabline()
@@ -419,7 +352,6 @@ function h.get_config_with_fallback(config, default_config)
   vim.validate("config", config, "table", true)
   config =
     vim.tbl_deep_extend("force", vim.deepcopy(default_config), config or {})
-  vim.validate("config.pin_indicator", config.pin_indicator, "string")
   vim.validate("config.auto_hide_tabline", config.auto_hide_tabline, "boolean")
   vim.validate(
     "config.set_default_keymaps",
@@ -430,17 +362,10 @@ function h.get_config_with_fallback(config, default_config)
 end
 
 --- For session persistence. Store state in `vim.g.PinState`. Deserialize in the
---- autocmd event `SessionLoadPost.` In `pinned_bufs` and `last_non_pinned_buf`,
---- full file names are serialized. Note: Neovim has no `SessionWritePre` event:
+--- autocmd event `SessionLoadPost.` In `pinned_bufs`, full file names are
+--- serialized. Note: Neovim has no `SessionWritePre` event:
 --- <https://github.com/neovim/neovim/issues/22814>.
 function h.serialize_state()
-  local last_non_pinned_buf = nil
-  if
-    h.state.last_non_pinned_buf ~= nil
-    and vim.fn.bufexists(h.state.last_non_pinned_buf) == 1
-  then
-    last_non_pinned_buf = vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf)
-  end
   vim.g.PinState = vim.json.encode({
     pinned_bufs = vim
       .iter(h.state.pinned_bufs)
@@ -451,7 +376,6 @@ function h.serialize_state()
         return vim.api.nvim_buf_get_name(bufnr)
       end)
       :totable(),
-    last_non_pinned_buf = last_non_pinned_buf,
   })
 end
 
@@ -526,7 +450,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
         .. h.build_tabline_buf({
           bufnr = pinned_buf,
           prefix = "%#TabLineSel#  ",
-          value = basename .. " " .. pin.config.pin_indicator,
+          value = basename,
           suffix = "  %*",
         })
     else
@@ -538,7 +462,7 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
         .. h.build_tabline_buf({
           bufnr = pinned_buf,
           prefix = prefix,
-          value = basename .. " " .. pin.config.pin_indicator,
+          value = basename,
           suffix = "  ",
         })
     end
@@ -546,54 +470,14 @@ function h.build_tabline_pinned_bufs(buf_separator_char)
   return output
 end
 
---- Assumption: If the last non-pinned buf is non-nil, it exists.
---- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
+--- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
 ---@param buf_separator_char string
 ---@return string
-function h.build_tabline_last_non_pinned_buf(buf_separator_char)
+function h.build_tabline_ending_separator_char(buf_separator_char)
   local output = ""
-  if h.state.last_non_pinned_buf == nil then
-    return output
-  end
-  local bufnr = vim.fn.bufnr()
-  local basename =
-    vim.fs.basename(vim.api.nvim_buf_get_name(h.state.last_non_pinned_buf))
-  if h.state.last_non_pinned_buf == bufnr then
-    local prefix = "%#TabLineSel#  "
-    local suffix = "  %*"
-    output = output .. prefix .. basename .. suffix
-  else
-    local prefix = buf_separator_char .. " "
-    if #h.state.pinned_bufs == 0 then
-      prefix = "  "
-    end
-    output = output
-      .. h.build_tabline_buf({
-        bufnr = h.state.last_non_pinned_buf,
-        prefix = prefix,
-        value = basename,
-        suffix = "  ",
-      })
-  end
-  return output
-end
-
---- Assumption: If the last non-pinned buf is non-nil, it exists.
---- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
----@param tabline_length integer
----@param buf_separator_char string
----@return string
-function h.build_tabline_ending_separator_char(tabline_length, buf_separator_char)
-  local output = ""
-  local bufnr = vim.fn.bufnr()
   if
-    tabline_length > 0
-    and not (#h.state.pinned_bufs == 1 and bufnr == h.state.pinned_bufs[1])
-    and not (
-      #h.state.pinned_bufs == 0
-      and h.state.last_non_pinned_buf ~= nil
-      and bufnr == h.state.last_non_pinned_buf
-    )
+    #h.state.pinned_bufs > 0
+    and not h.state.pinned_bufs[#h.state.pinned_bufs] ~= vim.fn.bufnr()
   then
     output = buf_separator_char
   end
@@ -645,19 +529,10 @@ function h.prune_nonexistent_bufs_from_state()
       return vim.fn.bufexists(bufnr) == 1
     end)
     :totable()
-  if
-    h.state.last_non_pinned_buf ~= nil
-    and vim.fn.bufexists(h.state.last_non_pinned_buf) == 0
-  then
-    h.state.last_non_pinned_buf = nil
-  end
 end
 
 ---@param bufnr integer
 function h.pin_by_bufnr(bufnr)
-  if bufnr == h.state.last_non_pinned_buf then
-    h.state.last_non_pinned_buf = nil
-  end
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
   if bufnr_index == nil then
     table.insert(h.state.pinned_bufs, bufnr)
@@ -666,9 +541,6 @@ end
 
 ---@param bufnr integer
 function h.unpin_by_bufnr(bufnr)
-  if bufnr == vim.fn.bufnr() then
-    h.state.last_non_pinned_buf = vim.fn.bufnr()
-  end
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
   if bufnr_index ~= nil then
     table.remove(h.state.pinned_bufs, bufnr_index)
@@ -688,8 +560,8 @@ function h.print_user_error(message)
   vim.api.nvim_echo({ { message, "Error" } }, true, {})
 end
 
---- Whether the buf should be excluded from pins and the last non-pinned buf
---- according to the exclusion check from `pin.config.exclude` plus other checks.
+--- Whether the buf should be excluded from the pinned bufs according to the
+--- exclusion check from `pin.config.exclude` and other checks.
 ---@param bufnr integer
 ---@return boolean
 function h.should_exclude_buf(bufnr)
@@ -704,8 +576,6 @@ h.pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
-  last_non_pinned_buf = nil,
 }
 
-_G.Pin = pin
 return pin

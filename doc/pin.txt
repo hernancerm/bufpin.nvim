@@ -20,8 +20,9 @@ defaults, call it without arguments:
 >lua
   require("pin").setup()
 <
-All which is accessible by `require("pin")` is also by the Lua global `Pin`.
-This is useful for setting key maps which expect an arg, e.g.:
+After calling |pin.setup()| the Lua global `Pin` gets defined. This global
+variable provides acces to everything that `require("pin")` does. This is
+useful for setting key maps on functions which expect an arg, e.g.:
 >lua
   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
 <
@@ -42,7 +43,6 @@ The merged config (defaults with user overrides) is in `pin.config`. The
 default config is in `pin.default_config`. Below is the default config:
 >lua
   {
-    pin_indicator = "[P]",
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
@@ -50,12 +50,6 @@ default config is in `pin.default_config`. Below is the default config:
     remove_with = "delete",
   }
 <
-                                                      *pin.config.pin_indicator*
-`(string)`
-Sequence of chars used in the tabline to indicate that a buf is pinned.
-Suggested char (requires Nerd Fonts): "nf-md-pin" (U+F0403) (󰐃).
-Listed here: <https://www.nerdfonts.com/cheat-sheet>.
-
                                                   *pin.config.auto_hide_tabline*
 `(boolean)`
 When true, when there are no pinned bufs, hide the tabline.
@@ -82,10 +76,9 @@ Default key maps:
                                                             *pin.config.exclude*
 `(fun(bufnr:integer):boolean)`
 When the function returns true, the buf (`bufnr`) is ignored. This means that
-calling |pin.pin()| on it has no effect and the buf never gets tracked as the
-last visited non-pinned buf. Some bufs are excluded regardless of this option:
-bufs without a name ([No Name]), Vim help files, detected plugin bufs (e.g.,
-nvimtree) and floating wins.
+calling |pin.pin()| on it has no effect. Some bufs are excluded regardless of
+this option: bufs without a name ([No Name]), Vim help files, detected plugin
+bufs (e.g., nvimtree) and floating wins.
 
                                                  *pin.config.use_mini_bufremove*
 `(boolean)`
@@ -128,23 +121,21 @@ Parameters ~
 
                                                                   *pin.remove()*
                              `pin.remove`({bufnr})
-Remove a buffer either by deleting it or wiping it out. This function obeys
-the config key |pin.config.remove_with|. Use this function to remove any
-pinned buf and the last visited non-pinned buf.
+Remove a buf either by deleting it or wiping it out. This function obeys the
+config key |pin.config.remove_with|. Use this function to remove pinned bufs.
 Parameters ~
 {bufnr} `(integer)`
+
+                                                           *pin.edit_by_index()*
+                          `pin.edit_by_index`({index})
+Parameters ~
+{index} `(integer)` Index of a pinned buf in the list |pin.get_pinned_bufs()|.
 
                                                          *pin.get_pinned_bufs()*
                             `pin.get_pinned_bufs`()
 Get all the pinned bufs. This is the actual list, not a copy.
 Return ~
 `(table)` List of buf handlers.
-
-                                                 *pin.get_last_non_pinned_buf()*
-                        `pin.get_last_non_pinned_buf`()
-Get the last visited non pinned buf.
-Return ~
-`(integer)` `(optional)` Buf handler.
 
                                                          *pin.refresh_tabline()*
                          `pin.refresh_tabline`({force})
