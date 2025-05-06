@@ -1,4 +1,4 @@
-# Pin
+# Bufpin
 
 A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
 [IdeaVim](https://github.com/JetBrains/ideavim) users.
@@ -78,26 +78,26 @@ Use your favorite package manager. For example, [Lazy.nvim](https://github.com/f
 
 ```lua
 {
-  "hernancerm/pin.nvim",
+  "hernancerm/bufpin.nvim",
   opts = {}
 },
 ```
 
-The function `require("pin").setup()` needs to be called. Lazy.nvim does this using the snippet
+The function `require("bufpin").setup()` needs to be called. Lazy.nvim does this using the snippet
 above.
 
 ## Default config
 
 ```lua
-local pin = require("pin")
-pin.setup()
+local bufpin = require("bufpin")
+bufpin.setup()
 ```
 
 Is equivalent to:
 
 ```lua
-local pin = require("pin")
-pin.setup({
+local bufpin = require("bufpin")
+bufpin.setup({
   auto_hide_tabline = true,
   set_default_keymaps = true,
   exclude = function(_) end,
@@ -111,40 +111,39 @@ Default key mappings:
 ```lua
 local o = { silent = true }
 local kset = vim.keymap.set
-kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-kset("n",  "<Leader>w",  ":cal v:lua.Pin.remove()<CR>", o)
-kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
-kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
-kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
-kset("n",  "<Right>",    ":cal v:lua.Pin.move_to_right()<CR>", o)
-kset("n",  "<F1>",       ":cal v:lua.Pin.edit_by_index(1)<CR>", o)
-kset("n",  "<F2>",       ":cal v:lua.Pin.edit_by_index(2)<CR>", o)
-kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
-kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
+kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>", o)
+kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>", o)
+kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>", o)
+kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>", o)
+kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>", o)
+kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>", o)
+kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>", o)
+kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>", o)
+kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>", o)
+kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
 ```
 
 ## Documentation
 
-Please refer to the help file: [pin.txt](./doc/pin.txt).
+Please refer to the help file: [bufpin.txt](./doc/bufpin.txt).
 
 ## Suggested complementary plugins
 
-These plugins are completely independent from pin.nvim, but can enhance the experience with
-pin.nvim:
+These plugins are independent from bufpin.nvim, but can enhance the experience with bufpin.nvim:
 
 - [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
   location when navigating among bufs.
-  - How to integrate with pin.nvim?:
+  - How to integrate with bufpin.nvim?:
     - Just install the plugin.
 - [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
   layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
   buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
   where the buf was removed.
-  - How to integrate with pin.nvim?:
-    - Install the plugin and set `use_mini_bufremove = true` in pin.nvim's config.
+  - How to integrate with bufpin.nvim?:
+    - Install the plugin and set `use_mini_bufremove = true` in bufpin.nvim's config.
 - [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
   bufs.
-  - How to integrate with pin.nvim?:
+  - How to integrate with bufpin.nvim?:
     - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your `init.lua`.
 
 ## Inspiration

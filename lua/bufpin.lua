@@ -1,53 +1,53 @@
---- *pin* A Harpoon-inspired buffer manager for IdeaVim users.
+--- *bufpin* A Harpoon-inspired buffer manager for IdeaVim users.
 ---
 --- MIT License Copyright (c) 2025 Hernán Cervera.
 ---
 --- Contents:
 ---
---- 1. Introduction                                               |pin-introduction|
---- 2. Configuration                                             |pin-configuration|
---- 3. Highlight groups                                       |pin-highlight-groups|
---- 4. Functions                                                     |pin-functions|
+--- 1. Introduction                                            |bufpin-introduction|
+--- 2. Configuration                                          |bufpin-configuration|
+--- 3. Highlight groups                                    |bufpin-highlight-groups|
+--- 4. Functions                                                  |bufpin-functions|
 ---
 --- ==============================================================================
---- #tag pin-introduction
+--- #tag bufpin-introduction
 --- Introduction ~
 ---
---- Context: <https://github.com/hernancerm/pin.nvim/blob/main/README.md>.
+--- Context: <https://github.com/hernancerm/bufpin.nvim/blob/main/README.md>.
 ---
---- To enable the plugin you need to call the |pin.setup()| function. To use the
---- defaults, call it without arguments:
+--- To enable the plugin you need to call the |bufpin.setup()| function. To use
+--- the defaults, call it without arguments:
 --- >lua
----   require("pin").setup()
+---   require("bufpin").setup()
 --- <
---- After calling |pin.setup()| the Lua global `Pin` gets defined. This global
---- variable provides acces to everything that `require("pin")` does. This is
---- useful for setting key maps on functions which expect an arg, e.g.:
+--- After calling |bufpin.setup()| the Lua global `Bufpin` gets defined. This
+--- global variable provides acces to everything that `require("bufpin")` does.
+--- This is useful for setting key maps on functions which expect an arg, e.g.:
 --- >lua
----   vim.keymap.set("n", "<F1>", ":call v:lua.Pin.edit_by_index(1)<CR>")
+---   vim.keymap.set("n", "<F1>", ":call v:lua.Bufpin.edit_by_index(1)<CR>")
 --- <
 
-local pin = {}
+local bufpin = {}
 local h = {}
 
 --- Module setup.
----@param config table? Merged with the default config (|pin.default_config|). The
---- former takes precedence on duplicate keys.
-function pin.setup(config)
+---@param config table? Merged with the default config (|bufpin.default_config|).
+--- The former takes priority on duplicate keys.
+function bufpin.setup(config)
   -- Here, the order of the definition of the autocmds is important. When autocmds
   -- have the same event, the autocmds defined first are executed first.
 
   -- Cleanup.
-  if #vim.api.nvim_get_autocmds({ group = h.pin_augroup }) > 0 then
-    vim.api.nvim_clear_autocmds({ group = h.pin_augroup })
+  if #vim.api.nvim_get_autocmds({ group = h.bufpin_augroup }) > 0 then
+    vim.api.nvim_clear_autocmds({ group = h.bufpin_augroup })
   end
 
   -- Merge user and default configs.
-  pin.config = h.get_config_with_fallback(config, pin.default_config)
+  bufpin.config = h.get_config_with_fallback(config, bufpin.default_config)
 
   -- Remove bufs from state.
   vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
-    group = h.pin_augroup,
+    group = h.bufpin_augroup,
     callback = function(event)
       local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
       if bufnr_index ~= nil then
@@ -67,50 +67,50 @@ function pin.setup(config)
     "TermLeave",
     "WinEnter",
   }, {
-    group = h.pin_augroup,
+    group = h.bufpin_augroup,
     callback = function()
-      pin.refresh_tabline()
+      bufpin.refresh_tabline()
     end,
   })
 
   -- Re-build state from session.
   vim.api.nvim_create_autocmd("SessionLoadPost", {
-    group = h.pin_augroup,
+    group = h.bufpin_augroup,
     callback = function()
-      if vim.g.PinState ~= nil then
-        local decoded_state = vim.json.decode(vim.g.PinState)
+      if vim.g.BufpinState ~= nil then
+        local decoded_state = vim.json.decode(vim.g.BufpinState)
         -- Reset `state.pinned_bufs` to its default.
         h.state.pinned_bufs = {}
         for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
           table.insert(h.state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
         end
       end
-      pin.refresh_tabline(true)
+      bufpin.refresh_tabline(true)
     end,
   })
 
   -- Set default key maps.
-  if pin.config.set_default_keymaps then
+  if bufpin.config.set_default_keymaps then
     h.set_default_keymaps()
   end
 
-  _G.Pin = pin
+  _G.Bufpin = bufpin
 end
 
 --- #delimiter
---- #tag pin.config
---- #tag pin.default_config
---- #tag pin-configuration
+--- #tag bufpin.config
+--- #tag bufpin.default_config
+--- #tag bufpin-configuration
 --- Configuration ~
 
---- The merged config (defaults with user overrides) is in `pin.config`. The
---- default config is in `pin.default_config`. Below is the default config:
+--- The merged config (defaults with user overrides) is in `bufpin.config`. The
+--- default config is in `bufpin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 --minidoc_replace_start
 function h.assign_default_config()
   --minidoc_replace_end
   --minidoc_replace_start {
-  pin.default_config = {
+  bufpin.default_config = {
     --minidoc_replace_end
     auto_hide_tabline = true,
     set_default_keymaps = true,
@@ -121,11 +121,11 @@ function h.assign_default_config()
   --minidoc_afterlines_end
 end
 
---- #tag pin.config.auto_hide_tabline
+--- #tag bufpin.config.auto_hide_tabline
 --- `(boolean)`
 --- When true, when there are no pinned bufs, hide the tabline.
 
---- #tag pin.config.set_default_keymaps
+--- #tag bufpin.config.set_default_keymaps
 --- `(boolean)`
 --- When true, the default key maps, listed below, are set.
 
@@ -137,40 +137,40 @@ function h.set_default_keymaps()
   --minidoc_replace_end
   local o = { silent = true }
   local kset = vim.keymap.set
-  kset("n",  "<Leader>p",  ":cal v:lua.Pin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Pin.remove()<CR>", o)
-  kset("n",  "<Up>",       ":cal v:lua.Pin.edit_left()<CR>", o)
-  kset("n",  "<Down>",     ":cal v:lua.Pin.edit_right()<CR>", o)
-  kset("n",  "<Left>",     ":cal v:lua.Pin.move_to_left()<CR>", o)
-  kset("n",  "<Right>",    ":cal v:lua.Pin.move_to_right()<CR>", o)
-  kset("n",  "<F1>",       ":cal v:lua.Pin.edit_by_index(1)<CR>", o)
-  kset("n",  "<F2>",       ":cal v:lua.Pin.edit_by_index(2)<CR>", o)
-  kset("n",  "<F3>",       ":cal v:lua.Pin.edit_by_index(3)<CR>", o)
-  kset("n",  "<F4>",       ":cal v:lua.Pin.edit_by_index(4)<CR>", o)
+  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>", o)
+  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>", o)
+  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>", o)
+  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>", o)
+  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>", o)
+  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>", o)
+  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>", o)
+  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>", o)
+  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>", o)
+  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
   --minidoc_afterlines_end
   -- stylua: ignore end
 end
 
---- #tag pin.config.exclude
+--- #tag bufpin.config.exclude
 --- `(fun(bufnr:integer):boolean)`
 --- When the function returns true, the buf (`bufnr`) is ignored. This means that
---- calling |pin.pin()| on it has no effect. Some bufs are excluded regardless of
---- this option: bufs without a name ([No Name]), Vim help files, detected plugin
---- bufs (e.g., nvimtree) and floating wins.
+--- calling |bufpin.pin()| on it has no effect. Some bufs are excluded regardless
+--- of this option: bufs without a name ([No Name]), Vim help files, detected
+--- plugin bufs (e.g., nvimtree) and floating wins.
 
---- #tag pin.config.use_mini_bufremove
+--- #tag bufpin.config.use_mini_bufremove
 --- `(boolean)`
 --- You need to have installed <https://github.com/echasnovski/mini.bufremove> for
 --- this option to work as `true`. When `true`, all buf deletions and wipeouts are
 --- done using the `mini.bufremove` plugin, thus preserving window layouts.
 
---- #tag pin.config.remove_with
+--- #tag bufpin.config.remove_with
 --- `"delete"|"wipeout"`
---- Set how buf removal is done for both the function |pin.remove()| and the mouse
---- middle click input on a buf in the tabline.
+--- Set how buf removal is done for both the function |bufpin.remove()| and the
+--- mouse middle click input on a buf in the tabline.
 
 --- #delimiter
---- #tag pin-highlight-groups
+--- #tag bufpin-highlight-groups
 --- Highlight groups ~
 ---
 --- Only built-in highlight groups are used.
@@ -179,54 +179,54 @@ end
 --- * Tabline background: |hl-TabLineFill|
 
 --- #delimiter
---- #tag pin-functions
+--- #tag bufpin-functions
 --- Functions ~
 
 ---@param bufnr integer
-function pin.pin(bufnr)
+function bufpin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if h.should_exclude_buf(bufnr) then
     return
   end
   h.pin_by_bufnr(bufnr)
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 ---@param bufnr integer
-function pin.unpin(bufnr)
+function bufpin.unpin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   h.unpin_by_bufnr(bufnr)
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 ---@param bufnr integer
-function pin.toggle(bufnr)
+function bufpin.toggle(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
   if bufnr_index ~= nil then
-    pin.unpin(bufnr)
+    bufpin.unpin(bufnr)
   else
-    pin.pin(bufnr)
+    bufpin.pin(bufnr)
   end
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 --- Remove a buf either by deleting it or wiping it out. This function obeys the
---- config key |pin.config.remove_with|. Use this function to remove pinned bufs.
+--- config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
 ---@param bufnr integer
-function pin.remove(bufnr)
-  if pin.config.remove_with == "delete" then
+function bufpin.remove(bufnr)
+  if bufpin.config.remove_with == "delete" then
     h.delete_buf(bufnr)
-  elseif pin.config.remove_with == "wipeout" then
+  elseif bufpin.config.remove_with == "wipeout" then
     h.wipeout_buf(bufnr)
   else
     h.print_user_error(
-      "Config key 'pin.config.remove_with' is neither 'delete' nor 'wipeout'"
+      "Config key 'bufpin.config.remove_with' is neither 'delete' nor 'wipeout'"
     )
   end
 end
 
-function pin.move_to_left()
+function bufpin.move_to_left()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -236,11 +236,11 @@ function pin.move_to_left()
     local swap = h.state.pinned_bufs[bufnr_index - 1]
     h.state.pinned_bufs[bufnr_index - 1] = bufnr
     h.state.pinned_bufs[bufnr_index] = swap
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   end
 end
 
-function pin.move_to_right()
+function bufpin.move_to_right()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -250,11 +250,11 @@ function pin.move_to_right()
     local swap = h.state.pinned_bufs[bufnr_index + 1]
     h.state.pinned_bufs[bufnr_index + 1] = bufnr
     h.state.pinned_bufs[bufnr_index] = swap
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   end
 end
 
-function pin.edit_left()
+function bufpin.edit_left()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -263,15 +263,15 @@ function pin.edit_left()
     return
   elseif bufnr_index > 1 then
     vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index - 1])
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   elseif bufnr_index == 1 then
     -- Circular editing.
     vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   end
 end
 
-function pin.edit_right()
+function bufpin.edit_right()
   if #h.state.pinned_bufs == 0 then
     return
   end
@@ -280,32 +280,32 @@ function pin.edit_right()
     return
   elseif bufnr_index < #h.state.pinned_bufs then
     vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index + 1])
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   elseif bufnr_index == #h.state.pinned_bufs then
     -- Circular editing.
     vim.cmd("buffer " .. h.state.pinned_bufs[1])
-    pin.refresh_tabline()
+    bufpin.refresh_tabline()
   end
 end
 
----@param index integer Index of a pinned buf in the list |pin.get_pinned_bufs()|.
-function pin.edit_by_index(index)
+---@param index integer Index of a pinned buf in |bufpin.get_pinned_bufs()|.
+function bufpin.edit_by_index(index)
   if index <= #h.state.pinned_bufs then
     vim.cmd("buffer " .. h.state.pinned_bufs[index])
   end
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 --- Get all the pinned bufs. This is the actual list, not a copy.
 ---@return table List of buf handlers.
-function pin.get_pinned_bufs()
+function bufpin.get_pinned_bufs()
   return h.state.pinned_bufs
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
 --- (|session-file|) load. To force draw send `force` as `true`.
 ---@param force boolean?
-function pin.refresh_tabline(force)
+function bufpin.refresh_tabline(force)
   if vim.fn.exists("SessionLoad") == 1 and force ~= true then
     return
   end
@@ -317,7 +317,7 @@ function pin.refresh_tabline(force)
   tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
   tabline = tabline .. h.build_tabline_ending_separator_char(buf_separator_char)
   vim.o.tabline = tabline
-  if pin.config.auto_hide_tabline then
+  if bufpin.config.auto_hide_tabline then
     h.show_tabline()
   end
   h.serialize_state()
@@ -331,12 +331,12 @@ h.assign_default_config()
 
 -- Vimscript functions.
 vim.cmd([[
-function! PinTlOnClickBuf(minwid,clicks,button,modifiers)
+function! BufpinTlOnClickBuf(minwid,clicks,button,modifiers)
   if a:clicks == 1
     if a:button == 'l'
       execute 'buffer' a:minwid
     elseif a:button == 'm'
-      call v:lua.Pin.remove(a:minwid)
+      call v:lua.Bufpin.remove(a:minwid)
     endif
   endif
 endfunction
@@ -361,12 +361,12 @@ function h.get_config_with_fallback(config, default_config)
   return config
 end
 
---- For session persistence. Store state in `vim.g.PinState`. Deserialize in the
---- autocmd event `SessionLoadPost.` In `pinned_bufs`, full file names are
+--- For session persistence. Store state in `vim.g.BufpinState`. Deserialize in
+--- the autocmd event `SessionLoadPost.` In `pinned_bufs`, full file names are
 --- serialized. Note: Neovim has no `SessionWritePre` event:
 --- <https://github.com/neovim/neovim/issues/22814>.
 function h.serialize_state()
-  vim.g.PinState = vim.json.encode({
+  vim.g.BufpinState = vim.json.encode({
     pinned_bufs = vim
       .iter(h.state.pinned_bufs)
       :filter(function(bufnr)
@@ -384,21 +384,21 @@ end
 function h.delete_buf(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
-    if pin.config.use_mini_bufremove then
+    if bufpin.config.use_mini_bufremove then
       require("mini.bufremove").delete(bufnr)
     else
       vim.cmd(bufnr .. "bdelete")
     end
   else
-    if pin.config.use_mini_bufremove then
-      pin.unpin(bufnr)
+    if bufpin.config.use_mini_bufremove then
+      bufpin.unpin(bufnr)
       require("mini.bufremove").delete(bufnr)
     else
-      pin.unpin(bufnr)
+      bufpin.unpin(bufnr)
       vim.cmd(bufnr .. "bdelete")
     end
   end
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 --- Wipeout a buf, unpinning if necessary and conditionally using mini.bufremove.
@@ -406,21 +406,21 @@ end
 function h.wipeout_buf(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
-    if pin.config.use_mini_bufremove then
+    if bufpin.config.use_mini_bufremove then
       require("mini.bufremove").wipeout(bufnr)
     else
       vim.cmd(bufnr .. "bwipeout")
     end
   else
-    if pin.config.use_mini_bufremove then
-      pin.unpin(bufnr)
+    if bufpin.config.use_mini_bufremove then
+      bufpin.unpin(bufnr)
       require("mini.bufremove").wipeout(bufnr)
     else
-      pin.unpin(bufnr)
+      bufpin.unpin(bufnr)
       vim.cmd(bufnr .. "bwipeout")
     end
   end
-  pin.refresh_tabline()
+  bufpin.refresh_tabline()
 end
 
 --- The `bufnr` is used for mouse click support.
@@ -429,7 +429,7 @@ end
 function h.build_tabline_buf(parts)
   return "%"
     .. parts.bufnr
-    .. "@PinTlOnClickBuf@"
+    .. "@BufpinTlOnClickBuf@"
     .. parts.prefix
     .. parts.value
     .. parts.suffix
@@ -561,21 +561,21 @@ function h.print_user_error(message)
 end
 
 --- Whether the buf should be excluded from the pinned bufs according to the
---- exclusion check from `pin.config.exclude` and other checks.
+--- exclusion check from `bufpin.config.exclude` and other checks.
 ---@param bufnr integer
 ---@return boolean
 function h.should_exclude_buf(bufnr)
-  return pin.config.exclude(bufnr)
+  return bufpin.config.exclude(bufnr)
     or vim.api.nvim_buf_get_name(bufnr) == ""
     or vim.bo[bufnr].buftype == "help"
     or h.is_plugin_buf(bufnr)
     or h.is_floating_win(0)
 end
 
-h.pin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
+h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
 }
 
-return pin
+return bufpin

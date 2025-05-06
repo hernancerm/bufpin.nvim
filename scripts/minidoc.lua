@@ -80,4 +80,4 @@ hooks.write_pre = function(lines)
   return lines
 end
 
-minidoc.generate({ "lua/pin.lua" }, "doc/pin.txt", { hooks = hooks })
+minidoc.generate({ "lua/bufpin.lua" }, "doc/bufpin.txt", { hooks = hooks })
