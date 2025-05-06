@@ -1,4 +1,4 @@
-*bufpin* A Harpoon-inspired buffer manager for IdeaVim users.
+*bufpin* A Harpoon-inspired buffer manager.
 
 MIT License Copyright (c) 2025 Hernán Cervera.
 

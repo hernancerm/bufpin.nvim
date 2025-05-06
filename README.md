@@ -1,7 +1,7 @@
 # Bufpin
 
-A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager for
-[IdeaVim](https://github.com/JetBrains/ideavim) users.
+A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager. A similar experience
+can be had in [IntelliJ IDEA](https://www.jetbrains.com/idea/).
 
 <!--
 Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the buf is pinned):
@@ -9,35 +9,29 @@ Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the 
 [![asciicast](https://asciinema.org/a/716260.svg)](https://asciinema.org/a/716260)
 -->
 
-**This is a plugin for Neovim, not for IntelliJ. This plugin allows Neovim to mimic a particular
-behavior in IntelliJ.**
-
 ## Problem
 
-In both IntelliJ and Neovim, there is no way to keep a list of files which does not get polluted
-during codebase navigation. In IntelliJ, a tab is opened per visited file. In Neovim, a buffer is
-created per visited file. In both IntelliJ and Neovim I have to do a periodic janitorial exercise to
-keep in sight the files I care about, either closing tabs (IntelliJ) or deleting buffers (Neovim).
-Have you ever noticed this yourself and be bothered by it?
+In both IntelliJ and Neovim, there is no immediate way to keep a list of files which does not get
+polluted during codebase navigation. In IntelliJ, a tab is opened per visited file (tabs pollution).
+In Neovim, a buf is created per visited file (buf list pollution). In both IntelliJ and Neovim I
+have to do a periodic janitorial exercise to keep in sight the files I care about, either closing
+tabs (IntelliJ) or deleting bufs (Neovim).
 
-I want a solution that is mostly uniformly in both IntelliJ and Neovim.
+Have you ever noticed this problem yourself and be bothered by it?
 
-## Solution
+I want a similar solution between Neovim and IntelliJ.
 
-Solution idea:
+## Neovim solution
 
-- How do I track the files I care about?
-  - IntelliJ and Neovim: Through "pinning" files via a dedicated key map.
-- How do I keep in sight the list of files?
-  - IntelliJ and Neovim: Display the files in tabs as it's standard in IntelliJ.
-- What happens when navigating among non pinned files?
-  - IntelliJ: A maximum of 1 non-pinned file is shown.
-  - Neovim: The tabline only ever shows pinned files.
+This plugin, same experience as Harpoon, but the UI for the list of files is the tabline.
 
-How do I get this experience in IntelliJ?:
+## IntelliJ solution
+
+Configure IntelliJ like this:
 
 - IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
-- IdeaVim: In `~/.ideavimrc` add this to match the default key maps of this plugin:
+- [IdeaVim](https://github.com/JetBrains/ideavim): In `~/.ideavimrc` add this to match the default
+  key maps of this plugin:
 
 ```text
 nmap      <Space>p  <Action>(PinActiveEditorTab)
@@ -57,6 +51,7 @@ nmap      <F4>      <Action>(GoToTab4)
 - Display the pinned bufs in the tabline.
 - Expose an API to track the pinned bufs.
 - Out of the box key mappings to manage pinned bufs.
+- Mouse support to left-click to edit buf and middle-click to remove buf.
 - Store the pinned bufs in sessions both managed manually or through a plugin (e.g.,
   [vim-obsession](https://github.com/tpope/vim-obsession)).
 - Opt-in integration with [mini.bufremove](https://github.com/echasnovski/mini.bufremove) to
