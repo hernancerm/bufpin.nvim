@@ -2,6 +2,8 @@
 
 Manually track a list of bufs and visualize the list in the tabline.
 
+https://github.com/user-attachments/assets/78a4b09d-cf6c-450a-83dd-4c6cce59c8cf
+
 ## Features
 
 - Display the pinned bufs in the tabline.
@@ -19,14 +21,13 @@ Suggested complementary plugins:
     - Just install the plugin.
 - [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
   layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
-  buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
-  where the buf was removed.
+  buf, so the alt buf is shown in the window where the buf was removed.
   - How to integrate with bufpin.nvim?:
     - Install the plugin and set `use_mini_bufremove = true` in bufpin.nvim's config.
 - [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
   bufs.
   - How to integrate with bufpin.nvim?:
-    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your `init.lua`.
+    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your init.lua.
 
 ## Out of scope
 
