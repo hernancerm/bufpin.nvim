@@ -441,7 +441,7 @@ function h.build_tabline_buf(
 )
   local value = pinned_buf.basename
   if pinned_buf.differentiator ~= nil then
-    value = value .. " " .. pinned_buf.differentiator
+    value = value .. "  " .. pinned_buf.differentiator .. "/"
   end
   if pinned_buf.selected then
     return "%"
@@ -585,6 +585,9 @@ function h.get_bufs_with_repeating_basename()
     else
       basenames_count[basename] = basenames_count[basename] + 1
     end
+  end
+  for _, pinned_buf in ipairs(h.state.pinned_bufs) do
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
     if basenames_count[basename] > 1 then
       table.insert(bufs_with_repeating_basename, pinned_buf)
     end
@@ -600,24 +603,18 @@ function h.normalize_pinned_bufs()
   for _, bufnr in ipairs(h.state.pinned_bufs) do
     local full_filename = vim.api.nvim_buf_get_name(bufnr)
     if vim.tbl_contains(bufs_with_repeating_basename, bufnr) then
-      -- Set differentiator when >1 pinned buf has the same basename.
-      if not string.find(vim.fn.fnamemodify(full_filename, ":."), "/") then
-        -- If the file is rooted at the cwd, just use the basename.
-        table.insert(pinned_bufs, {
-          bufnr = bufnr,
-          basename = vim.fs.basename(full_filename),
-          selected = current_buf == bufnr,
-        })
-      else
-        -- Otherwise, use always the parent directory to attempt to differentiate.
-        local parent_dir = vim.fn.fnamemodify(full_filename, ":h:t")
-        table.insert(pinned_bufs, {
-          bufnr = bufnr,
-          basename = vim.fs.basename(full_filename),
-          selected = current_buf == bufnr,
-          differentiator = parent_dir,
-        })
+      -- Set differentiator when >1 pinned bufs have the same basename.
+      -- Use always the parent directory to attempt to differentiate.
+      local parent_dir = vim.fn.fnamemodify(full_filename, ":h:t")
+      if vim.fn.fnamemodify(full_filename, ":h") == vim.uv.cwd() then
+        parent_dir = "."
       end
+      table.insert(pinned_bufs, {
+        bufnr = bufnr,
+        basename = vim.fs.basename(full_filename),
+        selected = current_buf == bufnr,
+        differentiator = parent_dir,
+      })
     else
       table.insert(pinned_bufs, {
         bufnr = bufnr,
