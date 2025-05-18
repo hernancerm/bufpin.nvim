@@ -106,25 +106,29 @@ Functions ~
 
                                                                   *bufpin.pin()*
                              `bufpin.pin`({bufnr})
+Pin the current buf or the provided buf.
 Parameters ~
-{bufnr} `(integer)`
+{bufnr} `(integer?)`
 
                                                                 *bufpin.unpin()*
                             `bufpin.unpin`({bufnr})
+Unpin the current buf or the provided buf.
 Parameters ~
-{bufnr} `(integer)`
+{bufnr} `(integer?)`
 
                                                                *bufpin.toggle()*
                             `bufpin.toggle`({bufnr})
+Toggle the pin state of the current buf or the provided buf.
 Parameters ~
-{bufnr} `(integer)`
+{bufnr} `(integer?)`
 
                                                                *bufpin.remove()*
                             `bufpin.remove`({bufnr})
 Remove a buf either by deleting it or wiping it out. This function obeys the
 config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
+When no bufnr is provided, the current buf is attempted to be removed.
 Parameters ~
-{bufnr} `(integer)`
+{bufnr} `(integer?)`
 
                                                         *bufpin.edit_by_index()*
                         `bufpin.edit_by_index`({index})

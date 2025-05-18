@@ -182,7 +182,8 @@ end
 --- #tag bufpin-functions
 --- Functions ~
 
----@param bufnr integer
+--- Pin the current buf or the provided buf.
+---@param bufnr integer?
 function bufpin.pin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   if h.should_exclude_buf(bufnr) then
@@ -192,14 +193,16 @@ function bufpin.pin(bufnr)
   bufpin.refresh_tabline()
 end
 
----@param bufnr integer
+--- Unpin the current buf or the provided buf.
+---@param bufnr integer?
 function bufpin.unpin(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   h.unpin_by_bufnr(bufnr)
   bufpin.refresh_tabline()
 end
 
----@param bufnr integer
+--- Toggle the pin state of the current buf or the provided buf.
+---@param bufnr integer?
 function bufpin.toggle(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
@@ -213,8 +216,10 @@ end
 
 --- Remove a buf either by deleting it or wiping it out. This function obeys the
 --- config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
----@param bufnr integer
+--- When no bufnr is provided, the current buf is attempted to be removed.
+---@param bufnr integer?
 function bufpin.remove(bufnr)
+  bufnr = bufnr or vim.fn.bufnr()
   if bufpin.config.remove_with == "delete" then
     h.delete_buf(bufnr)
   elseif bufpin.config.remove_with == "wipeout" then
@@ -391,7 +396,6 @@ end
 --- Delete a buf, unpinning if necessary and conditionally using mini.bufremove.
 ---@param bufnr integer
 function h.delete_buf(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
     if bufpin.config.use_mini_bufremove then
       require("mini.bufremove").delete(bufnr)
@@ -413,7 +417,6 @@ end
 --- Wipeout a buf, unpinning if necessary and conditionally using mini.bufremove.
 ---@param bufnr integer
 function h.wipeout_buf(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
   if vim.bo.modified then
     if bufpin.config.use_mini_bufremove then
       require("mini.bufremove").wipeout(bufnr)
