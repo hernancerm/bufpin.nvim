@@ -603,8 +603,9 @@ function h.normalize_pinned_bufs()
   for _, bufnr in ipairs(h.state.pinned_bufs) do
     local full_filename = vim.api.nvim_buf_get_name(bufnr)
     if vim.tbl_contains(bufs_with_repeating_basename, bufnr) then
-      -- Set differentiator when >1 pinned bufs have the same basename.
-      -- Use always the parent directory to attempt to differentiate.
+      -- Set differentiator when >1 pinned bufs have the same basename. Use always
+      -- the parent directory to attempt to differentiate. This strategy ignores
+      -- the rare case of different parent dirs having the same name.
       local parent_dir = vim.fn.fnamemodify(full_filename, ":h:t")
       if vim.fn.fnamemodify(full_filename, ":h") == vim.uv.cwd() then
         parent_dir = "."
