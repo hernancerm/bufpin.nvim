@@ -297,7 +297,7 @@ function bufpin.edit_by_index(index)
 end
 
 --- Get all the pinned bufs. This is the actual list, not a copy.
----@return table List of buf handlers.
+---@return integer[] Buf handlers.
 function bufpin.get_pinned_bufs()
   return h.state.pinned_bufs
 end
@@ -314,8 +314,11 @@ function bufpin.refresh_tabline(force)
   -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
   local buf_separator_char = "▏"
   h.prune_nonexistent_bufs_from_state()
-  tabline = tabline .. h.build_tabline_pinned_bufs(buf_separator_char)
-  tabline = tabline .. h.build_tabline_ending_separator_char(buf_separator_char)
+  local pinned_bufs = h.normalize_pinned_bufs()
+  tabline = tabline .. h.build_tabline(pinned_bufs, buf_separator_char)
+  if h.should_suffix_tabline_with_separator_char(pinned_bufs) then
+    tabline = tabline .. buf_separator_char
+  end
   vim.o.tabline = tabline
   if bufpin.config.auto_hide_tabline then
     h.show_tabline()
@@ -341,6 +344,12 @@ function! BufpinTlOnClickBuf(minwid,clicks,button,modifiers)
   endif
 endfunction
 ]])
+
+---@class PinnedBuf
+---@field bufnr integer
+---@field basename string
+---@field differentiator string?
+---@field selected boolean
 
 --- Merge user-supplied config with the plugin's default config. For every key
 --- which is not supplied by the user, the value in the default config will be
@@ -423,63 +432,68 @@ function h.wipeout_buf(bufnr)
   bufpin.refresh_tabline()
 end
 
---- The `bufnr` is used for mouse click support.
----@param parts table With keys `bufnr`, `prefix`, `value` and `suffix`.
+---@param pinned_buf PinnedBuf
 ---@return string
-function h.build_tabline_buf(parts)
-  return "%"
-    .. parts.bufnr
-    .. "@BufpinTlOnClickBuf@"
-    .. parts.prefix
-    .. parts.value
-    .. parts.suffix
-    .. "%X"
-end
-
---- Assumption: All pinned bufs exist.
---- Prune before calling this function: `h.prune_nonexistent_bufs_from_state`.
----@param buf_separator_char string
----@return string
-function h.build_tabline_pinned_bufs(buf_separator_char)
-  local output = ""
-  local bufnr = vim.fn.bufnr()
-  for i, pinned_buf in ipairs(h.state.pinned_bufs) do
-    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
-    if pinned_buf == bufnr then
-      output = output
-        .. h.build_tabline_buf({
-          bufnr = pinned_buf,
-          prefix = "%#TabLineSel#  ",
-          value = basename,
-          suffix = "  %*",
-        })
-    else
-      local prefix = buf_separator_char .. " "
-      if i == 1 or h.state.pinned_bufs[i - 1] == bufnr then
-        prefix = "  "
-      end
-      output = output
-        .. h.build_tabline_buf({
-          bufnr = pinned_buf,
-          prefix = prefix,
-          value = basename,
-          suffix = "  ",
-        })
-    end
+function h.build_tabline_buf(
+  pinned_buf,
+  buf_separator_char,
+  omit_buf_separator_char
+)
+  local value = pinned_buf.basename
+  if pinned_buf.differentiator ~= nil then
+    value = value .. " " .. pinned_buf.differentiator
   end
-  return output
+  if pinned_buf.selected then
+    return "%"
+      .. pinned_buf.bufnr
+      .. "@BufpinTlOnClickBuf@"
+      .. "%#TabLineSel#  "
+      .. value
+      .. "  %*"
+      .. "%X"
+  else
+    local prefix = buf_separator_char .. " "
+    if omit_buf_separator_char then
+      prefix = "  "
+    end
+    return "%"
+      .. pinned_buf.bufnr
+      .. "@BufpinTlOnClickBuf@"
+      .. prefix
+      .. value
+      .. "  %*"
+      .. "%X"
+  end
 end
 
 --- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
+---@param pinned_bufs PinnedBuf[]
 ---@param buf_separator_char string
 ---@return string
-function h.build_tabline_ending_separator_char(buf_separator_char)
-  local output = ""
-  if
-    #h.state.pinned_bufs > 0
-    and not h.state.pinned_bufs[#h.state.pinned_bufs] ~= vim.fn.bufnr()
-  then
-    output = buf_separator_char
+function h.build_tabline(pinned_bufs, buf_separator_char)
+  local tabline = ""
+  for i, pinned_buf in ipairs(pinned_bufs) do
+    local omit_buf_separator_char = false
+    if i == 1 or pinned_bufs[i - 1].selected then
+      omit_buf_separator_char = true
+    end
+    tabline = tabline
+      .. h.build_tabline_buf(
+        pinned_buf,
+        buf_separator_char,
+        omit_buf_separator_char
+      )
+  end
+  return tabline
+end
+
+--- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
+---@param pinned_bufs PinnedBuf[]
+---@return boolean
+function h.should_suffix_tabline_with_separator_char(pinned_bufs)
+  local output = false
+  if #pinned_bufs > 0 and not pinned_bufs[#pinned_bufs].selected then
+    output = true
   end
   return output
 end
@@ -558,6 +572,61 @@ end
 
 function h.print_user_error(message)
   vim.api.nvim_echo({ { message, "Error" } }, true, {})
+end
+
+---@return integer[] Buf handlers.
+function h.get_bufs_with_repeating_basename()
+  local basenames_count = {}
+  local bufs_with_repeating_basename = {}
+  for _, pinned_buf in ipairs(h.state.pinned_bufs) do
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+    if basenames_count[basename] == nil then
+      basenames_count[basename] = 1
+    else
+      basenames_count[basename] = basenames_count[basename] + 1
+    end
+    if basenames_count[basename] > 1 then
+      table.insert(bufs_with_repeating_basename, pinned_buf)
+    end
+  end
+  return bufs_with_repeating_basename
+end
+
+---@return PinnedBuf[]
+function h.normalize_pinned_bufs()
+  local pinned_bufs = {}
+  local current_buf = vim.fn.bufnr()
+  local bufs_with_repeating_basename = h.get_bufs_with_repeating_basename()
+  for _, bufnr in ipairs(h.state.pinned_bufs) do
+    local full_filename = vim.api.nvim_buf_get_name(bufnr)
+    if vim.tbl_contains(bufs_with_repeating_basename, bufnr) then
+      -- Set differentiator when >1 pinned buf has the same basename.
+      if not string.find(vim.fn.fnamemodify(full_filename, ":."), "/") then
+        -- If the file is rooted at the cwd, just use the basename.
+        table.insert(pinned_bufs, {
+          bufnr = bufnr,
+          basename = vim.fs.basename(full_filename),
+          selected = current_buf == bufnr,
+        })
+      else
+        -- Otherwise, use always the parent directory to attempt to differentiate.
+        local parent_dir = vim.fn.fnamemodify(full_filename, ":h:t")
+        table.insert(pinned_bufs, {
+          bufnr = bufnr,
+          basename = vim.fs.basename(full_filename),
+          selected = current_buf == bufnr,
+          differentiator = parent_dir,
+        })
+      end
+    else
+      table.insert(pinned_bufs, {
+        bufnr = bufnr,
+        basename = vim.fs.basename(full_filename),
+        selected = current_buf == bufnr,
+      })
+    end
+  end
+  return pinned_bufs
 end
 
 --- Whether the buf should be excluded from the pinned bufs according to the
