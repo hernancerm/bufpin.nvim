@@ -1,4 +1,4 @@
-*bufpin* A Harpoon-inspired buffer manager.
+*bufpin* Manually track a list of bufs and visualize the list in the tabline.
 
 MIT License Copyright (c) 2025 Hernán Cervera.
 
@@ -135,7 +135,7 @@ Parameters ~
                            `bufpin.get_pinned_bufs`()
 Get all the pinned bufs. This is the actual list, not a copy.
 Return ~
-`(table)` List of buf handlers.
+`(integer[])` Buf handlers.
 
                                                       *bufpin.refresh_tabline()*
                        `bufpin.refresh_tabline`({force})

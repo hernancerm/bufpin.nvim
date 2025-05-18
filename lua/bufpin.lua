@@ -1,4 +1,4 @@
---- *bufpin* A Harpoon-inspired buffer manager.
+--- *bufpin* Manually track a list of bufs and visualize the list in the tabline.
 ---
 --- MIT License Copyright (c) 2025 Hernán Cervera.
 ---

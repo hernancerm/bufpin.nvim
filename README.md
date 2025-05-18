@@ -1,50 +1,6 @@
 # Bufpin
 
-A [Harpoon](https://github.com/ThePrimeagen/harpoon)-inspired buffer manager. A similar experience
-can be had in [IntelliJ IDEA](https://www.jetbrains.com/idea/).
-
-<!--
-Demo showing the managed (pinned) bufs in the tabline (`[P]` indicates that the buf is pinned):
-
-[![asciicast](https://asciinema.org/a/716260.svg)](https://asciinema.org/a/716260)
--->
-
-## Problem
-
-In both IntelliJ and Neovim, there is no immediate way to keep a list of files which does not get
-polluted during codebase navigation. In IntelliJ, a tab is opened per visited file (tabs pollution).
-In Neovim, a buf is created per visited file (buf list pollution). In both IntelliJ and Neovim I
-have to do a periodic janitorial exercise to keep in sight the files I care about, either closing
-tabs (IntelliJ) or deleting bufs (Neovim).
-
-Have you ever noticed this problem yourself and be bothered by it?
-
-I want a similar solution between Neovim and IntelliJ.
-
-## Neovim solution
-
-This plugin, same experience as Harpoon, but the UI for the list of files is the tabline.
-
-## IntelliJ solution
-
-Configure IntelliJ like this:
-
-- IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
-- [IdeaVim](https://github.com/JetBrains/ideavim): In `~/.ideavimrc` add this to match the default
-  key maps of this plugin:
-
-```text
-nmap      <Space>p  <Action>(PinActiveEditorTab)
-nmap      <Space>w  <Action>(CloseContent)
-nmap      <Up>      <Action>(PreviousTab)
-nmap      <Down>    <Action>(NextTab)
-nnoremap  <Left>    :tabmove -1<CR>
-nnoremap  <Right>   :tabmove +1<CR>
-nmap      <F1>      <Action>(GoToTab1)
-nmap      <F2>      <Action>(GoToTab2)
-nmap      <F3>      <Action>(GoToTab3)
-nmap      <F4>      <Action>(GoToTab4)
-```
+Manually track a list of bufs and visualize the list in the tabline.
 
 ## Features
 
@@ -52,11 +8,25 @@ nmap      <F4>      <Action>(GoToTab4)
 - Expose an API to track the pinned bufs.
 - Out of the box key mappings to manage pinned bufs.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
-- Store the pinned bufs in sessions both managed manually or through a plugin (e.g.,
-  [vim-obsession](https://github.com/tpope/vim-obsession)).
-- Opt-in integration with [mini.bufremove](https://github.com/echasnovski/mini.bufremove) to
-  preserve window layout.
 - Auto-hide the tabline when there are no pinned bufs.
+- Store the pinned bufs in session.
+
+Suggested complementary plugins:
+
+- [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
+  location when navigating among bufs.
+  - How to integrate with bufpin.nvim?:
+    - Just install the plugin.
+- [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
+  layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
+  buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
+  where the buf was removed.
+  - How to integrate with bufpin.nvim?:
+    - Install the plugin and set `use_mini_bufremove = true` in bufpin.nvim's config.
+- [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
+  bufs.
+  - How to integrate with bufpin.nvim?:
+    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your `init.lua`.
 
 ## Out of scope
 
@@ -122,24 +92,27 @@ kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
 
 Please refer to the help file: [bufpin.txt](./doc/bufpin.txt).
 
-## Suggested complementary plugins
+## Similar experience in IdeaVim
 
-These plugins are independent from bufpin.nvim, but can enhance the experience with bufpin.nvim:
+In IntelliJ a similar experience can be had to the one offered by this plugin. It's not the same,
+but it's close enough, at least for me, to feel uniform. Configure IntelliJ like this:
 
-- [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
-  location when navigating among bufs.
-  - How to integrate with bufpin.nvim?:
-    - Just install the plugin.
-- [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
-  layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
-  buf, so nvim-tree does not take the full screen and instead the alt buf is shown in the window
-  where the buf was removed.
-  - How to integrate with bufpin.nvim?:
-    - Install the plugin and set `use_mini_bufremove = true` in bufpin.nvim's config.
-- [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
-  bufs.
-  - How to integrate with bufpin.nvim?:
-    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your `init.lua`.
+- IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
+- [IdeaVim](https://github.com/JetBrains/ideavim): In `~/.ideavimrc` add this to match the default
+  key maps of this plugin:
+
+```text
+nmap      <Space>p  <Action>(PinActiveEditorTab)
+nmap      <Space>w  <Action>(CloseContent)
+nmap      <Up>      <Action>(PreviousTab)
+nmap      <Down>    <Action>(NextTab)
+nnoremap  <Left>    :tabmove -1<CR>
+nnoremap  <Right>   :tabmove +1<CR>
+nmap      <F1>      <Action>(GoToTab1)
+nmap      <F2>      <Action>(GoToTab2)
+nmap      <F3>      <Action>(GoToTab3)
+nmap      <F4>      <Action>(GoToTab4)
+```
 
 ## Inspiration
 
