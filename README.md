@@ -15,19 +15,12 @@ https://github.com/user-attachments/assets/78a4b09d-cf6c-450a-83dd-4c6cce59c8cf
 
 Suggested complementary plugins:
 
-- [farmergreg/vim-lastplace](https://github.com/farmergreg/vim-lastplace): Remember the cursor
-  location when navigating among bufs.
-  - How to integrate with bufpin.nvim?:
-    - Just install the plugin.
-- [echasnovski/mini.bufremove](https://github.com/echasnovski/mini.bufremove): Preserve window
-  layout when removing bufs. This is useful when, for example, having nvim-tree open and removing a
-  buf, so the alt buf is shown in the window where the buf was removed.
-  - How to integrate with bufpin.nvim?:
-    - Install the plugin and set `use_mini_bufremove = true` in bufpin.nvim's config.
-- [tpope/vim-obsession](https://github.com/tpope/vim-obsession): Persist among sessions the pinned
-  bufs.
-  - How to integrate with bufpin.nvim?:
-    - Install the plugin and add `vim.opt.sessionoptions:append("globals")` in your init.lua.
+
+| Plugin | Benefit | Integrate via install and... |
+|---|---|---|
+| [vim-obsession](https://github.com/tpope/vim-obsession) | Persist the pinned bufs among Neovim sessions. | Set in your init.lua:<br>`vim.opt.ssop:append("globals")` |
+| [mini.bufremove](https://github.com/echasnovski/mini.bufremove) | Preserve window layout when removing bufs. | Set in your config of Bufpin:<br>`use_mini_bufremove = true` |
+| [vim-lastplace](https://github.com/farmergreg/vim-lastplace) | Remember the cursor location in visited bufs. | - |
 
 ## Out of scope
 
