@@ -68,10 +68,15 @@ function bufpin.setup(config)
     "WinEnter",
   }, {
     group = h.bufpin_augroup,
-    callback = function()
-      bufpin.refresh_tabline()
-    end,
+    callback = bufpin.refresh_tabline,
   })
+  if h.state.has_blinkcmp then
+    vim.api.nvim_create_autocmd("User", {
+      group = h.bufpin_augroup,
+      pattern = "BlinkCmpMenuOpen",
+      callback = bufpin.refresh_tabline,
+    })
+  end
 
   -- Re-build state from session.
   vim.api.nvim_create_autocmd("SessionLoadPost", {
@@ -646,6 +651,7 @@ h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
+  has_blinkcmp = pcall(require, "blink.cmp")
 }
 
 return bufpin
