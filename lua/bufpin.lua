@@ -449,7 +449,7 @@ function h.build_tabline_buf(
 )
   local value = pinned_buf.basename
   if pinned_buf.differentiator ~= nil then
-    value = value .. "  " .. pinned_buf.differentiator .. "/"
+    value = pinned_buf.differentiator .. "/" .. value
   end
   if pinned_buf.selected then
     return "%"
