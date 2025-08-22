@@ -47,7 +47,9 @@ default config is in `bufpin.default_config`. Below is the default config:
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    remove_with = "delete",
+    ---@type "color" | "monochrome" | "monochrome_selected"
+    icons_style = "monochrome",
+    remove_with = "delete"
   }
 <
                                                *bufpin.config.auto_hide_tabline*

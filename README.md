@@ -61,7 +61,8 @@ bufpin.setup({
   set_default_keymaps = true,
   exclude = function(_) end,
   use_mini_bufremove = false,
-  remove_with = "delete",
+  icons_style = "monochrome",
+  remove_with = "delete"
 })
 ```
 

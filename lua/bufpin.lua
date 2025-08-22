@@ -123,9 +123,9 @@ function h.assign_default_config()
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    remove_with = "delete",
     ---@type "color" | "monochrome" | "monochrome_selected"
-    icons_style = "monochrome"
+    icons_style = "monochrome",
+    remove_with = "delete"
   }
   --minidoc_afterlines_end
 end
