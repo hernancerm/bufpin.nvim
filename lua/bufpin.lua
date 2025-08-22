@@ -70,7 +70,7 @@ function bufpin.setup(config)
     group = h.bufpin_augroup,
     callback = bufpin.refresh_tabline,
   })
-  if h.state.has_blinkcmp then
+  if h.const.HAS_BLINKCMP then
     vim.api.nvim_create_autocmd("User", {
       group = h.bufpin_augroup,
       pattern = "BlinkCmpMenuOpen",
@@ -468,16 +468,16 @@ end
 ---@param buf_is_selected boolean
 ---@param buf_name string
 function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
-  if not h.state.has_mini_icons then
+  if not h.const.HAS_MINI_ICONS then
     return ""
   end
   local icon, icon_hi = nil, nil
-  if h.state.has_mini_icons then
+  if h.const.HAS_MINI_ICONS then
     icon, icon_hi = MiniIcons.get("file", buf_name)
   end
   local icon_string = ""
   if buf_is_selected then
-    if h.state.has_mini_icons then
+    if h.const.HAS_MINI_ICONS then
       if bufpin.config.icons_style == "color" then
         icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineSel# "
       elseif bufpin.config.icons_style == "monochrome"
@@ -486,7 +486,7 @@ function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
       end
     end
   else
-    if h.state.has_mini_icons then
+    if h.const.HAS_MINI_ICONS then
       if bufpin.config.icons_style == "color"
           or bufpin.config.icons_style == "monochrome_selected" then
         icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineFill# "
@@ -654,8 +654,11 @@ h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
-  has_blinkcmp = pcall(require, "blink.cmp"),
-  has_mini_icons = pcall(require, "mini.icons")
+}
+
+h.const = {
+  HAS_BLINKCMP = pcall(require, "blink.cmp"),
+  HAS_MINI_ICONS = pcall(require, "mini.icons")
 }
 
 return bufpin
