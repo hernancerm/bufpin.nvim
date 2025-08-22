@@ -320,15 +320,9 @@ function bufpin.refresh_tabline(force)
     return
   end
   local tabline = ""
-  -- Must be a left-aligned char. For other bar chars see:
-  -- <https://github.com/lukas-reineke/indent-blankline.nvim/tree/master/doc>.
-  local buf_separator_char = "▏"
   h.prune_nonexistent_bufs_from_state()
   local pinned_bufs = h.normalize_pinned_bufs()
-  tabline = tabline .. h.build_tabline(pinned_bufs, buf_separator_char)
-  if h.should_suffix_tabline_with_separator_char(pinned_bufs) then
-    tabline = tabline .. buf_separator_char
-  end
+  tabline = tabline .. h.build_tabline(pinned_bufs)
   vim.o.tabline = tabline
   if bufpin.config.auto_hide_tabline then
     h.show_tabline()
@@ -442,11 +436,7 @@ end
 
 ---@param pinned_buf PinnedBuf
 ---@return string
-function h.build_tabline_buf(
-  pinned_buf,
-  buf_separator_char,
-  omit_buf_separator_char
-)
+function h.build_tabline_buf(pinned_buf)
   local value = pinned_buf.basename
   if pinned_buf.differentiator ~= nil then
     value = pinned_buf.differentiator .. "/" .. value
@@ -460,14 +450,9 @@ function h.build_tabline_buf(
       .. "  %*"
       .. "%X"
   else
-    local prefix = buf_separator_char .. " "
-    if omit_buf_separator_char then
-      prefix = "  "
-    end
     return "%"
       .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@"
-      .. prefix
+      .. "@BufpinTlOnClickBuf@  "
       .. value
       .. "  %*"
       .. "%X"
@@ -476,34 +461,13 @@ end
 
 --- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
 ---@param pinned_bufs PinnedBuf[]
----@param buf_separator_char string
 ---@return string
-function h.build_tabline(pinned_bufs, buf_separator_char)
+function h.build_tabline(pinned_bufs)
   local tabline = ""
-  for i, pinned_buf in ipairs(pinned_bufs) do
-    local omit_buf_separator_char = false
-    if i == 1 or pinned_bufs[i - 1].selected then
-      omit_buf_separator_char = true
-    end
-    tabline = tabline
-      .. h.build_tabline_buf(
-        pinned_buf,
-        buf_separator_char,
-        omit_buf_separator_char
-      )
+  for _, pinned_buf in ipairs(pinned_bufs) do
+    tabline = tabline .. h.build_tabline_buf(pinned_buf)
   end
   return tabline
-end
-
---- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
----@param pinned_bufs PinnedBuf[]
----@return boolean
-function h.should_suffix_tabline_with_separator_char(pinned_bufs)
-  local output = false
-  if #pinned_bufs > 0 and not pinned_bufs[#pinned_bufs].selected then
-    output = true
-  end
-  return output
 end
 
 --- Find the index of a value in a list-like table.
