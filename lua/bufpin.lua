@@ -108,6 +108,8 @@ end
 --- #tag bufpin-configuration
 --- Configuration ~
 
+-- TODO: The "color" value for `icons_style` shows bad bg color.
+
 --- The merged config (defaults with user overrides) is in `bufpin.config`. The
 --- default config is in `bufpin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
@@ -122,6 +124,8 @@ function h.assign_default_config()
     exclude = function(_) end,
     use_mini_bufremove = false,
     remove_with = "delete",
+    ---@type "color" | "monochrome" | "monochrome_selected"
+    icons_style = "monochrome"
   }
   --minidoc_afterlines_end
 end
@@ -441,18 +445,42 @@ function h.build_tabline_buf(pinned_buf)
   if pinned_buf.differentiator ~= nil then
     value = pinned_buf.differentiator .. "/" .. value
   end
+  local icon, icon_hi = nil, nil
+  if h.state.has_mini_icons then
+    icon, icon_hi = MiniIcons.get("file", value)
+  end
   if pinned_buf.selected then
+    local icon_string = ""
+    if h.state.has_mini_icons then
+      if bufpin.config.icons_style == "color" then
+        icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineSel# "
+      elseif bufpin.config.icons_style == "monochrome"
+          or bufpin.config.icons_style == "monochrome_selected" then
+        icon_string = icon .. " "
+      end
+    end
     return "%"
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@"
       .. "%#TabLineSel#  "
+      .. icon_string
       .. value
       .. "  %*"
       .. "%X"
   else
+    local icon_string = ""
+    if h.state.has_mini_icons then
+      if bufpin.config.icons_style == "color"
+          or bufpin.config.icons_style == "monochrome_selected" then
+        icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineFill# "
+      elseif bufpin.config.icons_style == "monochrome" then
+        icon_string = icon .. " "
+      end
+    end
     return "%"
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@  "
+      .. icon_string
       .. value
       .. "  %*"
       .. "%X"
@@ -615,7 +643,8 @@ h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
   pinned_bufs = {},
-  has_blinkcmp = pcall(require, "blink.cmp")
+  has_blinkcmp = pcall(require, "blink.cmp"),
+  has_mini_icons = pcall(require, "mini.icons")
 }
 
 return bufpin
