@@ -441,16 +441,42 @@ end
 ---@param pinned_buf PinnedBuf
 ---@return string
 function h.build_tabline_buf(pinned_buf)
-  local value = pinned_buf.basename
+  local basename = pinned_buf.basename
   if pinned_buf.differentiator ~= nil then
-    value = pinned_buf.differentiator .. "/" .. value
+    basename = pinned_buf.differentiator .. "/" .. basename
+  end
+  if pinned_buf.selected then
+    return "%"
+      .. pinned_buf.bufnr
+      .. "@BufpinTlOnClickBuf@"
+      .. "%#TabLineSel#  "
+      .. h.get_icon_string_for_build_tabline_buf(true, basename)
+      .. basename
+      .. "  %*"
+      .. "%X"
+  else
+    return "%"
+      .. pinned_buf.bufnr
+      .. "@BufpinTlOnClickBuf@  "
+      .. h.get_icon_string_for_build_tabline_buf(false, basename)
+      .. basename
+      .. "  %*"
+      .. "%X"
+  end
+end
+
+---@param buf_is_selected boolean
+---@param buf_name string
+function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
+  if not h.state.has_mini_icons then
+    return ""
   end
   local icon, icon_hi = nil, nil
   if h.state.has_mini_icons then
-    icon, icon_hi = MiniIcons.get("file", value)
+    icon, icon_hi = MiniIcons.get("file", buf_name)
   end
-  if pinned_buf.selected then
-    local icon_string = ""
+  local icon_string = ""
+  if buf_is_selected then
     if h.state.has_mini_icons then
       if bufpin.config.icons_style == "color" then
         icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineSel# "
@@ -459,16 +485,7 @@ function h.build_tabline_buf(pinned_buf)
         icon_string = icon .. " "
       end
     end
-    return "%"
-      .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@"
-      .. "%#TabLineSel#  "
-      .. icon_string
-      .. value
-      .. "  %*"
-      .. "%X"
   else
-    local icon_string = ""
     if h.state.has_mini_icons then
       if bufpin.config.icons_style == "color"
           or bufpin.config.icons_style == "monochrome_selected" then
@@ -477,14 +494,8 @@ function h.build_tabline_buf(pinned_buf)
         icon_string = icon .. " "
       end
     end
-    return "%"
-      .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@  "
-      .. icon_string
-      .. value
-      .. "  %*"
-      .. "%X"
   end
+  return icon_string
 end
 
 --- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
