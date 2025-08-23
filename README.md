@@ -62,6 +62,7 @@ bufpin.setup({
   exclude = function(_) end,
   use_mini_bufremove = false,
   icons_style = "monochrome",
+  ghost_buf_enabled = true,
   remove_with = "delete"
 })
 ```

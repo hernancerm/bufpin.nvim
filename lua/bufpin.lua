@@ -134,6 +134,7 @@ end
 --- default config is in `bufpin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 --minidoc_replace_start
+---@return BufpinConfig
 function h.assign_default_config()
   --minidoc_replace_end
   --minidoc_replace_start {
@@ -266,15 +267,7 @@ end
 ---@param bufnr integer?
 function bufpin.remove(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
-  if bufpin.config.remove_with == "delete" then
-    h.delete_buf(bufnr)
-  elseif bufpin.config.remove_with == "wipeout" then
-    h.wipeout_buf(bufnr)
-  else
-    h.print_user_error(
-      "Config key 'bufpin.config.remove_with' is neither 'delete' nor 'wipeout'"
-    )
-  end
+  h.eliminate_buf(bufpin.config.remove_with, bufnr)
 end
 
 function bufpin.move_to_left()
@@ -410,12 +403,21 @@ endfunction
 ---@field differentiator string?
 ---@field selected boolean
 
+---@class BufpinConfig
+---@field auto_hide_tabline boolean
+---@field set_default_keymaps boolean
+---@field exclude fun(bufnr:integer): boolean
+---@field use_mini_bufremove boolean
+---@field icons_style "color"|"monochrome"|"monochrome_selected"
+---@field ghost_buf_enabled boolean
+---@field remove_with "delete"|"wipeout"
+
 --- Merge user-supplied config with the plugin's default config. For every key
 --- which is not supplied by the user, the value in the default config will be
 --- used. The user's config has precedence; the default config is the fallback.
 ---@param config? table User supplied config.
 ---@param default_config table Fallback config.
----@return table
+---@return BufpinConfig
 function h.get_config_with_fallback(config, default_config)
   vim.validate("config", config, "table", true)
   config =
@@ -453,14 +455,15 @@ function h.serialize_state()
   vim.g.BufpinState = vim.json.encode(state)
 end
 
---- Delete a buf, unpinning if necessary and conditionally using mini.bufremove.
+--- Delete or wipeout a buf. Conditionally use mini.bufremove.
+---@param operation "delete"|"wipeout"
 ---@param bufnr integer
-function h.delete_buf(bufnr)
+function h.eliminate_buf(operation, bufnr)
   if vim.bo[bufnr].modified then
     if bufpin.config.use_mini_bufremove then
-      require("mini.bufremove").delete(bufnr)
+      require("mini.bufremove")[operation](bufnr)
     else
-      vim.cmd(bufnr .. "bdelete")
+      vim.cmd(bufnr .. "b" .. operation)
     end
   else
     if bufpin.config.use_mini_bufremove then
@@ -468,40 +471,13 @@ function h.delete_buf(bufnr)
       if h.state.ghost_buf == bufnr then
         h.state.ghost_buf = nil
       end
-      require("mini.bufremove").delete(bufnr)
+      require("mini.bufremove")[operation](bufnr)
     else
       bufpin.unpin(bufnr)
       if h.state.ghost_buf == bufnr then
         h.state.ghost_buf = nil
       end
-      vim.cmd(bufnr .. "bdelete")
-    end
-  end
-  bufpin.refresh_tabline()
-end
-
---- Wipeout a buf, unpinning if necessary and conditionally using mini.bufremove.
----@param bufnr integer
-function h.wipeout_buf(bufnr)
-  if vim.bo[bufnr].modified then
-    if bufpin.config.use_mini_bufremove then
-      require("mini.bufremove").wipeout(bufnr)
-    else
-      vim.cmd(bufnr .. "bwipeout")
-    end
-  else
-    if bufpin.config.use_mini_bufremove then
-      bufpin.unpin(bufnr)
-      if h.state.ghost_buf == bufnr then
-        h.state.ghost_buf = nil
-      end
-      require("mini.bufremove").wipeout(bufnr)
-    else
-      bufpin.unpin(bufnr)
-      if h.state.ghost_buf == bufnr then
-        h.state.ghost_buf = nil
-      end
-      vim.cmd(bufnr .. "bwipeout")
+      vim.cmd(bufnr .. "b" .. operation)
     end
   end
   bufpin.refresh_tabline()
