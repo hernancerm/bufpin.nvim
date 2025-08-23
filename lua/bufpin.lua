@@ -106,7 +106,7 @@ function bufpin.setup(config)
           table.insert(h.state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
         end
         -- Restore `state.ghost_buf`.
-        if decoded_state.ghost_buf ~= nil then
+        if bufpin.config.ghost_buf_enabled and decoded_state.ghost_buf ~= nil then
           h.state.ghost_buf = vim.fn.bufadd(decoded_state.ghost_buf)
         end
       end
@@ -143,8 +143,8 @@ function h.assign_default_config()
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    ---@type "color" | "monochrome" | "monochrome_selected"
     icons_style = "monochrome",
+    ghost_buf_enabled = true,
     remove_with = "delete"
   }
   --minidoc_afterlines_end
@@ -193,6 +193,15 @@ end
 --- this option to work as `true`. When `true`, all buf deletions and wipeouts are
 --- done using the `mini.bufremove` plugin, thus preserving window layouts.
 
+--- #tag bufpin.config.icons_style
+--- `"color"|"monochrome"|"monochrome_selected"`
+--- How the file type icons look. Currently there is a bug with "color".
+
+--- #tag bufpin.config.ghost_buf_enabled
+--- `(boolean)`
+--- Whether to display the ghost buffer, i.e., the last visited non-pinned buf. If
+--- any, it's displayed always as the last item in the tabline.
+
 --- #tag bufpin.config.remove_with
 --- `"delete"|"wipeout"`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
@@ -202,10 +211,10 @@ end
 --- #tag bufpin-highlight-groups
 --- Highlight groups ~
 ---
---- Only built-in highlight groups are used.
----
 --- * Active buffer: |hl-TabLineSel|
 --- * Tabline background: |hl-TabLineFill|
+--- * Active ghost buffer: `BufpinGhostTabLineSel`
+--- * Inactive ghost buffer: `BufpinGhostTabLineFill`
 
 --- #delimiter
 --- #tag bufpin-functions
@@ -436,7 +445,9 @@ function h.serialize_state()
       end)
       :totable()
   }
-  if h.state.ghost_buf ~= nil and vim.fn.bufexists(h.state.ghost_buf) == 1 then
+  if bufpin.config.ghost_buf_enabled
+      and h.state.ghost_buf ~= nil
+      and vim.fn.bufexists(h.state.ghost_buf) == 1 then
     state.ghost_buf = vim.api.nvim_buf_get_name(h.state.ghost_buf)
   end
   vim.g.BufpinState = vim.json.encode(state)
@@ -572,6 +583,9 @@ end
 
 ---@return boolean
 function h.should_include_ghost_buf()
+  if not bufpin.config.ghost_buf_enabled then
+    return false
+  end
   local current_buf = vim.fn.bufnr()
   if vim.tbl_contains(h.state.pinned_bufs, current_buf)
       and h.state.ghost_buf == nil then

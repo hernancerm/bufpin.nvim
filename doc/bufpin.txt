@@ -47,8 +47,8 @@ default config is in `bufpin.default_config`. Below is the default config:
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    ---@type "color" | "monochrome" | "monochrome_selected"
     icons_style = "monochrome",
+    ghost_buf_enabled = true,
     remove_with = "delete"
   }
 <
@@ -79,14 +79,23 @@ Default key maps:
 `(fun(bufnr:integer):boolean)`
 When the function returns true, the buf (`bufnr`) is ignored. This means that
 calling |bufpin.pin()| on it has no effect. Some bufs are excluded regardless
-of this option: bufs without a name ([No Name]), Vim help files, detected
-plugin bufs (e.g., nvimtree) and floating wins.
+of this option: bufs without a name ([No Name]), Vim help files, man pages,
+detected plugin bufs (e.g., nvimtree) and floating wins.
 
                                               *bufpin.config.use_mini_bufremove*
 `(boolean)`
 You need to have installed <https://github.com/echasnovski/mini.bufremove> for
 this option to work as `true`. When `true`, all buf deletions and wipeouts are
 done using the `mini.bufremove` plugin, thus preserving window layouts.
+
+                                                     *bufpin.config.icons_style*
+`"color"|"monochrome"|"monochrome_selected"`
+How the file type icons look. Currently there is a bug with "color".
+
+                                               *bufpin.config.ghost_buf_enabled*
+`(boolean)`
+Whether to display the ghost buffer, i.e., the last visited non-pinned buf. If
+any, it's displayed always as the last item in the tabline.
 
                                                      *bufpin.config.remove_with*
 `"delete"|"wipeout"`
@@ -97,10 +106,10 @@ mouse middle click input on a buf in the tabline.
                                                        *bufpin-highlight-groups*
 Highlight groups ~
 
-Only built-in highlight groups are used.
-
 • Active buffer: |hl-TabLineSel|
 • Tabline background: |hl-TabLineFill|
+• Active ghost buffer: `BufpinGhostTabLineSel`
+• Inactive ghost buffer: `BufpinGhostTabLineFill`
 
 ------------------------------------------------------------------------------
                                                               *bufpin-functions*
