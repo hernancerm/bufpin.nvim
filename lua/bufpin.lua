@@ -82,10 +82,14 @@ function bufpin.setup(config)
       if
         not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
         and not h.should_exclude_from_pin(current_bufnr)
-        -- For some reason unknown to me it's necessary to exclude the buftype of
-        -- "help" in this condition, although `h.should_exclude_from_pin()`
-        -- already excludes "help".
-        and not vim.bo[current_bufnr].buftype == "help"
+        and (
+          -- For some reason unknown to me it's necessary to exclude the buftype
+          -- of "help" in this condition, although `h.should_exclude_from_pin()`
+          -- already excludes "help".
+          not vim.bo[current_bufnr].buftype == "help"
+          -- For some reason uknown to me Makefiles need special handling.
+          or vim.bo[current_bufnr].filetype == "make"
+        )
       then
         h.state.ghost_bufnr = current_bufnr
       end
