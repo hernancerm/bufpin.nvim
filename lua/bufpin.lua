@@ -164,18 +164,18 @@ end
 function h.set_default_keymaps()
   -- stylua: ignore start
   --minidoc_replace_end
-  local o = { silent = true }
   local kset = vim.keymap.set
-  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>", o)
-  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>", o)
-  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>", o)
-  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>", o)
-  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>", o)
-  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>", o)
-  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>", o)
-  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>", o)
-  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
+  local opts = { silent = true }
+  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>",          opts)
+  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>",          opts)
+  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>",       opts)
+  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>",      opts)
+  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>",    opts)
+  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>",   opts)
+  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>",  opts)
+  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>",  opts)
+  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>",  opts)
+  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
   --minidoc_afterlines_end
   -- stylua: ignore end
 end
@@ -269,11 +269,14 @@ function bufpin.remove(bufnr)
   h.eliminate_buf(bufpin.config.remove_with, bufnr)
 end
 
-function bufpin.move_to_left()
+--- Move a buffer one step to the left in the list of pinned buffers.
+--- When no bufnr is provided, the current buf is attempted to be moved.
+---@param bufnr integer?
+function bufpin.move_to_left(bufnr)
   if #h.state.pinned_bufs == 0 then
     return
   end
-  local bufnr = vim.fn.bufnr()
+  bufnr = bufnr or vim.fn.bufnr()
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
   if bufnr_index ~= nil and bufnr_index > 1 then
     local swap = h.state.pinned_bufs[bufnr_index - 1]
@@ -283,11 +286,14 @@ function bufpin.move_to_left()
   end
 end
 
-function bufpin.move_to_right()
+--- Move a buffer one step to the right in the list of pinned buffers.
+--- When no bufnr is provided, the current buf is attempted to be moved.
+---@param bufnr integer?
+function bufpin.move_to_right(bufnr)
   if #h.state.pinned_bufs == 0 then
     return
   end
-  local bufnr = vim.fn.bufnr()
+  bufnr = bufnr or vim.fn.bufnr()
   local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
   if bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufs then
     local swap = h.state.pinned_bufs[bufnr_index + 1]

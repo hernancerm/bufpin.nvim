@@ -62,18 +62,18 @@ When true, the default key maps, listed below, are set.
 
 Default key maps:
 >lua
-  local o = { silent = true }
   local kset = vim.keymap.set
-  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>", o)
-  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>", o)
-  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>", o)
-  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>", o)
-  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>", o)
-  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>", o)
-  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>", o)
-  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>", o)
-  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>", o)
-  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
+  local opts = { silent = true }
+  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>",          opts)
+  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>",          opts)
+  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>",       opts)
+  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>",      opts)
+  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>",    opts)
+  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>",   opts)
+  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>",  opts)
+  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>",  opts)
+  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>",  opts)
+  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
 <
                                                          *bufpin.config.exclude*
 `(fun(bufnr:integer):boolean)`
@@ -138,6 +138,20 @@ Parameters ~
 Remove a buf either by deleting it or wiping it out. This function obeys the
 config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
 When no bufnr is provided, the current buf is attempted to be removed.
+Parameters ~
+{bufnr} `(integer?)`
+
+                                                         *bufpin.move_to_left()*
+                         `bufpin.move_to_left`({bufnr})
+Move a buffer one step to the left in the list of pinned buffers.
+When no bufnr is provided, the current buf is attempted to be moved.
+Parameters ~
+{bufnr} `(integer?)`
+
+                                                        *bufpin.move_to_right()*
+                        `bufpin.move_to_right`({bufnr})
+Move a buffer one step to the right in the list of pinned buffers.
+When no bufnr is provided, the current buf is attempted to be moved.
 Parameters ~
 {bufnr} `(integer?)`
 

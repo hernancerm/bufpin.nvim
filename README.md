@@ -70,30 +70,29 @@ bufpin.setup({
 Default key mappings:
 
 ```lua
-local o = { silent = true }
 local kset = vim.keymap.set
-kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>", o)
-kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>", o)
-kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>", o)
-kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>", o)
-kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>", o)
-kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>", o)
-kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>", o)
-kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>", o)
-kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>", o)
-kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>", o)
+local opts = { silent = true }
+kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>",          opts)
+kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>",          opts)
+kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>",       opts)
+kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>",      opts)
+kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>",    opts)
+kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>",   opts)
+kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>",  opts)
+kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>",  opts)
+kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>",  opts)
+kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
 ```
 
 ## Documentation
 
 Please refer to the help file: [bufpin.txt](./doc/bufpin.txt).
 
-## Similar experience in IdeaVim
+## Similar experience in JetBrains IDEs
 
-In IntelliJ a similar experience can be had to the one offered by this plugin. It's not the same,
-but it's close enough, at least for me, to feel uniform. Configure IntelliJ like this:
+To get a similar experience in IntelliJ and other JetBrains IDEs follow the instructions below:
 
-- IntelliJ: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
+- IDE: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
 - [IdeaVim](https://github.com/JetBrains/ideavim): In `~/.ideavimrc` add this to match the default
   key maps of this plugin:
 
