@@ -367,8 +367,8 @@ function bufpin.refresh_tabline(force)
     return
   end
   local tabline = ""
-  h.prune_nonexistent_bufs_from_state()
   h.prune_invalid_ghost_buf_from_state()
+  h.prune_invalid_pinned_bufs_from_state()
   local pinned_bufs = h.normalize_pinned_bufs()
   tabline = tabline .. h.build_tabline(pinned_bufs)
   vim.o.tabline = tabline
@@ -565,7 +565,7 @@ function h.should_include_ghost_buf()
   local current_buf = vim.fn.bufnr()
   if vim.tbl_contains(h.state.pinned_bufs, current_buf)
       and h.state.ghost_buf == nil then
-    -- Current buf is pinned and there is not last visited non-pinned buf.
+    -- Current buf is pinned and there is no ghost buf.
     return false
   end
   return true
@@ -640,7 +640,7 @@ function h.is_floating_win(win_id)
   return vim.api.nvim_win_get_config(win_id).relative ~= ""
 end
 
-function h.prune_nonexistent_bufs_from_state()
+function h.prune_invalid_pinned_bufs_from_state()
   h.state.pinned_bufs = vim
     .iter(h.state.pinned_bufs)
     :filter(function(bufnr)
@@ -651,9 +651,8 @@ end
 
 function h.prune_invalid_ghost_buf_from_state()
   if vim.tbl_contains(h.state.pinned_bufs, h.state.ghost_buf)
-      or not vim.fn.bufexists(h.state.ghost_buf) then
+      or vim.fn.bufexists(h.state.ghost_buf) == 0 then
     h.state.ghost_buf = nil
-    return
   end
 end
 
@@ -766,5 +765,11 @@ h.const = {
   HAS_BLINKCMP = pcall(require, "blink.cmp"),
   HAS_MINI_ICONS = pcall(require, "mini.icons")
 }
+
+-- Useful to debug.
+
+function bufpin._get_state()
+  return h.state
+end
 
 return bufpin
