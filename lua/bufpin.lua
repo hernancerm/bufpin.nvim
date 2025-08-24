@@ -30,6 +30,13 @@
 local bufpin = {}
 local h = {}
 
+-- Changes to the config table spec requires changes here:
+-- 1. `BufpinConfig` class
+-- 2. `bufpin.default_config`
+-- 3. Validations in `h.get_config_with_fallback`
+-- 4. Documentation for Vim help file
+-- 5. README.md
+
 --- Module setup.
 ---@param config table? Merged with the default config (|bufpin.default_config|).
 --- The former takes priority on duplicate keys.
@@ -439,6 +446,11 @@ function h.get_config_with_fallback(config, default_config)
     config.set_default_keymaps,
     "boolean"
   )
+  vim.validate("config.exclude", config.exclude, "function")
+  vim.validate("config.use_mini_bufremove", config.use_mini_bufremove, "boolean")
+  vim.validate("config.icons_style", config.icons_style, "string")
+  vim.validate("config.ghost_buf_enabled", config.ghost_buf_enabled, "boolean")
+  vim.validate("config.remove_with", config.remove_with, "string")
   return config
 end
 
