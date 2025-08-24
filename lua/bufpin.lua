@@ -49,9 +49,9 @@ function bufpin.setup(config)
   vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     group = h.bufpin_augroup,
     callback = function(event)
-      local bufnr_index = h.table_find_index(h.state.pinned_bufs, event.buf)
+      local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, event.buf)
       if bufnr_index ~= nil then
-        table.remove(h.state.pinned_bufs, bufnr_index)
+        table.remove(h.state.pinned_bufnrs, bufnr_index)
       end
     end,
   })
@@ -71,10 +71,10 @@ function bufpin.setup(config)
   }, {
     group = h.bufpin_augroup,
     callback = function()
-      local current_buf = vim.fn.bufnr()
-      if not vim.tbl_contains(h.state.pinned_bufs, current_buf)
-          and not h.should_exclude_buf(current_buf) then
-        h.state.ghost_buf = current_buf
+      local current_bufnr = vim.fn.bufnr()
+      if not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+          and not h.should_exclude_from_pin(current_bufnr) then
+        h.state.ghost_bufnr = current_bufnr
       end
       bufpin.refresh_tabline()
     end,
@@ -100,14 +100,16 @@ function bufpin.setup(config)
     callback = function()
       if vim.g.BufpinState ~= nil then
         local decoded_state = vim.json.decode(vim.g.BufpinState)
-        -- Restore `state.pinned_bufs`.
-        h.state.pinned_bufs = {}
-        for _, pinned_buf_name in ipairs(decoded_state.pinned_bufs) do
-          table.insert(h.state.pinned_bufs, vim.fn.bufadd(pinned_buf_name))
+        -- Restore `state.pinned_bufnrs`.
+        h.state.pinned_bufnrs = {}
+        for _, pinned_buf_name in ipairs(decoded_state.pinned_buf_names) do
+          table.insert(h.state.pinned_bufnrs, vim.fn.bufadd(pinned_buf_name))
         end
-        -- Restore `state.ghost_buf`.
-        if bufpin.config.ghost_buf_enabled and decoded_state.ghost_buf ~= nil then
-          h.state.ghost_buf = vim.fn.bufadd(decoded_state.ghost_buf)
+        -- Restore `state.ghost_bufnr`.
+        h.state.ghost_bufnr = nil
+        if bufpin.config.ghost_buf_enabled
+            and decoded_state.ghost_buf_name ~= nil then
+          h.state.ghost_bufnr = vim.fn.bufadd(decoded_state.ghost_buf_name)
         end
       end
       bufpin.refresh_tabline(true)
@@ -223,13 +225,13 @@ end
 --- Pin the current buf or the provided buf.
 ---@param bufnr integer?
 function bufpin.pin(bufnr)
-  local current_buf = vim.fn.bufnr()
-  bufnr = bufnr or current_buf
-  if h.should_exclude_buf(bufnr) then
+  local current_bufnr = vim.fn.bufnr()
+  bufnr = bufnr or current_bufnr
+  if h.should_exclude_from_pin(bufnr) then
     return
   end
-  if current_buf == bufnr and h.state.ghost_buf == bufnr then
-    h.state.ghost_buf = nil
+  if current_bufnr == bufnr and h.state.ghost_bufnr == bufnr then
+    h.state.ghost_bufnr = nil
   end
   h.pin_by_bufnr(bufnr)
   bufpin.refresh_tabline()
@@ -238,11 +240,11 @@ end
 --- Unpin the current buf or the provided buf.
 ---@param bufnr integer?
 function bufpin.unpin(bufnr)
-  local current_buf = vim.fn.bufnr()
-  bufnr = bufnr or current_buf
+  local current_bufnr = vim.fn.bufnr()
+  bufnr = bufnr or current_bufnr
   h.unpin_by_bufnr(bufnr)
-  if current_buf == bufnr then
-    h.state.ghost_buf = bufnr
+  if current_bufnr == bufnr then
+    h.state.ghost_bufnr = bufnr
   end
   bufpin.refresh_tabline()
 end
@@ -251,7 +253,7 @@ end
 ---@param bufnr integer?
 function bufpin.toggle(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
   if bufnr_index ~= nil then
     bufpin.unpin(bufnr)
   else
@@ -273,15 +275,15 @@ end
 --- When no bufnr is provided, the current buf is attempted to be moved.
 ---@param bufnr integer?
 function bufpin.move_to_left(bufnr)
-  if #h.state.pinned_bufs == 0 then
+  if #h.state.pinned_bufnrs == 0 then
     return
   end
   bufnr = bufnr or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
   if bufnr_index ~= nil and bufnr_index > 1 then
-    local swap = h.state.pinned_bufs[bufnr_index - 1]
-    h.state.pinned_bufs[bufnr_index - 1] = bufnr
-    h.state.pinned_bufs[bufnr_index] = swap
+    local swap = h.state.pinned_bufnrs[bufnr_index - 1]
+    h.state.pinned_bufnrs[bufnr_index - 1] = bufnr
+    h.state.pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
 end
@@ -290,59 +292,59 @@ end
 --- When no bufnr is provided, the current buf is attempted to be moved.
 ---@param bufnr integer?
 function bufpin.move_to_right(bufnr)
-  if #h.state.pinned_bufs == 0 then
+  if #h.state.pinned_bufnrs == 0 then
     return
   end
   bufnr = bufnr or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
-  if bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufs then
-    local swap = h.state.pinned_bufs[bufnr_index + 1]
-    h.state.pinned_bufs[bufnr_index + 1] = bufnr
-    h.state.pinned_bufs[bufnr_index] = swap
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  if bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufnrs then
+    local swap = h.state.pinned_bufnrs[bufnr_index + 1]
+    h.state.pinned_bufnrs[bufnr_index + 1] = bufnr
+    h.state.pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
 end
 
 function bufpin.edit_left()
-  if #h.state.pinned_bufs == 0 then
+  if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local current_buf = vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, current_buf)
+  local current_bufnr = vim.fn.bufnr()
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, current_bufnr)
   if bufnr_index == nil then
     -- Ghost buf is active.
-    vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
+    vim.cmd("buffer " .. h.state.pinned_bufnrs[#h.state.pinned_bufnrs])
   elseif bufnr_index > 1 then
-    vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index - 1])
+    vim.cmd("buffer " .. h.state.pinned_bufnrs[bufnr_index - 1])
     bufpin.refresh_tabline()
   elseif bufnr_index == 1 then
     -- Circular editing.
-    if h.state.ghost_buf ~= nil then
-      vim.cmd("buffer " .. h.state.ghost_buf)
+    if h.state.ghost_bufnr ~= nil then
+      vim.cmd("buffer " .. h.state.ghost_bufnr)
     else
-      vim.cmd("buffer " .. h.state.pinned_bufs[#h.state.pinned_bufs])
+      vim.cmd("buffer " .. h.state.pinned_bufnrs[#h.state.pinned_bufnrs])
     end
     bufpin.refresh_tabline()
   end
 end
 
 function bufpin.edit_right()
-  if #h.state.pinned_bufs == 0 then
+  if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, vim.fn.bufnr())
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, vim.fn.bufnr())
   if bufnr_index == nil then
     -- Ghost buf is active.
-    vim.cmd("buffer " .. h.state.pinned_bufs[1])
-  elseif bufnr_index < #h.state.pinned_bufs then
-    vim.cmd("buffer " .. h.state.pinned_bufs[bufnr_index + 1])
+    vim.cmd("buffer " .. h.state.pinned_bufnrs[1])
+  elseif bufnr_index < #h.state.pinned_bufnrs then
+    vim.cmd("buffer " .. h.state.pinned_bufnrs[bufnr_index + 1])
     bufpin.refresh_tabline()
-  elseif bufnr_index == #h.state.pinned_bufs then
-    if h.state.ghost_buf ~= nil then
-      vim.cmd("buffer " .. h.state.ghost_buf)
+  elseif bufnr_index == #h.state.pinned_bufnrs then
+    if h.state.ghost_bufnr ~= nil then
+      vim.cmd("buffer " .. h.state.ghost_bufnr)
     else
       -- Circular editing.
-      vim.cmd("buffer " .. h.state.pinned_bufs[1])
+      vim.cmd("buffer " .. h.state.pinned_bufnrs[1])
     end
     bufpin.refresh_tabline()
   end
@@ -350,10 +352,10 @@ end
 
 ---@param index integer Index of a pinned buf in |bufpin.get_pinned_bufs()|.
 function bufpin.edit_by_index(index)
-  if index <= #h.state.pinned_bufs then
-    vim.cmd("buffer " .. h.state.pinned_bufs[index])
-  elseif index == #h.state.pinned_bufs + 1 and h.state.ghost_buf ~= nil then
-    vim.cmd("buffer " .. h.state.ghost_buf)
+  if index <= #h.state.pinned_bufnrs then
+    vim.cmd("buffer " .. h.state.pinned_bufnrs[index])
+  elseif index == #h.state.pinned_bufnrs + 1 and h.state.ghost_bufnr ~= nil then
+    vim.cmd("buffer " .. h.state.ghost_bufnr)
   end
   bufpin.refresh_tabline()
 end
@@ -361,7 +363,7 @@ end
 --- Get all the pinned bufs. This is the actual list, not a copy.
 ---@return integer[] Buf handlers.
 function bufpin.get_pinned_bufs()
-  return h.state.pinned_bufs
+  return h.state.pinned_bufnrs
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
@@ -442,8 +444,8 @@ end
 --- <https://github.com/neovim/neovim/issues/22814>.
 function h.serialize_state()
   local state = {
-    pinned_bufs = vim
-      .iter(h.state.pinned_bufs)
+    pinned_buf_names = vim
+      .iter(h.state.pinned_bufnrs)
       :filter(function(bufnr)
         return vim.fn.bufexists(bufnr) == 1
       end)
@@ -453,9 +455,9 @@ function h.serialize_state()
       :totable()
   }
   if bufpin.config.ghost_buf_enabled
-      and h.state.ghost_buf ~= nil
-      and vim.fn.bufexists(h.state.ghost_buf) == 1 then
-    state.ghost_buf = vim.api.nvim_buf_get_name(h.state.ghost_buf)
+      and h.state.ghost_bufnr ~= nil
+      and vim.fn.bufexists(h.state.ghost_bufnr) == 1 then
+    state.ghost_buf_name = vim.api.nvim_buf_get_name(h.state.ghost_bufnr)
   end
   vim.g.BufpinState = vim.json.encode(state)
 end
@@ -473,14 +475,14 @@ function h.eliminate_buf(operation, bufnr)
   else
     if bufpin.config.use_mini_bufremove then
       bufpin.unpin(bufnr)
-      if h.state.ghost_buf == bufnr then
-        h.state.ghost_buf = nil
+      if h.state.ghost_bufnr == bufnr then
+        h.state.ghost_bufnr = nil
       end
       require("mini.bufremove")[operation](bufnr)
     else
       bufpin.unpin(bufnr)
-      if h.state.ghost_buf == bufnr then
-        h.state.ghost_buf = nil
+      if h.state.ghost_bufnr == bufnr then
+        h.state.ghost_bufnr = nil
       end
       vim.cmd(bufnr .. "b" .. operation)
     end
@@ -567,9 +569,9 @@ function h.should_include_ghost_buf()
   if not bufpin.config.ghost_buf_enabled then
     return false
   end
-  local current_buf = vim.fn.bufnr()
-  if vim.tbl_contains(h.state.pinned_bufs, current_buf)
-      and h.state.ghost_buf == nil then
+  local current_bufnr = vim.fn.bufnr()
+  if vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+      and h.state.ghost_bufnr == nil then
     -- Current buf is pinned and there is no ghost buf.
     return false
   end
@@ -578,7 +580,7 @@ end
 
 ---@return string
 function h.build_tabline_ghost_buf()
-  local ghost_buf = h.state.ghost_buf
+  local ghost_buf = h.state.ghost_bufnr
   if ghost_buf == nil then
     return ""
   end
@@ -646,8 +648,8 @@ function h.is_floating_win(win_id)
 end
 
 function h.prune_invalid_pinned_bufs_from_state()
-  h.state.pinned_bufs = vim
-    .iter(h.state.pinned_bufs)
+  h.state.pinned_bufnrs = vim
+    .iter(h.state.pinned_bufnrs)
     :filter(function(bufnr)
       return vim.fn.bufexists(bufnr) == 1
     end)
@@ -655,31 +657,31 @@ function h.prune_invalid_pinned_bufs_from_state()
 end
 
 function h.prune_invalid_ghost_buf_from_state()
-  if vim.tbl_contains(h.state.pinned_bufs, h.state.ghost_buf)
-      or vim.fn.bufexists(h.state.ghost_buf) == 0 then
-    h.state.ghost_buf = nil
+  if vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)
+      or vim.fn.bufexists(h.state.ghost_bufnr) == 0 then
+    h.state.ghost_bufnr = nil
   end
 end
 
 ---@param bufnr integer
 function h.pin_by_bufnr(bufnr)
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
   if bufnr_index == nil then
-    table.insert(h.state.pinned_bufs, bufnr)
+    table.insert(h.state.pinned_bufnrs, bufnr)
   end
 end
 
 ---@param bufnr integer
 function h.unpin_by_bufnr(bufnr)
-  local bufnr_index = h.table_find_index(h.state.pinned_bufs, bufnr)
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
   if bufnr_index ~= nil then
-    table.remove(h.state.pinned_bufs, bufnr_index)
+    table.remove(h.state.pinned_bufnrs, bufnr_index)
   end
 end
 
 --- Show the tabline only when there is a pinned buf to show.
 function h.show_tabline()
-  if #h.state.pinned_bufs > 0 then
+  if #h.state.pinned_bufnrs > 0 then
     vim.o.showtabline = 2
   else
     vim.o.showtabline = 0
@@ -690,11 +692,11 @@ function h.print_user_error(message)
   vim.api.nvim_echo({ { message, "Error" } }, true, {})
 end
 
----@return integer[] Buf handlers.
-function h.get_bufs_with_repeating_basename()
+---@return integer[]
+function h.get_bufnrs_with_repeating_basename()
   local basenames_count = {}
   local bufs_with_repeating_basename = {}
-  for _, pinned_buf in ipairs(h.state.pinned_bufs) do
+  for _, pinned_buf in ipairs(h.state.pinned_bufnrs) do
     local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
     if basenames_count[basename] == nil then
       basenames_count[basename] = 1
@@ -702,7 +704,7 @@ function h.get_bufs_with_repeating_basename()
       basenames_count[basename] = basenames_count[basename] + 1
     end
   end
-  for _, pinned_buf in ipairs(h.state.pinned_bufs) do
+  for _, pinned_buf in ipairs(h.state.pinned_bufnrs) do
     local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
     if basenames_count[basename] > 1 then
       table.insert(bufs_with_repeating_basename, pinned_buf)
@@ -713,12 +715,12 @@ end
 
 ---@return PinnedBuf[]
 function h.normalize_pinned_bufs()
-  local pinned_bufs = {}
-  local current_buf = vim.fn.bufnr()
-  local bufs_with_repeating_basename = h.get_bufs_with_repeating_basename()
-  for _, bufnr in ipairs(h.state.pinned_bufs) do
+  local pinned_bufnrs = {}
+  local current_bufnr = vim.fn.bufnr()
+  local bufnrs_with_repeating_basename = h.get_bufnrs_with_repeating_basename()
+  for _, bufnr in ipairs(h.state.pinned_bufnrs) do
     local full_filename = vim.api.nvim_buf_get_name(bufnr)
-    if vim.tbl_contains(bufs_with_repeating_basename, bufnr) then
+    if vim.tbl_contains(bufnrs_with_repeating_basename, bufnr) then
       -- Set differentiator when >1 pinned bufs have the same basename. Use always
       -- the parent directory to attempt to differentiate. This strategy ignores
       -- the rare case of different parent dirs having the same name.
@@ -726,28 +728,26 @@ function h.normalize_pinned_bufs()
       if vim.fn.fnamemodify(full_filename, ":h") == vim.uv.cwd() then
         parent_dir = "."
       end
-      table.insert(pinned_bufs, {
+      table.insert(pinned_bufnrs, {
         bufnr = bufnr,
         basename = vim.fs.basename(full_filename),
-        selected = current_buf == bufnr,
+        selected = current_bufnr == bufnr,
         differentiator = parent_dir,
       })
     else
-      table.insert(pinned_bufs, {
+      table.insert(pinned_bufnrs, {
         bufnr = bufnr,
         basename = vim.fs.basename(full_filename),
-        selected = current_buf == bufnr,
+        selected = current_bufnr == bufnr,
       })
     end
   end
-  return pinned_bufs
+  return pinned_bufnrs
 end
 
---- Whether the buf should be excluded from the pinned bufs according to the
---- exclusion check from `bufpin.config.exclude` and other checks.
 ---@param bufnr integer
 ---@return boolean
-function h.should_exclude_buf(bufnr)
+function h.should_exclude_from_pin(bufnr)
   return bufpin.config.exclude(bufnr)
     or vim.api.nvim_buf_get_name(bufnr) == ""
     or vim.bo[bufnr].buftype == "quickfix"
@@ -760,10 +760,10 @@ end
 h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
-  pinned_bufs = {},
-  -- Approach for managing the state of ghost_buf: Set in an autocmd, then set to
-  -- nil (or rearely to another buf) on a case-by-case basis per API function.
-  ghost_buf = nil
+  pinned_bufnrs = {},
+  -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
+  -- to nil (or rearely to another buf) on a case-by-case basis per API function.
+  ghost_bufnr = nil
 }
 
 h.const = {
