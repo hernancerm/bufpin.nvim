@@ -72,8 +72,10 @@ function bufpin.setup(config)
     group = h.bufpin_augroup,
     callback = function()
       local current_bufnr = vim.fn.bufnr()
-      if not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
-          and not h.should_exclude_from_pin(current_bufnr) then
+      if
+        not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+        and not h.should_exclude_from_pin(current_bufnr)
+      then
         h.state.ghost_bufnr = current_bufnr
       end
       bufpin.refresh_tabline()
@@ -90,7 +92,7 @@ function bufpin.setup(config)
   -- Set highlight groups.
   vim.api.nvim_create_autocmd("ColorScheme", {
     group = h.bufpin_augroup,
-    callback = h.set_hl_with_defaults
+    callback = h.set_hl_with_defaults,
   })
   h.set_hl_with_defaults()
 
@@ -107,8 +109,10 @@ function bufpin.setup(config)
         end
         -- Restore `state.ghost_bufnr`.
         h.state.ghost_bufnr = nil
-        if bufpin.config.ghost_buf_enabled
-            and decoded_state.ghost_buf_name ~= nil then
+        if
+          bufpin.config.ghost_buf_enabled
+          and decoded_state.ghost_buf_name ~= nil
+        then
           h.state.ghost_bufnr = vim.fn.bufadd(decoded_state.ghost_buf_name)
         end
       end
@@ -147,7 +151,7 @@ function h.assign_default_config()
     use_mini_bufremove = false,
     icons_style = "monochrome",
     ghost_buf_enabled = true,
-    remove_with = "delete"
+    remove_with = "delete",
   }
   --minidoc_afterlines_end
 end
@@ -452,11 +456,13 @@ function h.serialize_state()
       :map(function(bufnr)
         return vim.api.nvim_buf_get_name(bufnr)
       end)
-      :totable()
+      :totable(),
   }
-  if bufpin.config.ghost_buf_enabled
-      and h.state.ghost_bufnr ~= nil
-      and vim.fn.bufexists(h.state.ghost_bufnr) == 1 then
+  if
+    bufpin.config.ghost_buf_enabled
+    and h.state.ghost_bufnr ~= nil
+    and vim.fn.bufexists(h.state.ghost_bufnr) == 1
+  then
     state.ghost_buf_name = vim.api.nvim_buf_get_name(h.state.ghost_bufnr)
   end
   vim.g.BufpinState = vim.json.encode(state)
@@ -532,15 +538,19 @@ function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
     if h.const.HAS_MINI_ICONS then
       if bufpin.config.icons_style == "color" then
         icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineSel# "
-      elseif bufpin.config.icons_style == "monochrome"
-          or bufpin.config.icons_style == "monochrome_selected" then
+      elseif
+        bufpin.config.icons_style == "monochrome"
+        or bufpin.config.icons_style == "monochrome_selected"
+      then
         icon_string = icon .. " "
       end
     end
   else
     if h.const.HAS_MINI_ICONS then
-      if bufpin.config.icons_style == "color"
-          or bufpin.config.icons_style == "monochrome_selected" then
+      if
+        bufpin.config.icons_style == "color"
+        or bufpin.config.icons_style == "monochrome_selected"
+      then
         icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineFill# "
       elseif bufpin.config.icons_style == "monochrome" then
         icon_string = icon .. " "
@@ -570,8 +580,10 @@ function h.should_include_ghost_buf()
     return false
   end
   local current_bufnr = vim.fn.bufnr()
-  if vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
-      and h.state.ghost_bufnr == nil then
+  if
+    vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+    and h.state.ghost_bufnr == nil
+  then
     -- Current buf is pinned and there is no ghost buf.
     return false
   end
@@ -592,7 +604,9 @@ function h.build_tabline_ghost_buf()
   return "%"
     .. ghost_buf
     .. "@BufpinTlOnClickBuf@"
-    .. "%#" .. hl_group .. "#  "
+    .. "%#"
+    .. hl_group
+    .. "#  "
     .. h.get_icon_string_for_build_tabline_buf(true, basename)
     .. basename
     .. "  %*"
@@ -605,13 +619,13 @@ function h.set_hl_with_defaults()
   vim.api.nvim_set_hl(0, "BufpinGhostTabLineFill", {
     fg = tab_line_fill_hl.fg,
     bg = tab_line_fill_hl.bg,
-    italic = true
+    italic = true,
   })
   local tab_line_sel_hl = vim.api.nvim_get_hl(0, { name = "TabLineSel" })
   vim.api.nvim_set_hl(0, "BufpinGhostTabLineSel", {
     fg = tab_line_sel_hl.fg,
     bg = tab_line_sel_hl.bg,
-    italic = true
+    italic = true,
   })
 end
 
@@ -657,8 +671,10 @@ function h.prune_invalid_pinned_bufs_from_state()
 end
 
 function h.prune_invalid_ghost_buf_from_state()
-  if vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)
-      or vim.fn.bufexists(h.state.ghost_bufnr) == 0 then
+  if
+    vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)
+    or vim.fn.bufexists(h.state.ghost_bufnr) == 0
+  then
     h.state.ghost_bufnr = nil
   end
 end
@@ -765,12 +781,12 @@ h.state = {
   pinned_bufnrs = {},
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
-  ghost_bufnr = nil
+  ghost_bufnr = nil,
 }
 
 h.const = {
   HAS_BLINKCMP = pcall(require, "blink.cmp"),
-  HAS_MINI_ICONS = pcall(require, "mini.icons")
+  HAS_MINI_ICONS = pcall(require, "mini.icons"),
 }
 
 -- Useful to debug.
