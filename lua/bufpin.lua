@@ -692,6 +692,8 @@ function h.print_user_error(message)
   vim.api.nvim_echo({ { message, "Error" } }, true, {})
 end
 
+-- TODO: Consider ghost buf to differentiate repeating basenames in tabline.
+
 ---@return integer[]
 function h.get_bufnrs_with_repeating_basename()
   local basenames_count = {}
