@@ -1,6 +1,6 @@
 # Bufpin
 
-Manually track a list of bufs and visualize the list in the tabline.
+Manually track a list of bufs and visualize it in the tabline.
 
 ## Features
 
