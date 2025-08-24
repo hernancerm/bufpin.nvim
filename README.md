@@ -8,8 +8,8 @@ Manually track a list of bufs and visualize it in the tabline.
 - Expose an API to track the pinned bufs.
 - Out of the box key mappings to manage pinned bufs.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
+- Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.
-- Store the pinned bufs in session.
 - Show file type icons.
 
 Suggested complementary plugins:
@@ -17,10 +17,9 @@ Suggested complementary plugins:
 
 | Plugin                                                          | Benefit                                        | Integrate via install and...                                 |
 |-----------------------------------------------------------------|------------------------------------------------|--------------------------------------------------------------|
-| [vim-obsession](https://github.com/tpope/vim-obsession)         | Persist the pinned bufs among Neovim sessions. | Set in your init.lua:<br>`vim.opt.ssop:append("globals")`    |
+| [mini.icons](https://github.com/echasnovski/mini.icons)         | Display file type icon next to buf name.       | Use a [Nerd Font](https://www.nerdfonts.com/).               |
 | [mini.bufremove](https://github.com/echasnovski/mini.bufremove) | Preserve window layout when removing bufs.     | Set in your config of Bufpin:<br>`use_mini_bufremove = true` |
 | [vim-lastplace](https://github.com/farmergreg/vim-lastplace)    | Remember the cursor location in visited bufs.  | -                                                            |
-| [mini.icons](https://github.com/echasnovski/mini.icons)         | Display file type icon next to buf name.       | Use a [Nerd Font](https://www.nerdfonts.com/).               |
 
 ## Out of scope
 
