@@ -134,7 +134,6 @@ end
 --- default config is in `bufpin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 --minidoc_replace_start
----@return BufpinConfig
 function h.assign_default_config()
   --minidoc_replace_end
   --minidoc_replace_start {
