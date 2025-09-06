@@ -154,7 +154,7 @@ function h.assign_default_config()
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    icons_style = "monochrome",
+    icons_style = "color",
     ghost_buf_enabled = true,
     remove_with = "delete",
   }
