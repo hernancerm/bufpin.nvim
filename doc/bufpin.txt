@@ -54,11 +54,11 @@ default config is in `bufpin.default_config`. Below is the default config:
 <
                                                *bufpin.config.auto_hide_tabline*
 `(boolean)`
-When true, when there are no pinned bufs, hide the tabline.
+When true and there are no pinned bufs, hide the tabline.
 
                                              *bufpin.config.set_default_keymaps*
 `(boolean)`
-When true, the default key maps, listed below, are set.
+When true, the default key maps listed below are set.
 
 Default key maps:
 >lua
@@ -90,14 +90,15 @@ done using the `mini.bufremove` plugin, thus preserving window layouts.
 
                                                      *bufpin.config.icons_style*
 `("color"|"monochrome"|"monochrome_selected"|"hidden")`
-How the file type icons look. Use `monochrome_selected` to display only the
-selected buf's file type icon as monochrome, the other icons are colored. Use
-`hidden` to not display the icon altogether.
+You need to have installed <https://github.com/nvim-mini/mini.icons> to
+display icons. Use `monochrome_selected` to display only the selected buf's
+file type icon as monochrome, the other icons are colored. Use `hidden` to not
+display icons altogether.
 
                                                *bufpin.config.ghost_buf_enabled*
 `(boolean)`
-Whether to display the ghost buffer, i.e., the last visited non-pinned buf. If
-any, it's displayed always as the last item in the tabline.
+Whether to display the ghost buf, i.e., the last visited non-pinned pin-able
+buf. If any, it's displayed always as the last item in the tabline.
 
                                                      *bufpin.config.remove_with*
 `("delete"|"wipeout")`
