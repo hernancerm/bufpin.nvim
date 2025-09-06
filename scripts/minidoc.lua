@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-field, undefined-global
 
--- See: https://github.com/echasnovski/mini.nvim/blob/main/scripts/minidoc.lua
+-- <https://github.com/echasnovski/mini.nvim/blob/main/scripts/minidoc.lua>.
 
 local minidoc = MiniDoc
 if _G.MiniDoc == nil then
@@ -80,4 +80,4 @@ hooks.write_pre = function(lines)
   return lines
 end
 
-minidoc.generate({ "lua/bufpin.lua" }, "doc/bufpin.txt", { hooks = hooks })
+minidoc.generate({ "lua/bufpin/init.lua" }, "doc/bufpin.txt", { hooks = hooks })

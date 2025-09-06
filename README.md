@@ -5,11 +5,12 @@ Manually track a list of bufs and visualize it in the tabline.
 ## Features
 
 - Display the pinned bufs in the tabline.
-- Expose an API to track the pinned bufs.
 - Out of the box key mappings to manage pinned bufs.
+- Sensible default colors for Bufpin's highlight groups.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.
+- Expose an API to track the pinned bufs.
 - Show file type icons.
 
 Suggested complementary plugins:
@@ -60,9 +61,13 @@ bufpin.setup({
   set_default_keymaps = true,
   exclude = function(_) end,
   use_mini_bufremove = false,
-  icons_style = "color",
+  icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",
+  logging = {
+    enabled = true,
+    level = vim.log.levels.INFO,
+  },
 })
 ```
 

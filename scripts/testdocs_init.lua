@@ -1,4 +1,4 @@
--- See: https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md
+-- <https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md>.
 
 -- Add current directory to 'runtimepath' to be able to use 'lua' files
 vim.cmd([[let &rtp.=",".getcwd()]])

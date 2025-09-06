@@ -97,19 +97,15 @@ function bufpin.setup(config)
   end
 
   -- Set highlight groups.
+  -- From my testing this autocmd also executes when setting 'bg'.
   vim.api.nvim_create_autocmd("ColorScheme", {
     group = h.bufpin_augroup,
     callback = function()
-      h.hl_cache = {}
-      h.set_defaults_hl()
-      -- For some reason unknown to me, the bg color of the dynamic filetype icons
-      -- highlight groups is not set right if the refresh is done immediately. Due
-      -- to the hl cache, if the refresh is done immediately here then there is no
-      -- other chance for the highlights to be computed, hence the timeout here.
-      h.setTimeout(150, vim.schedule_wrap(bufpin.refresh_tabline))
-    end,
+      h.state.hl_cache = {}
+      h.set_hl_defaults()
+      bufpin.refresh_tabline()
+    end
   })
-  h.set_defaults_hl()
 
   -- Re-build state from session.
   vim.api.nvim_create_autocmd("SessionLoadPost", {
@@ -143,6 +139,11 @@ function bufpin.setup(config)
     h.set_default_keymaps()
   end
 
+  -- Logger setup.
+  if bufpin.config.logging.enabled then
+    vim.fn.mkdir(vim.fn.fnamemodify(h.state.log_filepath, ":h"), "p")
+  end
+
   _G.Bufpin = bufpin
 end
 
@@ -165,9 +166,13 @@ function h.assign_default_config()
     set_default_keymaps = true,
     exclude = function(_) end,
     use_mini_bufremove = false,
-    icons_style = "color",
+    icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
     remove_with = "delete",
+    logging = {
+      enabled = true,
+      level = vim.log.levels.INFO,
+    },
   }
   --minidoc_afterlines_end
 end
@@ -232,12 +237,23 @@ end
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
 
+--- #tag bufpin.config.logging
+--- Log file location: `stdpath("log")` .. `/bufpin.log`.
+---
+--- #tag bufpin.config.logging.enabled
+---     {enabled} `(boolean)`
+---       Whether to write to the log file.
+---
+--- #tag bufpin.config.logging.level
+---     {level} `(integer)`
+---       Log statements on this level and up are written to the log file.
+
 --- #delimiter
 --- #tag bufpin-highlight-groups
 --- Highlight groups ~
 ---
---- * Active buffer: |hl-TabLineSel|
---- * Tabline background: |hl-TabLineFill|
+--- * Active buffer: `BufpinTabLineSel`
+--- * Tabline background: `BufpinTabLineFill`
 --- * Active ghost buffer: `BufpinGhostTabLineSel`
 --- * Inactive ghost buffer: `BufpinGhostTabLineFill`
 
@@ -441,6 +457,11 @@ endfunction
 ---@field icons_style "color"|"monochrome"|"monochrome_selected"|"hidden"
 ---@field ghost_buf_enabled boolean
 ---@field remove_with "delete"|"wipeout"
+---@field logging BufpinLoggingConfig
+
+---@class BufpinLoggingConfig
+---@field enabled boolean
+---@field level 0|1|2|3|4|5
 
 --- Merge user-supplied config with the plugin's default config. For every key
 --- which is not supplied by the user, the value in the default config will be
@@ -463,6 +484,8 @@ function h.get_config_with_fallback(config, default_config)
   vim.validate("config.icons_style", config.icons_style, "string")
   vim.validate("config.ghost_buf_enabled", config.ghost_buf_enabled, "boolean")
   vim.validate("config.remove_with", config.remove_with, "string")
+  vim.validate("config.logging.enabled", config.logging.enabled, "boolean")
+  vim.validate("config.logging.level", config.logging.level, "number")
   return config
 end
 
@@ -531,7 +554,9 @@ function h.build_tabline_pinned_buf(pinned_buf)
     return "%"
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@"
-      .. "%#TabLineSel#  "
+      .. "%#"
+      .. h.const.HL_BUFPIN_TAB_LINE_SEL
+      .. "#  "
       .. h.get_icon_string_for_tabline_buf(basename, true, false)
       .. basename
       .. "  %*"
@@ -540,7 +565,9 @@ function h.build_tabline_pinned_buf(pinned_buf)
     return "%"
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@"
-      .. "%#TabLineFill#  "
+      .. "%#"
+      .. h.const.HL_BUFPIN_TAB_LINE_FILL
+      .. "#  "
       .. h.get_icon_string_for_tabline_buf(basename, false, false)
       .. basename
       .. "  %*"
@@ -597,22 +624,22 @@ function h.get_icon_string_for_tabline_buf(
         "monochrome_selected",
       }, bufpin.config.icons_style)
     then
-      if h.hl_cache[bufpin_icon_hl] == nil then
+      if h.state.hl_cache[bufpin_icon_hl] == nil then
         local hl = {
           bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
           fg = h.get_hl(icon_hl).fg,
         }
         vim.api.nvim_set_hl(0, bufpin_icon_hl, hl)
-        h.hl_cache[bufpin_icon_hl] = hl
+        h.state.hl_cache[bufpin_icon_hl] = hl
       end
     end
   end
   local icon_string = ""
-  local hl_buf_selected = h.const.HL_TAB_LINE_SEL
+  local hl_buf_selected = h.const.HL_BUFPIN_TAB_LINE_SEL
   if is_ghost_buf then
     hl_buf_selected = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
   end
-  local hl_buf_fill = h.const.HL_TAB_LINE_FILL
+  local hl_buf_fill = h.const.HL_BUFPIN_TAB_LINE_FILL
   if is_ghost_buf then
     hl_buf_fill = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
   end
@@ -659,10 +686,10 @@ end
 ---@return integer
 function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
   if buf_is_selected and not is_ghost_buf then
-    return h.get_hl(h.const.HL_TAB_LINE_SEL).bg
+    return h.get_hl(h.const.HL_BUFPIN_TAB_LINE_SEL).bg
   end
   if not buf_is_selected and not is_ghost_buf then
-    return h.get_hl(h.const.HL_TAB_LINE_FILL).bg
+    return h.get_hl(h.const.HL_BUFPIN_TAB_LINE_FILL).bg
   end
   if buf_is_selected and is_ghost_buf then
     return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL).bg
@@ -700,7 +727,7 @@ function h.build_tabline(pinned_bufs)
   if h.should_include_ghost_buf() then
     tabline = tabline .. h.build_tabline_ghost_buf()
   end
-  return tabline
+  return tabline .. "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#"
 end
 
 ---@return boolean
@@ -727,19 +754,49 @@ function h.should_include_ghost_buf()
   return true
 end
 
---- Don't override existing definitions.
-function h.set_defaults_hl()
-  local tab_line_fill_hl = h.get_hl(h.const.HL_TAB_LINE_FILL)
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
-    fg = tab_line_fill_hl.fg,
-    bg = tab_line_fill_hl.bg,
+--- Don't override existing hl definitions.
+function h.set_hl_defaults()
+  h.log("Setting hl defaults, 'background': " .. vim.o.background)
+  local hsluv = require("bufpin.hsluv")
+  local hl_status_line = h.get_hl("StatusLine")
+  h.log(vim.fn.execute("verbose hi StatusLine"))
+  local hl_bufpin_tab_line_sel = hl_status_line
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
+    fg = hl_bufpin_tab_line_sel.fg,
+    bg = hl_bufpin_tab_line_sel.bg,
+    reverse = hl_bufpin_tab_line_sel.reverse,
+    default = true,
+  })
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
+    fg = hl_bufpin_tab_line_sel.fg,
+    bg = hl_bufpin_tab_line_sel.bg,
+    reverse = hl_bufpin_tab_line_sel.reverse,
     italic = true,
     default = true,
   })
-  local tab_line_sel_hl = h.get_hl(h.const.HL_TAB_LINE_SEL)
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
-    fg = tab_line_sel_hl.fg,
-    bg = tab_line_sel_hl.bg,
+  local hl_normal = h.get_hl("Normal")
+  h.log(vim.fn.execute("verbose hi Normal"))
+  local hsluv_normal_bg = hsluv.hex_to_hsluv("#" .. bit.tohex(hl_normal.bg, 6))
+  local hl_normal_bg_adjusted = hsluv.hsluv_to_hex({
+    hsluv_normal_bg[1],
+    hsluv_normal_bg[2],
+    (vim.o.background == "light" and 90 or 20),
+  })
+  local hl_bufpin_tab_line_fill = {
+    fg = hl_normal.fg,
+    bg = hl_normal_bg_adjusted,
+    reverse = hl_normal.reverse
+  }
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
+    fg = hl_bufpin_tab_line_fill.fg,
+    bg = hl_bufpin_tab_line_fill.bg,
+    reverse = hl_bufpin_tab_line_fill.reverse,
+    default = true,
+  })
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
+    fg = hl_bufpin_tab_line_fill.fg,
+    bg = hl_bufpin_tab_line_fill.bg,
+    reverse = hl_bufpin_tab_line_fill.reverse,
     italic = true,
     default = true,
   })
@@ -891,18 +948,6 @@ function h.should_exclude_from_pin(bufnr)
     or h.is_floating_win(0)
 end
 
----@param timeout integer In milliseconds.
----@param callback fun():nil
-function h.setTimeout(timeout, callback)
-  local timer = vim.uv.new_timer()
-  timer:start(timeout, 0, function()
-    timer:stop()
-    timer:close()
-    callback()
-  end)
-  return timer
-end
-
 h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
@@ -911,13 +956,14 @@ h.state = {
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
   ghost_bufnr = nil,
+  log_filepath = vim.fn.stdpath("log") .. "/bufpin.log",
 }
 
 h.const = {
   HAS_BLINKCMP = pcall(require, "blink.cmp"),
   HAS_MINI_ICONS = pcall(require, "mini.icons"),
-  HL_TAB_LINE_SEL = "TabLineSel",
-  HL_TAB_LINE_FILL = "TabLineFill",
+  HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
+  HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
   HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
   HL_BUFPIN_GHOST_TAB_LINE_FILL = "BufpinGhostTabLineFill",
 }
@@ -926,6 +972,33 @@ h.const = {
 
 function bufpin._get_state()
   return h.state
+end
+
+function bufpin._get_h()
+  return h
+end
+
+---@param level integer As per |vim.log.levels|.
+function h.should_log(level)
+  return bufpin.config.logging.enabled and level >= bufpin.config.logging.level
+end
+
+---@param message string
+---@param level integer? As per |vim.log.levels|.
+function h.log(message, level)
+  level = level or vim.log.levels.INFO
+  if h.should_log(level) then
+    vim.defer_fn(function()
+      vim.fn.writefile({
+        string.format(
+          "%s %s - %s\n",
+          vim.fn.get({ "D", "I", "W", "E" }, level - 1),
+          vim.fn.strftime("%H:%M:%S"),
+          message
+        ),
+      }, h.state.log_filepath, "a")
+    end, 0)
+  end
 end
 
 return bufpin

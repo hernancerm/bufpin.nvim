@@ -25,7 +25,7 @@ testci: testfmt testdocs
 # Format.
 .PHONY: fmt
 fmt: $(STYLUA)
-	stylua lua/ scripts/
+	stylua lua/bufpin/init.lua scripts/
 
 # Update docs.
 .PHONY: docs
