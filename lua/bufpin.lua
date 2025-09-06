@@ -574,20 +574,24 @@ function h.get_icon_string_for_tabline_buf(
   if not h.const.HAS_MINI_ICONS or bufpin.config.icons_style == "hidden" then
     return ""
   end
-  local icon, icon_hi = nil, nil
+  local bufpin_icon_hl = nil
+  local icon, icon_hl = nil, nil
   if h.const.HAS_MINI_ICONS then
-    icon, icon_hi = MiniIcons.get("file", buf_name)
+    icon, icon_hl = MiniIcons.get("file", buf_name)
+    bufpin_icon_hl = "BufPin"
+      .. (buf_is_selected and "Sel" or "Fill")
+      .. (is_ghost_buf and "Ghost" or "")
+      .. icon_hl
     if
       vim.tbl_contains({
         "color",
-        "monochrome_sel",
+        "monochrome_selected",
       }, bufpin.config.icons_style)
     then
-      vim.api.nvim_set_hl(0, "BufPin" .. icon_hi, {
+      vim.api.nvim_set_hl(0, bufpin_icon_hl, {
         bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
-        fg = h.get_hl(icon_hi).fg,
+        fg = h.get_hl(icon_hl).fg,
       })
-      icon_hi = "BufPin" .. icon_hi
     end
   end
   local icon_string = ""
@@ -603,7 +607,7 @@ function h.get_icon_string_for_tabline_buf(
     if h.const.HAS_MINI_ICONS then
       if bufpin.config.icons_style == "color" then
         icon_string = "%#"
-          .. icon_hi
+          .. bufpin_icon_hl
           .. "#"
           .. icon
           .. "%*%#"
@@ -623,7 +627,7 @@ function h.get_icon_string_for_tabline_buf(
         or bufpin.config.icons_style == "monochrome_selected"
       then
         icon_string = "%#"
-          .. icon_hi
+          .. bufpin_icon_hl
           .. "#"
           .. icon
           .. "%*%#"
