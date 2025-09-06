@@ -64,8 +64,8 @@ function bufpin.setup(config)
   })
 
   -- Do 2 things:
-  -- 1. Keep value of `h.state.last_visited_non_pinned_buf` updated.
-  -- 2. Redraw the tabline when switching bufs and wins.
+  -- 1. Redraw the tabline when switching bufs and wins.
+  -- 2. Keep accurate the value of `h.state.ghost_bufnr`.
   vim.api.nvim_create_autocmd({
     "BufNew",
     "BufEnter",
