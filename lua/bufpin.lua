@@ -583,7 +583,7 @@ function h.get_icon_string_for_tabline_buf(
   local icon, icon_hl = nil, nil
   if h.const.HAS_MINI_ICONS then
     icon, icon_hl = MiniIcons.get("file", buf_name)
-    bufpin_icon_hl = "BufPin"
+    bufpin_icon_hl = "Bufpin"
       .. (buf_is_selected and "Sel" or "Fill")
       .. (is_ghost_buf and "Ghost" or "")
       .. icon_hl
