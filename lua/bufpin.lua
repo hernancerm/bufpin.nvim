@@ -100,6 +100,7 @@ function bufpin.setup(config)
   vim.api.nvim_create_autocmd("ColorScheme", {
     group = h.bufpin_augroup,
     callback = function()
+      h.hl_cache = {}
       h.set_defaults_hl()
       bufpin.refresh_tabline()
     end,
@@ -588,10 +589,14 @@ function h.get_icon_string_for_tabline_buf(
         "monochrome_selected",
       }, bufpin.config.icons_style)
     then
-      vim.api.nvim_set_hl(0, bufpin_icon_hl, {
-        bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
-        fg = h.get_hl(icon_hl).fg,
-      })
+      if h.hl_cache[bufpin_icon_hl] == nil then
+        local hl = {
+          bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
+          fg = h.get_hl(icon_hl).fg,
+        }
+        vim.api.nvim_set_hl(0, bufpin_icon_hl, hl)
+        h.hl_cache[bufpin_icon_hl] = hl
+      end
     end
   end
   local icon_string = ""
@@ -881,6 +886,7 @@ end
 h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
 
 h.state = {
+  hl_cache = {},
   pinned_bufnrs = {},
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
