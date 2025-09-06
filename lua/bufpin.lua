@@ -205,8 +205,10 @@ end
 --- done using the `mini.bufremove` plugin, thus preserving window layouts.
 
 --- #tag bufpin.config.icons_style
---- `"color"|"monochrome"|"monochrome_selected"`
---- How the file type icons look.
+--- `("color"|"monochrome"|"monochrome_selected"|"hidden")`
+--- How the file type icons look. Use `monochrome_selected` to display only the
+--- selected buf's file type icon as monochrome, the other icons are colored. Use
+--- `hidden` to not display the icon altogether.
 
 --- #tag bufpin.config.ghost_buf_enabled
 --- `(boolean)`
@@ -214,7 +216,7 @@ end
 --- any, it's displayed always as the last item in the tabline.
 
 --- #tag bufpin.config.remove_with
---- `"delete"|"wipeout"`
+--- `("delete"|"wipeout")`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
 
@@ -424,7 +426,7 @@ endfunction
 ---@field set_default_keymaps boolean
 ---@field exclude fun(bufnr:integer): boolean
 ---@field use_mini_bufremove boolean
----@field icons_style "color"|"monochrome"|"monochrome_selected"
+---@field icons_style "color"|"monochrome"|"monochrome_selected"|"hidden"
 ---@field ghost_buf_enabled boolean
 ---@field remove_with "delete"|"wipeout"
 
@@ -566,7 +568,7 @@ function h.get_icon_string_for_tabline_buf(
   buf_is_selected,
   is_ghost_buf
 )
-  if not h.const.HAS_MINI_ICONS then
+  if not h.const.HAS_MINI_ICONS or bufpin.config.icons_style == "hidden" then
     return ""
   end
   local icon, icon_hi = nil, nil
