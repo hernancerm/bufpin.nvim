@@ -119,16 +119,19 @@ function bufpin.setup(config)
         local decoded_state = vim.json.decode(vim.g.BufpinState)
         -- Restore `state.pinned_bufnrs`.
         h.state.pinned_bufnrs = {}
-        for _, pinned_buf_name in ipairs(decoded_state.pinned_buf_names) do
+        local pinned_buf_names = decoded_state.pinned_buf_names
+          -- Alternative for backwards compatibility.
+          or decoded_state.pinned_bufs
+        for _, pinned_buf_name in ipairs(pinned_buf_names) do
           table.insert(h.state.pinned_bufnrs, vim.fn.bufadd(pinned_buf_name))
         end
         -- Restore `state.ghost_bufnr`.
         h.state.ghost_bufnr = nil
-        if
-          bufpin.config.ghost_buf_enabled
-          and decoded_state.ghost_buf_name ~= nil
-        then
-          h.state.ghost_bufnr = vim.fn.bufadd(decoded_state.ghost_buf_name)
+        local ghost_buf_name = decoded_state.ghost_buf_name
+          -- Alternative for backwards compatibility.
+          or decoded_state.ghost_buf
+        if bufpin.config.ghost_buf_enabled and ghost_buf_name ~= nil then
+          h.state.ghost_bufnr = vim.fn.bufadd(ghost_buf_name)
         end
       end
       bufpin.refresh_tabline(true)
