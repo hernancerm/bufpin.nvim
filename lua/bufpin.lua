@@ -102,7 +102,11 @@ function bufpin.setup(config)
     callback = function()
       h.hl_cache = {}
       h.set_defaults_hl()
-      bufpin.refresh_tabline()
+      -- For some reason unknown to me, the bg color of the dynamic filetype icons
+      -- highlight groups is not set right if the refresh is done immediately. Due
+      -- to the hl cache, if the refresh is done immediately here then there is no
+      -- other chance for the highlights to be computed, hence the timeout here.
+      h.setTimeout(150, vim.schedule_wrap(bufpin.refresh_tabline))
     end,
   })
   h.set_defaults_hl()
@@ -881,6 +885,18 @@ function h.should_exclude_from_pin(bufnr)
     or vim.bo[bufnr].buftype == "help"
     or h.is_plugin_buf(bufnr)
     or h.is_floating_win(0)
+end
+
+---@param timeout integer In milliseconds.
+---@param callback fun():nil
+function h.setTimeout(timeout, callback)
+  local timer = vim.uv.new_timer()
+  timer:start(timeout, 0, function()
+    timer:stop()
+    timer:close()
+    callback()
+  end)
+  return timer
 end
 
 h.bufpin_augroup = vim.api.nvim_create_augroup("PinAugroup", {})
