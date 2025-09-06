@@ -49,7 +49,7 @@ default config is in `bufpin.default_config`. Below is the default config:
     use_mini_bufremove = false,
     icons_style = "monochrome",
     ghost_buf_enabled = true,
-    remove_with = "delete"
+    remove_with = "delete",
   }
 <
                                                *bufpin.config.auto_hide_tabline*
@@ -90,7 +90,7 @@ done using the `mini.bufremove` plugin, thus preserving window layouts.
 
                                                      *bufpin.config.icons_style*
 `"color"|"monochrome"|"monochrome_selected"`
-How the file type icons look. Currently there is a bug with "color".
+How the file type icons look.
 
                                                *bufpin.config.ghost_buf_enabled*
 `(boolean)`

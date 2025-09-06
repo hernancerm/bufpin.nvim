@@ -141,8 +141,6 @@ end
 --- #tag bufpin-configuration
 --- Configuration ~
 
--- TODO: The "color" value for `icons_style` shows bad bg color.
-
 --- The merged config (defaults with user overrides) is in `bufpin.config`. The
 --- default config is in `bufpin.default_config`. Below is the default config:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
@@ -208,7 +206,7 @@ end
 
 --- #tag bufpin.config.icons_style
 --- `"color"|"monochrome"|"monochrome_selected"`
---- How the file type icons look. Currently there is a bug with "color".
+--- How the file type icons look.
 
 --- #tag bufpin.config.ghost_buf_enabled
 --- `(boolean)`
@@ -520,36 +518,92 @@ function h.build_tabline_pinned_buf(pinned_buf)
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@"
       .. "%#TabLineSel#  "
-      .. h.get_icon_string_for_build_tabline_buf(true, basename)
+      .. h.get_icon_string_for_tabline_buf(basename, true, false)
       .. basename
       .. "  %*"
       .. "%X"
   else
     return "%"
       .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@  "
-      .. h.get_icon_string_for_build_tabline_buf(false, basename)
+      .. "@BufpinTlOnClickBuf@"
+      .. "%#TabLineFill#  "
+      .. h.get_icon_string_for_tabline_buf(basename, false, false)
       .. basename
       .. "  %*"
       .. "%X"
   end
 end
 
----@param buf_is_selected boolean
+---@return string
+function h.build_tabline_ghost_buf()
+  local ghost_buf = h.state.ghost_bufnr
+  if ghost_buf == nil then
+    return ""
+  end
+  local ghost_buf_is_selected = ghost_buf == vim.fn.bufnr()
+  local hl = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
+  if ghost_buf_is_selected then
+    hl = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
+  end
+  local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_buf))
+  return "%"
+    .. ghost_buf
+    .. "@BufpinTlOnClickBuf@"
+    .. "%#"
+    .. hl
+    .. "#  "
+    .. h.get_icon_string_for_tabline_buf(basename, ghost_buf_is_selected, true)
+    .. basename
+    .. "  %*"
+    .. "%X"
+end
+
 ---@param buf_name string
-function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
+---@param buf_is_selected boolean
+---@param is_ghost_buf boolean
+function h.get_icon_string_for_tabline_buf(
+  buf_name,
+  buf_is_selected,
+  is_ghost_buf
+)
   if not h.const.HAS_MINI_ICONS then
     return ""
   end
   local icon, icon_hi = nil, nil
   if h.const.HAS_MINI_ICONS then
     icon, icon_hi = MiniIcons.get("file", buf_name)
+    if
+      vim.tbl_contains({
+        "color",
+        "monochrome_sel",
+      }, bufpin.config.icons_style)
+    then
+      vim.api.nvim_set_hl(0, "BufPin" .. icon_hi, {
+        bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
+        fg = vim.api.nvim_get_hl(0, { name = icon_hi }).fg,
+      })
+      icon_hi = "BufPin" .. icon_hi
+    end
   end
   local icon_string = ""
+  local hl_buf_selected = h.const.HL_TAB_LINE_SEL
+  if is_ghost_buf then
+    hl_buf_selected = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
+  end
+  local hl_buf_fill = h.const.HL_TAB_LINE_FILL
+  if is_ghost_buf then
+    hl_buf_fill = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
+  end
   if buf_is_selected then
     if h.const.HAS_MINI_ICONS then
       if bufpin.config.icons_style == "color" then
-        icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineSel# "
+        icon_string = "%#"
+          .. icon_hi
+          .. "#"
+          .. icon
+          .. "%*%#"
+          .. hl_buf_selected
+          .. "# "
       elseif
         bufpin.config.icons_style == "monochrome"
         or bufpin.config.icons_style == "monochrome_selected"
@@ -563,13 +617,56 @@ function h.get_icon_string_for_build_tabline_buf(buf_is_selected, buf_name)
         bufpin.config.icons_style == "color"
         or bufpin.config.icons_style == "monochrome_selected"
       then
-        icon_string = "%#" .. icon_hi .. "#" .. icon .. "%#TabLineFill# "
+        icon_string = "%#"
+          .. icon_hi
+          .. "#"
+          .. icon
+          .. "%*%#"
+          .. hl_buf_fill
+          .. "# "
       elseif bufpin.config.icons_style == "monochrome" then
         icon_string = icon .. " "
       end
     end
   end
   return icon_string
+end
+
+---@param buf_is_selected boolean
+---@param is_ghost_buf boolean
+---@return integer
+function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
+  -- stylua: ignore start
+  if buf_is_selected and not is_ghost_buf then
+    return h.get_hl_group(h.const.HL_TAB_LINE_SEL).bg
+  end
+  if not buf_is_selected and not is_ghost_buf then
+    return h.get_hl_group(h.const.HL_TAB_LINE_FILL).bg
+  end
+  if buf_is_selected and is_ghost_buf then
+    return h.get_hl_group(h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL).bg
+  end
+  if not buf_is_selected and is_ghost_buf then
+    return h.get_hl_group(h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL).bg
+  end
+  error("Invalid state: Highlight group not found")
+  -- stylua: ignore end
+end
+
+--- Follow links until reaching the highlight group colors.
+---@param hl_group_name string
+function h.get_hl_group(hl_group_name)
+  local hl_group = vim.api.nvim_get_hl(0, {
+    name = hl_group_name,
+    create = false,
+  })
+  while type(hl_group.link) == "string" do
+    hl_group = vim.api.nvim_get_hl(0, {
+      name = hl_group.link,
+      create = false,
+    })
+  end
+  return hl_group
 end
 
 --- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
@@ -589,7 +686,8 @@ end
 ---@return boolean
 function h.should_include_ghost_buf()
   if
-    h.state.ghost_bufnr ~= nil and vim.bo[h.state.ghost_bufnr].buftype == "help"
+    h.state.ghost_bufnr ~= nil
+    and vim.bo[h.state.ghost_bufnr].buftype == "help"
   then
     -- For some reason uknown to me, help files need special handling.
     h.state.ghost_bufnr = nil
@@ -607,29 +705,6 @@ function h.should_include_ghost_buf()
     return false
   end
   return true
-end
-
----@return string
-function h.build_tabline_ghost_buf()
-  local ghost_buf = h.state.ghost_bufnr
-  if ghost_buf == nil then
-    return ""
-  end
-  local hl_group = "BufpinGhostTabLineFill"
-  if ghost_buf == vim.fn.bufnr() then
-    hl_group = "BufpinGhostTabLineSel"
-  end
-  local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_buf))
-  return "%"
-    .. ghost_buf
-    .. "@BufpinTlOnClickBuf@"
-    .. "%#"
-    .. hl_group
-    .. "#  "
-    .. h.get_icon_string_for_build_tabline_buf(true, basename)
-    .. basename
-    .. "  %*"
-    .. "%X"
 end
 
 --- Set highlight groups to defaults only if not already set.
@@ -806,6 +881,10 @@ h.state = {
 h.const = {
   HAS_BLINKCMP = pcall(require, "blink.cmp"),
   HAS_MINI_ICONS = pcall(require, "mini.icons"),
+  HL_TAB_LINE_SEL = "TabLineSel",
+  HL_TAB_LINE_FILL = "TabLineFill",
+  HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
+  HL_BUFPIN_GHOST_TAB_LINE_FILL = "BufpinGhostTabLineFill",
 }
 
 -- Useful to debug.
