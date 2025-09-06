@@ -99,9 +99,12 @@ function bufpin.setup(config)
   -- Set highlight groups.
   vim.api.nvim_create_autocmd("ColorScheme", {
     group = h.bufpin_augroup,
-    callback = h.set_hl_with_defaults,
+    callback = function()
+      h.set_defaults_hl()
+      bufpin.refresh_tabline()
+    end,
   })
-  h.set_hl_with_defaults()
+  h.set_defaults_hl()
 
   -- Re-build state from session.
   vim.api.nvim_create_autocmd("SessionLoadPost", {
@@ -582,7 +585,7 @@ function h.get_icon_string_for_tabline_buf(
     then
       vim.api.nvim_set_hl(0, "BufPin" .. icon_hi, {
         bg = h.get_icon_hi_bg(buf_is_selected, is_ghost_buf),
-        fg = vim.api.nvim_get_hl(0, { name = icon_hi }).fg,
+        fg = h.get_hl(icon_hi).fg,
       })
       icon_hi = "BufPin" .. icon_hi
     end
@@ -638,26 +641,24 @@ end
 ---@param is_ghost_buf boolean
 ---@return integer
 function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
-  -- stylua: ignore start
   if buf_is_selected and not is_ghost_buf then
-    return h.get_hl_group(h.const.HL_TAB_LINE_SEL).bg
+    return h.get_hl(h.const.HL_TAB_LINE_SEL).bg
   end
   if not buf_is_selected and not is_ghost_buf then
-    return h.get_hl_group(h.const.HL_TAB_LINE_FILL).bg
+    return h.get_hl(h.const.HL_TAB_LINE_FILL).bg
   end
   if buf_is_selected and is_ghost_buf then
-    return h.get_hl_group(h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL).bg
+    return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL).bg
   end
   if not buf_is_selected and is_ghost_buf then
-    return h.get_hl_group(h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL).bg
+    return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL).bg
   end
   error("Invalid state: Highlight group not found")
-  -- stylua: ignore end
 end
 
 --- Follow links until reaching the highlight group colors.
 ---@param hl_group_name string
-function h.get_hl_group(hl_group_name)
+function h.get_hl(hl_group_name)
   local hl_group = vim.api.nvim_get_hl(0, {
     name = hl_group_name,
     create = false,
@@ -709,19 +710,21 @@ function h.should_include_ghost_buf()
   return true
 end
 
---- Set highlight groups to defaults only if not already set.
-function h.set_hl_with_defaults()
-  local tab_line_fill_hl = vim.api.nvim_get_hl(0, { name = "TabLineFill" })
-  vim.api.nvim_set_hl(0, "BufpinGhostTabLineFill", {
+--- Don't override existing definitions.
+function h.set_defaults_hl()
+  local tab_line_fill_hl = h.get_hl(h.const.HL_TAB_LINE_FILL)
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
     fg = tab_line_fill_hl.fg,
     bg = tab_line_fill_hl.bg,
     italic = true,
+    default = true,
   })
-  local tab_line_sel_hl = vim.api.nvim_get_hl(0, { name = "TabLineSel" })
-  vim.api.nvim_set_hl(0, "BufpinGhostTabLineSel", {
+  local tab_line_sel_hl = h.get_hl(h.const.HL_TAB_LINE_SEL)
+  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
     fg = tab_line_sel_hl.fg,
     bg = tab_line_sel_hl.bg,
     italic = true,
+    default = true,
   })
 end
 
