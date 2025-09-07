@@ -15,12 +15,12 @@ Manually track a list of bufs and visualize it in the tabline.
 
 Suggested complementary plugins:
 
-
-| Plugin                                                          | Benefit                                        | Integrate via install and...                                 |
-|-----------------------------------------------------------------|------------------------------------------------|--------------------------------------------------------------|
-| [mini.icons](https://github.com/echasnovski/mini.icons)         | Display file type icon next to buf name.       | Use a [Nerd Font](https://www.nerdfonts.com/).               |
-| [mini.bufremove](https://github.com/echasnovski/mini.bufremove) | Preserve window layout when removing bufs.     | Set in your config of Bufpin:<br>`use_mini_bufremove = true` |
-| [vim-lastplace](https://github.com/farmergreg/vim-lastplace)    | Remember the cursor location in visited bufs.  | -                                                            |
+- [mini.icons](https://github.com/echasnovski/mini.icons):
+  Display file type icon next to buf name. Use a [Nerd Font](https://www.nerdfonts.com/).
+- [mini.bufremove](https://github.com/echasnovski/mini.bufremove):
+  Preserve window layout when removing bufs.
+- [vim-lastplace](https://github.com/farmergreg/vim-lastplace):
+  Remember the cursor location in visited bufs.
 
 ## Out of scope
 
@@ -60,7 +60,7 @@ bufpin.setup({
   auto_hide_tabline = true,
   set_default_keymaps = true,
   exclude = function(_) end,
-  use_mini_bufremove = false,
+  use_mini_bufremove = true,
   icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",

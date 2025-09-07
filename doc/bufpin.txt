@@ -46,7 +46,7 @@ default config is in `bufpin.default_config`. Below is the default config:
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
-    use_mini_bufremove = false,
+    use_mini_bufremove = true,
     icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
     remove_with = "delete",
@@ -88,16 +88,16 @@ detected plugin bufs (e.g., nvimtree) and floating wins.
 
                                               *bufpin.config.use_mini_bufremove*
 `(boolean)`
-You need to have installed <https://github.com/echasnovski/mini.bufremove> for
-this option to work as `true`. When `true`, all buf deletions and wipeouts are
-done using the `mini.bufremove` plugin, thus preserving window layouts.
+You need to have installed <https://github.com/echasnovski/mini.bufremove>.
+When `true`, all buf deletions and wipeouts are done via the `mini.bufremove`
+plugin, thus preserving window layouts.
 
                                                      *bufpin.config.icons_style*
 `("color"|"monochrome"|"monochrome_selected"|"hidden")`
-You need to have installed <https://github.com/nvim-mini/mini.icons> to
-display icons. Use `monochrome_selected` to display only the selected buf's
-file type icon as monochrome, the other icons are colored. Use `hidden` to not
-display icons altogether.
+You need to have installed <https://github.com/nvim-mini/mini.icons>. Use
+`monochrome_selected` to display only the selected buf's file type icon as
+monochrome, the other icons are colored. Use `hidden` to not display icons
+altogether.
 
                                                *bufpin.config.ghost_buf_enabled*
 `(boolean)`

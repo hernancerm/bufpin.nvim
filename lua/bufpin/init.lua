@@ -104,7 +104,7 @@ function bufpin.setup(config)
       h.state.hl_cache = {}
       h.set_hl_defaults()
       bufpin.refresh_tabline()
-    end
+    end,
   })
 
   -- Re-build state from session.
@@ -165,7 +165,7 @@ function h.assign_default_config()
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
-    use_mini_bufremove = false,
+    use_mini_bufremove = true,
     icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
     remove_with = "delete",
@@ -216,16 +216,16 @@ end
 
 --- #tag bufpin.config.use_mini_bufremove
 --- `(boolean)`
---- You need to have installed <https://github.com/echasnovski/mini.bufremove> for
---- this option to work as `true`. When `true`, all buf deletions and wipeouts are
---- done using the `mini.bufremove` plugin, thus preserving window layouts.
+--- You need to have installed <https://github.com/echasnovski/mini.bufremove>.
+--- When `true`, all buf deletions and wipeouts are done via the `mini.bufremove`
+--- plugin, thus preserving window layouts.
 
 --- #tag bufpin.config.icons_style
 --- `("color"|"monochrome"|"monochrome_selected"|"hidden")`
---- You need to have installed <https://github.com/nvim-mini/mini.icons> to
---- display icons. Use `monochrome_selected` to display only the selected buf's
---- file type icon as monochrome, the other icons are colored. Use `hidden` to not
---- display icons altogether.
+--- You need to have installed <https://github.com/nvim-mini/mini.icons>. Use
+--- `monochrome_selected` to display only the selected buf's file type icon as
+--- monochrome, the other icons are colored. Use `hidden` to not display icons
+--- altogether.
 
 --- #tag bufpin.config.ghost_buf_enabled
 --- `(boolean)`
@@ -489,6 +489,11 @@ function h.get_config_with_fallback(config, default_config)
   return config
 end
 
+---@return boolean
+function h.should_use_mini_bufremove()
+  return bufpin.config.use_mini_bufremove and h.state.HAS_MINI_BUFREMOVE
+end
+
 --- For session persistence. Store state in `vim.g.BufpinState`. Deserialize in
 --- the autocmd event `SessionLoadPost.` In `pinned_bufs`, full file names are
 --- serialized. Note: Neovim has no `SessionWritePre` event:
@@ -520,13 +525,13 @@ end
 ---@param bufnr integer
 function h.eliminate_buf(operation, bufnr)
   if vim.bo[bufnr].modified then
-    if bufpin.config.use_mini_bufremove then
+    if h.should_use_mini_bufremove() then
       require("mini.bufremove")[operation](bufnr)
     else
       vim.cmd(bufnr .. "b" .. operation)
     end
   else
-    if bufpin.config.use_mini_bufremove then
+    if h.should_use_mini_bufremove() then
       bufpin.unpin(bufnr)
       if h.state.ghost_bufnr == bufnr then
         h.state.ghost_bufnr = nil
@@ -786,7 +791,7 @@ function h.set_hl_defaults()
   local hl_bufpin_tab_line_fill = {
     fg = hl_normal.fg,
     bg = hl_normal_bg_adjusted,
-    reverse = hl_normal.reverse
+    reverse = hl_normal.reverse,
   }
   vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
     fg = hl_bufpin_tab_line_fill.fg,
@@ -963,6 +968,7 @@ h.state = {
 h.const = {
   HAS_BLINKCMP = pcall(require, "blink.cmp"),
   HAS_MINI_ICONS = pcall(require, "mini.icons"),
+  HAS_MINI_BUFREMOVE = pcall(require, "mini.bufremove"),
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
   HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
   HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
