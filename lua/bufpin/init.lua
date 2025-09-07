@@ -489,7 +489,7 @@ end
 
 ---@return boolean
 function h.should_use_mini_bufremove()
-  return bufpin.config.use_mini_bufremove and h.state.HAS_MINI_BUFREMOVE
+  return bufpin.config.use_mini_bufremove and h.const.HAS_MINI_BUFREMOVE
 end
 
 --- For session persistence. Store state in `vim.g.BufpinState`. Deserialize in
