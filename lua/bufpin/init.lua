@@ -700,20 +700,20 @@ function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
   error("Invalid state: Highlight group not found")
 end
 
---- Follow links until reaching the highlight group colors.
----@param hl_group_name string
-function h.get_hl(hl_group_name)
-  local hl_group = vim.api.nvim_get_hl(0, {
-    name = hl_group_name,
+--- Get highlight group. Follow links.
+---@param hl_name string
+function h.get_hl(hl_name)
+  local hl = vim.api.nvim_get_hl(0, {
+    name = hl_name,
     create = false,
   })
-  while type(hl_group.link) == "string" do
-    hl_group = vim.api.nvim_get_hl(0, {
-      name = hl_group.link,
+  while type(hl.link) == "string" do
+    hl = vim.api.nvim_get_hl(0, {
+      name = hl.link,
       create = false,
     })
   end
-  return hl_group
+  return hl
 end
 
 --- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
