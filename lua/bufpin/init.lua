@@ -13,8 +13,6 @@
 --- #tag bufpin-introduction
 --- Introduction ~
 ---
---- Context: <https://github.com/hernancerm/bufpin.nvim/blob/main/README.md>.
----
 --- To enable the plugin you need to call the |bufpin.setup()| function. To use
 --- the defaults, call it without arguments:
 --- >lua
