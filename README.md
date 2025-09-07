@@ -2,6 +2,19 @@
 
 Manually track a list of bufs and visualize it in the tabline.
 
+<div align=center>
+  <img src="media/demo.gif" alt="bufpin.nvim demo" />
+</div>
+<!--
+nvim \
+  README.md \
+  Makefile \
+  scripts/minidoc.lua \
+  scripts/testdocs_init.lua \
+  lua/bufpin/hsluv.lua \
+  lua/bufpin/init.lua
+-->
+
 ## Features
 
 - Display the pinned bufs in the tabline.
@@ -92,15 +105,15 @@ kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
 
 Please refer to the help file: [bufpin.txt](./doc/bufpin.txt).
 
-## Similar experience in JetBrains IDEs
+## JetBrains IDEs
 
-To get a similar experience in IntelliJ and other JetBrains IDEs follow the instructions below:
+To get a similar experience in JetBrains IDEs follow these instructions:
 
 - IDE: In Settings set the tab limit to 1: "Editor > Editor Tabs > Tab limit: 1".
 - [IdeaVim](https://github.com/JetBrains/ideavim): In `~/.ideavimrc` add this to match the default
   key maps of this plugin:
 
-```text
+```vim
 nmap      <Space>p  <Action>(PinActiveEditorTab)
 nmap      <Space>w  <Action>(CloseContent)
 nmap      <Up>      <Action>(PreviousTab)
