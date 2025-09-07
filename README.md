@@ -13,6 +13,10 @@ nvim \
   scripts/testdocs_init.lua \
   lua/bufpin/hsluv.lua \
   lua/bufpin/init.lua
+:SatelliteDisable
+:%bd|e#|lua Bufpin.pin(vim.fn.bufnr())
+Recording width/height: 215x14 (https://getkap.co/)
+On .editorconfig `max_line_length`s to: 0
 -->
 
 ## Features
