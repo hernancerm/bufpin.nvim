@@ -51,7 +51,7 @@ default config is in `bufpin.default_config`. Below is the default config:
     ghost_buf_enabled = true,
     remove_with = "delete",
     logging = {
-      enabled = true,
+      enabled = false,
       level = vim.log.levels.INFO,
     },
   }

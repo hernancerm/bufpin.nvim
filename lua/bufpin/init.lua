@@ -170,7 +170,7 @@ function h.assign_default_config()
     ghost_buf_enabled = true,
     remove_with = "delete",
     logging = {
-      enabled = true,
+      enabled = false,
       level = vim.log.levels.INFO,
     },
   }
@@ -765,7 +765,9 @@ function h.set_hl_defaults()
   h.log("Setting hl defaults, 'background': " .. vim.o.background)
   local hsluv = require("bufpin.hsluv")
   local hl_status_line = h.get_hl("StatusLine")
-  h.log(vim.fn.execute("verbose hi StatusLine"))
+  h.log(function()
+    return vim.fn.execute("verbose hi StatusLine")
+  end)
   local hl_bufpin_tab_line_sel = hl_status_line
   vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
     fg = hl_bufpin_tab_line_sel.fg,
@@ -781,7 +783,9 @@ function h.set_hl_defaults()
     default = true,
   })
   local hl_normal = h.get_hl("Normal")
-  h.log(vim.fn.execute("verbose hi Normal"))
+  h.log(function()
+    return vim.fn.execute("verbose hi Normal")
+  end)
   local hsluv_normal_bg = hsluv.hex_to_hsluv("#" .. bit.tohex(hl_normal.bg, 6))
   local hl_normal_bg_adjusted = hsluv.hsluv_to_hex({
     hsluv_normal_bg[1],
@@ -990,22 +994,26 @@ function h.should_log(level)
   return bufpin.config.logging.enabled and level >= bufpin.config.logging.level
 end
 
----@param message string
+---@param message string|fun():string Use function type for expensive operations.
 ---@param level integer? As per |vim.log.levels|.
 function h.log(message, level)
   level = level or vim.log.levels.INFO
-  if h.should_log(level) then
-    vim.defer_fn(function()
-      vim.fn.writefile({
-        string.format(
-          "%s %s - %s\n",
-          vim.fn.get({ "D", "I", "W", "E" }, level - 1),
-          vim.fn.strftime("%H:%M:%S"),
-          message
-        ),
-      }, h.state.log_filepath, "a")
-    end, 0)
+  if not h.should_log(level) then
+    return
   end
+  if type(message) == "function" then
+    message = message()
+  end
+  vim.defer_fn(function()
+    vim.fn.writefile({
+      string.format(
+        "%s %s - %s\n",
+        vim.fn.get({ "D", "I", "W", "E" }, level - 1),
+        vim.fn.strftime("%H:%M:%S"),
+        message
+      ),
+    }, h.state.log_filepath, "a")
+  end, 0)
 end
 
 return bufpin

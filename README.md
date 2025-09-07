@@ -82,7 +82,7 @@ bufpin.setup({
   ghost_buf_enabled = true,
   remove_with = "delete",
   logging = {
-    enabled = true,
+    enabled = false,
     level = vim.log.levels.INFO,
   },
 })
