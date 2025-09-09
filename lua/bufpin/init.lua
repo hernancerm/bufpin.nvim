@@ -61,47 +61,61 @@ function bufpin.setup(config)
     end,
   })
 
-  -- Do 2 things:
-  -- 1. Redraw the tabline when switching bufs and wins.
-  -- 2. Keep accurate the value of `h.state.ghost_bufnr`.
-  vim.api.nvim_create_autocmd({
-    "BufNew",
-    "BufEnter",
-    "BufWinEnter",
-    "CmdlineLeave",
-    "FocusGained",
-    "VimResume",
-    "TermLeave",
-    "WinEnter",
-  }, {
+  -- No need to refresh the tabline until after creating all windows and loading
+  -- the buffers in them. The event VimEnter indicates this startup stuff is done.
+  vim.api.nvim_create_autocmd("VimEnter", {
     group = h.bufpin_augroup,
     callback = function()
-      local current_bufnr = vim.fn.bufnr()
-      if
-        not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
-        and not h.should_exclude_from_pin(current_bufnr)
-      then
-        h.state.ghost_bufnr = current_bufnr
-      end
-      bufpin.refresh_tabline()
-    end,
-  })
-  if h.const.HAS_BLINKCMP then
-    vim.api.nvim_create_autocmd("User", {
-      group = h.bufpin_augroup,
-      pattern = "BlinkCmpMenuOpen",
-      callback = bufpin.refresh_tabline,
-    })
-  end
+      -- Do 2 things:
+      -- 1. Redraw the tabline when switching bufs and wins.
+      -- 2. Keep accurate the value of `h.state.ghost_bufnr`.
+      vim.api.nvim_create_autocmd({
+        "BufEnter",
+        "BufWinEnter",
+        "CmdlineLeave",
+        "FocusGained",
+        "VimResume",
+        "TermLeave",
+        "WinEnter",
+      }, {
+        group = h.bufpin_augroup,
+        callback = function(e)
+          local current_bufnr = vim.fn.bufnr()
+          if
+            not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+            and not h.should_exclude_from_pin(current_bufnr)
+          then
+            h.state.ghost_bufnr = current_bufnr
+          end
+          h.log("Refreshing tabline on event: " .. e.event)
+          bufpin.refresh_tabline()
+        end,
+      })
 
-  -- Set highlight groups.
-  -- From my testing this autocmd also executes when setting 'bg'.
-  vim.api.nvim_create_autocmd("ColorScheme", {
-    group = h.bufpin_augroup,
-    callback = function()
-      h.state.hl_cache = {}
-      h.set_hl_defaults()
-      bufpin.refresh_tabline()
+      if h.const.HAS_BLINKCMP then
+        vim.api.nvim_create_autocmd("User", {
+          group = h.bufpin_augroup,
+          pattern = "BlinkCmpMenuOpen",
+          callback = bufpin.refresh_tabline,
+        })
+      end
+
+      -- Set highlight groups.
+      -- From my testing ColorScheme is also executed when setting 'bg'.
+      vim.api.nvim_create_autocmd({ "UIEnter", "ColorScheme" }, {
+        group = h.bufpin_augroup,
+        callback = function(e)
+          h.log(
+            "Setting hl defaults on event: "
+            .. e.event
+            .. " for 'background': "
+            .. vim.o.background
+          )
+          h.state.hl_cache = {}
+          h.set_hl_defaults()
+          bufpin.refresh_tabline()
+        end,
+      })
     end,
   })
 
@@ -760,7 +774,6 @@ end
 
 --- Don't override existing hl definitions.
 function h.set_hl_defaults()
-  h.log("Setting hl defaults, 'background': " .. vim.o.background)
   local hsluv = require("bufpin.hsluv")
   local hl_status_line = h.get_hl("StatusLine")
   h.log(function()
