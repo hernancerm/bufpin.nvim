@@ -62,6 +62,11 @@ Use your favorite package manager. For example, [Lazy.nvim](https://github.com/f
 The function `require("bufpin").setup()` needs to be called. Lazy.nvim does this using the snippet
 above.
 
+> [!IMPORTANT]
+> Ensure bufpin.nvim is loaded _after_ mini.icons and mini.bufremove. For Lazy.nvim see `priority`.
+>
+> If you don't have these plugins installed you can dismiss this note.
+
 ## Default config
 
 ```lua

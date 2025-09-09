@@ -112,13 +112,11 @@ function bufpin.setup(config)
   })
 
   -- Fix no selected buf in tabline when using blink.cmp's completion menu.
-  if h.const.HAS_BLINKCMP then
-    vim.api.nvim_create_autocmd("User", {
-      group = h.bufpin_augroup,
-      pattern = "BlinkCmpMenuOpen",
-      callback = bufpin.refresh_tabline,
-    })
-  end
+  vim.api.nvim_create_autocmd("User", {
+    group = h.bufpin_augroup,
+    pattern = "BlinkCmpMenuOpen",
+    callback = bufpin.refresh_tabline,
+  })
 
   -- Re-build state from session.
   vim.api.nvim_create_autocmd("SessionLoadPost", {
@@ -982,7 +980,6 @@ h.state = {
 }
 
 h.const = {
-  HAS_BLINKCMP = package.loaded["blink-cmp"] ~= nil,
   HAS_MINI_ICONS = package.loaded["mini.icons"] ~= nil,
   HAS_MINI_BUFREMOVE = package.loaded["mini.bufremove"] ~= nil,
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
