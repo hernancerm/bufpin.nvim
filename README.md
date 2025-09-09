@@ -55,17 +55,16 @@ Use your favorite package manager. For example, [Lazy.nvim](https://github.com/f
 ```lua
 {
   "hernancerm/bufpin.nvim",
+  -- IMPORTANT: If you have installed mini.icons or mini.bufremove, set their
+  -- priority to something greater than 0. The idea is that those plugins
+  -- should be loaded _before_ bufpin.nvim.
+  priority = 0,
   opts = {}
 },
 ```
 
 The function `require("bufpin").setup()` needs to be called. Lazy.nvim does this using the snippet
 above.
-
-> [!IMPORTANT]
-> Ensure bufpin.nvim is loaded _after_ mini.icons and mini.bufremove. For Lazy.nvim see `priority`.
->
-> If you don't have these plugins installed you can dismiss this note.
 
 ## Default config
 
