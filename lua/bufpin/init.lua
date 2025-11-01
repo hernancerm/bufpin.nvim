@@ -176,6 +176,7 @@ function h.assign_default_config()
     auto_hide_tabline = true,
     set_default_keymaps = true,
     exclude = function(_) end,
+    exclude_runr_bufs = true,
     use_mini_bufremove = true,
     icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
@@ -221,14 +222,20 @@ end
 --- #tag bufpin.config.exclude
 --- `(fun(bufnr:integer):boolean)`
 --- When the function returns true, the buf (`bufnr`) is ignored. This means that
---- calling |bufpin.pin()| on it has no effect. Some bufs are excluded regardless
---- of this option: bufs without a name ([No Name]), Vim help files, man pages,
---- detected plugin bufs (e.g., nvimtree) and floating wins.
+--- the buf is not displayed in the tabline and calling |bufpin.pin()| on it has
+--- no effect. Some bufs are excluded regardless of this opt: bufs without a
+--- name ([No Name]), Vim help files, man pages, detected plugin bufs (e.g.,
+--- nvimtree) and floating wins.
+
+--- #tag bufpin.config.exclude_runr_bufs
+--- `(boolean)`
+--- When true the bufs managed by <https://github.com/hernancerm/runr.nvim> are
+--- excluded, as if set to be excluded by the opt |bufpin.config.exclude|.
 
 --- #tag bufpin.config.use_mini_bufremove
 --- `(boolean)`
 --- You need to have installed <https://github.com/echasnovski/mini.bufremove>.
---- When `true`, all buf deletions and wipeouts are done via the `mini.bufremove`
+--- When true, all buf deletions and wipeouts are done via the `mini.bufremove`
 --- plugin, thus preserving window layouts.
 
 --- #tag bufpin.config.icons_style
@@ -417,7 +424,7 @@ function bufpin.get_pinned_bufs()
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
---- (|session-file|) load. To force draw send `force` as `true`.
+--- (|session-file|) load. To force draw send `force` as true.
 ---@param force boolean?
 function bufpin.refresh_tabline(force)
   if vim.fn.exists("SessionLoad") == 1 and force ~= true then
@@ -464,6 +471,7 @@ endfunction
 ---@field auto_hide_tabline boolean
 ---@field set_default_keymaps boolean
 ---@field exclude fun(bufnr:integer): boolean
+---@field exclude_runr_bufs boolean
 ---@field use_mini_bufremove boolean
 ---@field icons_style "color"|"monochrome"|"monochrome_selected"|"hidden"
 ---@field ghost_buf_enabled boolean
@@ -958,6 +966,14 @@ function h.normalize_pinned_bufs()
 end
 
 ---@param bufnr integer
+---@return boolean True if the buf is managed by the plugin hernancerm/runr.nvim.
+function h.is_runr_buf(bufnr)
+  if h.const.HAS_RUNR and bufpin.config.exclude_runr_bufs then
+    return require("runr").is_run_config_buf(bufnr)
+  end
+end
+
+---@param bufnr integer
 ---@return boolean
 function h.should_exclude_from_pin(bufnr)
   return bufpin.config.exclude(bufnr)
@@ -966,6 +982,7 @@ function h.should_exclude_from_pin(bufnr)
     or vim.bo[bufnr].buftype == "nofile"
     or vim.bo[bufnr].buftype == "help"
     or h.is_plugin_buf(bufnr)
+    or h.is_runr_buf(bufnr)
     or h.is_floating_win(0)
 end
 
@@ -981,6 +998,7 @@ h.state = {
 }
 
 h.const = {
+  HAS_RUNR = package.loaded["runr"] ~= nil,
   HAS_MINI_ICONS = package.loaded["mini.icons"] ~= nil,
   HAS_MINI_BUFREMOVE = package.loaded["mini.bufremove"] ~= nil,
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
