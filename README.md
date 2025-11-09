@@ -55,10 +55,6 @@ Use your favorite package manager. For example, [Lazy.nvim](https://github.com/f
 ```lua
 {
   "hernancerm/bufpin.nvim",
-  -- IMPORTANT: If you have installed nvim-mini/mini.icons, nvim-mini/mini.bufremove
-  -- or hernancerm/runr.nvim, set their priority to something greater than 0. The idea
-  -- is that those plugins should be loaded _before_ bufpin.nvim.
-  priority = 0,
   opts = {}
 },
 ```

@@ -510,7 +510,7 @@ end
 
 ---@return boolean
 function h.should_use_mini_bufremove()
-  return bufpin.config.use_mini_bufremove and h.const.HAS_MINI_BUFREMOVE
+  return bufpin.config.use_mini_bufremove and h.has_mini_bufremove()
 end
 
 --- For session persistence. Store state in `vim.g.BufpinState`. Deserialize in
@@ -631,12 +631,13 @@ function h.get_icon_string_for_tabline_buf(
   buf_is_selected,
   is_ghost_buf
 )
-  if not h.const.HAS_MINI_ICONS or bufpin.config.icons_style == "hidden" then
+  local has_mini_icons = h.has_mini_icons()
+  if not has_mini_icons or bufpin.config.icons_style == "hidden" then
     return ""
   end
   local bufpin_icon_hl = nil
   local icon, icon_hl = nil, nil
-  if h.const.HAS_MINI_ICONS then
+  if has_mini_icons then
     ---@diagnostic disable-next-line: undefined-global
     icon, icon_hl = MiniIcons.get("file", buf_name)
     bufpin_icon_hl = "Bufpin"
@@ -669,7 +670,7 @@ function h.get_icon_string_for_tabline_buf(
     hl_buf_fill = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
   end
   if buf_is_selected then
-    if h.const.HAS_MINI_ICONS then
+    if has_mini_icons then
       if bufpin.config.icons_style == "color" then
         icon_string = "%#"
           .. bufpin_icon_hl
@@ -686,7 +687,7 @@ function h.get_icon_string_for_tabline_buf(
       end
     end
   else
-    if h.const.HAS_MINI_ICONS then
+    if has_mini_icons then
       if
         bufpin.config.icons_style == "color"
         or bufpin.config.icons_style == "monochrome_selected"
@@ -966,10 +967,12 @@ function h.normalize_pinned_bufs()
 end
 
 ---@param bufnr integer
----@return boolean True if the buf is managed by the plugin hernancerm/runr.nvim.
+---@return boolean
 function h.is_runr_buf(bufnr)
-  if h.const.HAS_RUNR and bufpin.config.exclude_runr_bufs then
+  if h.has_runr() and bufpin.config.exclude_runr_bufs then
     return require("runr").is_run_config_buf(bufnr)
+  else
+    return false
   end
 end
 
@@ -998,9 +1001,6 @@ h.state = {
 }
 
 h.const = {
-  HAS_RUNR = package.loaded["runr"] ~= nil,
-  HAS_MINI_ICONS = package.loaded["mini.icons"] ~= nil,
-  HAS_MINI_BUFREMOVE = package.loaded["mini.bufremove"] ~= nil,
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
   HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
   HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
@@ -1020,6 +1020,27 @@ end
 ---@param level integer As per |vim.log.levels|.
 function h.should_log(level)
   return bufpin.config.logging.enabled and level >= bufpin.config.logging.level
+end
+
+--- Returns true when mini.icons is installed:
+--- <https://github.com/nvim-mini/mini.icons>.
+---@return boolean
+function h.has_mini_icons()
+  return package.loaded["mini.icons"] ~= nil
+end
+
+--- Returns true when mini.bufremove is installed:
+--- <https://github.com/nvim-mini/mini.bufremove>.
+---@return boolean
+function h.has_mini_bufremove()
+  return package.loaded["mini.bufremove"] ~= nil
+end
+
+--- Returns true when runr.nvim is installed:
+--- <https://github.com/hernancerm/runr.nvim>.
+---@return boolean
+function h.has_runr()
+  return package.loaded["runr"] ~= nil
 end
 
 ---@param message string|fun():string Use function type for expensive operations.
