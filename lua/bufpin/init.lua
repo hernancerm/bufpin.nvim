@@ -76,6 +76,10 @@ function bufpin.setup(config)
         "FocusGained",
         "VimResume",
         "TermLeave",
+        -- TODO: Finish the fix. Here, "WinClosed" fixes pinned buf has lost
+        -- highlight after closing LSP popup help on cursor move (key map K). To
+        -- do: The highlight is initially lost when the popup window is opened.
+        "WinClosed",
         "WinEnter",
       }, {
         group = h.bufpin_augroup,
