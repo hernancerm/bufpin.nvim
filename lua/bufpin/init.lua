@@ -71,15 +71,10 @@ function bufpin.setup(config)
       -- 2. Keep accurate the value of `h.state.ghost_bufnr`.
       vim.api.nvim_create_autocmd({
         "BufEnter",
-        "BufWinEnter",
         "CmdlineLeave",
         "FocusGained",
         "VimResume",
         "TermLeave",
-        -- TODO: Finish the fix. Here, "WinClosed" fixes pinned buf has lost
-        -- highlight after closing LSP popup help on cursor move (key map K). To
-        -- do: The highlight is initially lost when the popup window is opened.
-        "WinClosed",
         "WinEnter",
       }, {
         group = h.bufpin_augroup,
