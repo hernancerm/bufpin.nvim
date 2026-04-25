@@ -969,7 +969,7 @@ end
 ---@return boolean
 function h.is_runr_buf(bufnr)
   if h.has_runr() and bufpin.config.exclude_runr_bufs then
-    return require("runr").has_runr_file(bufnr)
+    return require("runr").get_runr_file().bufnr == bufnr
   else
     return false
   end
