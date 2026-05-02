@@ -802,33 +802,40 @@ function h.set_hl_defaults()
     default = true,
   })
   local hl_normal = h.get_hl("Normal")
-  h.log(function()
-    return vim.fn.execute("verbose hi Normal")
-  end)
-  local hsluv_normal_bg = hsluv.hex_to_hsluv("#" .. bit.tohex(hl_normal.bg, 6))
-  local hl_normal_bg_adjusted = hsluv.hsluv_to_hex({
-    hsluv_normal_bg[1],
-    hsluv_normal_bg[2],
-    (vim.o.background == "light" and 90 or 20),
-  })
-  local hl_bufpin_tab_line_fill = {
-    fg = hl_normal.fg,
-    bg = hl_normal_bg_adjusted,
-    reverse = hl_normal.reverse,
-  }
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
-    fg = hl_bufpin_tab_line_fill.fg,
-    bg = hl_bufpin_tab_line_fill.bg,
-    reverse = hl_bufpin_tab_line_fill.reverse,
-    default = true,
-  })
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
-    fg = hl_bufpin_tab_line_fill.fg,
-    bg = hl_bufpin_tab_line_fill.bg,
-    reverse = hl_bufpin_tab_line_fill.reverse,
-    italic = true,
-    default = true,
-  })
+  if vim.tbl_isempty(hl_normal) then
+    h.log("Skipping setting default highlights since Normal is cleared")
+    h.log(function()
+      return vim.fn.execute("verbose hi Normal")
+    end)
+  else
+    h.log(function()
+      return vim.fn.execute("verbose hi Normal")
+    end)
+    local hsluv_normal_bg = hsluv.hex_to_hsluv("#" .. bit.tohex(hl_normal.bg, 6))
+    local hl_normal_bg_adjusted = hsluv.hsluv_to_hex({
+      hsluv_normal_bg[1],
+      hsluv_normal_bg[2],
+      (vim.o.background == "light" and 90 or 20),
+    })
+    local hl_bufpin_tab_line_fill = {
+      fg = hl_normal.fg,
+      bg = hl_normal_bg_adjusted,
+      reverse = hl_normal.reverse,
+    }
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
+      fg = hl_bufpin_tab_line_fill.fg,
+      bg = hl_bufpin_tab_line_fill.bg,
+      reverse = hl_bufpin_tab_line_fill.reverse,
+      default = true,
+    })
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
+      fg = hl_bufpin_tab_line_fill.fg,
+      bg = hl_bufpin_tab_line_fill.bg,
+      reverse = hl_bufpin_tab_line_fill.reverse,
+      italic = true,
+      default = true,
+    })
+  end
 end
 
 --- Find the index of a value in a list-like table.
