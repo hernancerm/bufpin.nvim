@@ -39,6 +39,8 @@ function bufpin.setup(config)
     vim.deepcopy(bufpin.config or bufpin.default_config),
     config
   )
+  -- Validate config.
+  -- Validating merged config to avoid nil keys.
   vim.validate(
     "bufpin.config.auto_hide_tabline",
     bufpin.config.auto_hide_tabline,
@@ -57,14 +59,6 @@ function bufpin.setup(config)
     "boolean"
   )
   vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
-  vim.validate("bufpin.config.log_enabled", bufpin.config.log_enabled, "boolean")
-
-  -- Logger setup.
-  local h = require("bufpin.helpers")
-  if bufpin.config.log_enabled then
-    vim.fn.mkdir(vim.fn.fnamemodify(h.state.log_filepath, ":h"), "p")
-  end
-  h.state.config_log_enabled = bufpin.config.log_enabled
 end
 
 --- #delimiter
@@ -84,7 +78,6 @@ bufpin.default_config = {
   icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",
-  log_enabled = false,
 }
 --minidoc_afterlines_end
 
@@ -122,10 +115,6 @@ bufpin.default_config = {
 --- `("delete"|"wipeout")`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
----
---- #tag bufpin.config.log_enabled
---- `(boolean)`
---- Whether to write to the log file: `stdpath("log")` .. `/bufpin.log`
 
 --- #delimiter
 --- #tag bufpin-highlight-groups
@@ -367,7 +356,7 @@ vim.api.nvim_create_autocmd({
   "WinEnter",
 }, {
   group = "Bufpin",
-  callback = function(e)
+  callback = function()
     local h = require("bufpin.helpers")
     local current_bufnr = vim.fn.bufnr()
     if
@@ -376,7 +365,6 @@ vim.api.nvim_create_autocmd({
     then
       h.state.ghost_bufnr = current_bufnr
     end
-    h.log("Refreshing tabline on event: " .. e.event)
     bufpin.refresh_tabline()
   end,
 })
@@ -385,14 +373,8 @@ vim.api.nvim_create_autocmd({
 -- From my testing ColorScheme is also executed when setting 'bg'.
 vim.api.nvim_create_autocmd({ "UIEnter", "ColorScheme" }, {
   group = "Bufpin",
-  callback = function(e)
+  callback = function()
     local h = require("bufpin.helpers")
-    h.log(
-      "Setting hl defaults on event: "
-        .. e.event
-        .. " for 'background': "
-        .. vim.o.background
-    )
     h.state.hl_cache = {}
     h.set_hl_defaults()
     bufpin.refresh_tabline()

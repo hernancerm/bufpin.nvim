@@ -486,9 +486,6 @@ h.state = {
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
   ghost_bufnr = nil,
-  log_filepath = vim.fn.stdpath("log") .. "/bufpin.log",
-  -- Keys starting with `config` are kept in sync with `bufpin.config`.
-  config_log_enabled = nil,
 }
 
 h.const = {
@@ -518,28 +515,6 @@ end
 ---@return boolean
 function h.has_runr()
   return package.loaded["runr"] ~= nil
-end
-
----@param message string|fun():string Use function type for expensive operations.
----@param level integer? As per |vim.log.levels|.
-function h.log(message, level)
-  level = level or vim.log.levels.INFO
-  if not h.state.config_log_enabled then
-    return
-  end
-  if type(message) == "function" then
-    message = message()
-  end
-  vim.defer_fn(function()
-    vim.fn.writefile({
-      string.format(
-        "%s %s - %s\n",
-        vim.fn.get({ "D", "I", "W", "E" }, level - 1),
-        vim.fn.strftime("%H:%M:%S"),
-        message
-      ),
-    }, h.state.log_filepath, "a")
-  end, 0)
 end
 
 return h
