@@ -295,6 +295,11 @@ function h.should_include_ghost_buf(config_ghost_buf_enabled)
   if not config_ghost_buf_enabled then
     return false
   end
+  if #h.state.pinned_bufnrs == 0 then
+    -- Do not include ghost buf when there are no pinned bufs.
+    -- This is relevant when using vim tabpages only.
+    return false
+  end
   local current_bufnr = vim.fn.bufnr()
   if
     vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
