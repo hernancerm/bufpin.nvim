@@ -50,7 +50,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
   if pinned_buf.selected then
     return "%"
       .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@"
+      .. "@bufpin#_on_click_buf@"
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE_SEL
       .. "#  "
@@ -66,7 +66,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
   else
     return "%"
       .. pinned_buf.bufnr
-      .. "@BufpinTlOnClickBuf@"
+      .. "@bufpin#_on_click_buf@"
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE
       .. "#  "
@@ -97,7 +97,7 @@ function h.build_tabline_ghost_buf(config_icons_style)
   local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_buf))
   return "%"
     .. ghost_buf
-    .. "@BufpinTlOnClickBuf@"
+    .. "@bufpin#_on_click_buf@"
     .. "%#"
     .. hl
     .. "#  "
