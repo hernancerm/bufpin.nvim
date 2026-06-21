@@ -235,7 +235,6 @@ function h.get_hl(hl_name)
   return hl
 end
 
---- Prune with `h.prune_nonexistent_bufs_from_state` before calling this function.
 ---@param pinned_bufs PinnedBuf[]
 ---@param config_icons_style string
 ---@return string
