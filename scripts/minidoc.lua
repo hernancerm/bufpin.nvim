@@ -80,4 +80,14 @@ hooks.write_pre = function(lines)
   return lines
 end
 
-minidoc.generate({ "lua/bufpin/init.lua" }, "doc/bufpin.txt", { hooks = hooks })
+hooks.write_post = function(doc)
+  if vim.env.STDOUT ~= "true" then
+    minidoc.default_hooks.write_post(doc)
+  end
+end
+
+minidoc.generate(
+  { "lua/bufpin/init.lua" },
+  vim.env.STDOUT == "true" and "/dev/stdout" or "doc/bufpin.txt",
+  { hooks = hooks }
+)

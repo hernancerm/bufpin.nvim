@@ -1,41 +1,33 @@
-HELP_FILE := ./doc/pin.txt
-CMD_NVIM := nvim --headless --noplugin
-ECHASNOVSKI_GH_BASE_URL := https://raw.githubusercontent.com/echasnovski
-CMD_MINI_DOC_GENERATE := @$(CMD_NVIM) -u ./scripts/testdocs_init.lua && echo ''
-MINI_DOC_GIT_HASH := 28d1d8172a463460131c3ae929498abe78937382
-STYLUA_VERSION := $(shell grep stylua .tool-versions | awk '{ print $$2 }')
-STYLUA := $(HOME)/.asdf/installs/stylua/$(STYLUA_VERSION)/bin/stylua
+HELP_FILE := ./doc/bufpin.txt
+NVIM_CMD := nvim --headless --noplugin
+MINI_DOC_GENERATE_CMD := $(NVIM_CMD) -u ./scripts/minidoc_init.lua
+
+# Neovim plugins versions.
+# These are dev dependencies.
+MINI_DOC_GIT_COMMIT := v0.17.0
 
 # Check formatting.
 .PHONY: testmft
-testfmt: $(STYLUA)
-	stylua --check lua/ scripts/
+testfmt:
+	stylua --check lua/bufpin/init.lua scripts/
 
 # Check docs are up to date.
 .PHONY: testdocs
-testdocs: deps/lua/doc.lua
-	git checkout $(HELP_FILE)
-	@$(CMD_MINI_DOC_GENERATE)
-	git diff --exit-code $(HELP_FILE)
-
-# Run CI tests.
-.PHONY: testci
-testci: testfmt testdocs
+testdocs: deps/mini.doc
+	STDOUT=true $(MINI_DOC_GENERATE_CMD) | diff $(HELP_FILE) -
 
 # Format.
 .PHONY: fmt
-fmt: $(STYLUA)
-	stylua lua/bufpin/init.lua scripts/
+fmt:
+	stylua lua/ scripts/ tests/
 
 # Update docs.
 .PHONY: docs
-docs: deps/lua/doc.lua
-	$(CMD_MINI_DOC_GENERATE)
+docs: deps/mini.doc
+	$(MINI_DOC_GENERATE_CMD)
 
-deps/lua/doc.lua:
-	@mkdir -p deps/lua
-	curl $(ECHASNOVSKI_GH_BASE_URL)/mini.doc/$(MINI_DOC_GIT_HASH)/lua/mini/doc.lua -o $@
-
-$(STYLUA):
-	asdf plugin add stylua
-	asdf install stylua
+deps/mini.doc:
+	@mkdir -p deps
+	git clone --depth 1 --branch $(MINI_DOC_GIT_COMMIT) \
+	https://github.com/nvim-mini/mini.doc \
+	$@
