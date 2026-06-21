@@ -220,7 +220,7 @@ end
 --- Get highlight group. Follows links.
 --- Returns empty table for non-defined highlight groups.
 ---@param hl_name string
----@return vim.api.keyset.get_hl_info
+---@return table
 function h.get_hl(hl_name)
   local hl = vim.api.nvim_get_hl(0, {
     name = hl_name,
@@ -279,73 +279,42 @@ function h.should_include_ghost_buf(config_ghost_buf_enabled)
   return true
 end
 
--- Don't override existing hl definitions.
 function h.set_hl_defaults()
+  -- Don't override existing hl definitions.
+  local attribs_base = { default = true }
+  local attribs_ghost =
+    vim.tbl_deep_extend("force", attribs_base, { italic = true })
   local hl_normal = h.get_hl("Normal")
-  local hl_tab_line = h.get_hl("TabLine")
-  if not vim.tbl_isempty(hl_tab_line) then
-    hl_tab_line = vim.tbl_deep_extend("keep", hl_tab_line, hl_normal)
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE, {
-      fg = hl_tab_line.fg,
-      bg = hl_tab_line.bg,
-      reverse = hl_tab_line.reverse,
-      underline = hl_tab_line.underline,
-      underdouble = hl_tab_line.underdouble,
-      bold = hl_tab_line.bold,
-      sp = hl_tab_line.sp,
-      default = true,
-    })
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE, {
-      fg = hl_tab_line.fg,
-      bg = hl_tab_line.bg,
-      reverse = hl_tab_line.reverse,
-      underline = hl_tab_line.underline,
-      underdouble = hl_tab_line.underdouble,
-      bold = hl_tab_line.bold,
-      sp = hl_tab_line.sp,
-      italic = true,
-      default = true,
-    })
-  end
-  local hl_tab_line_sel = h.get_hl("TabLineSel")
-  if not vim.tbl_isempty(hl_tab_line_sel) then
-    hl_tab_line_sel = vim.tbl_deep_extend("keep", hl_tab_line_sel, hl_normal)
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
-      fg = hl_tab_line_sel.fg,
-      bg = hl_tab_line_sel.bg,
-      reverse = hl_tab_line_sel.reverse,
-      underline = hl_tab_line_sel.underline,
-      underdouble = hl_tab_line_sel.underdouble,
-      bold = hl_tab_line_sel.bold,
-      sp = hl_tab_line_sel.sp,
-      default = true,
-    })
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
-      fg = hl_tab_line_sel.fg,
-      bg = hl_tab_line_sel.bg,
-      reverse = hl_tab_line_sel.reverse,
-      underline = hl_tab_line_sel.underline,
-      underdouble = hl_tab_line_sel.underdouble,
-      bold = hl_tab_line_sel.bold,
-      sp = hl_tab_line_sel.sp,
-      italic = true,
-      default = true,
-    })
-  end
-  local hl_tab_line_fill = h.get_hl("TabLineFill")
-  if not vim.tbl_isempty(hl_tab_line_fill) then
-    hl_tab_line_fill = vim.tbl_deep_extend("keep", hl_tab_line_fill, hl_normal)
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
-      fg = hl_tab_line_fill.fg,
-      bg = hl_tab_line_fill.bg,
-      reverse = hl_tab_line_fill.reverse,
-      underline = hl_tab_line_fill.underline,
-      underdouble = hl_tab_line_fill.underdouble,
-      bold = hl_tab_line_fill.bold,
-      sp = hl_tab_line_fill.sp,
-      default = true,
-    })
-  end
+  local hl_tab_line = vim.tbl_deep_extend("keep", h.get_hl("TabLine"), hl_normal)
+  vim.api.nvim_set_hl(
+    0,
+    h.const.HL_BUFPIN_TAB_LINE,
+    vim.tbl_deep_extend("force", hl_tab_line, attribs_base)
+  )
+  vim.api.nvim_set_hl(
+    0,
+    h.const.HL_BUFPIN_GHOST_TAB_LINE,
+    vim.tbl_deep_extend("force", hl_tab_line, attribs_ghost)
+  )
+  local hl_tab_line_sel =
+    vim.tbl_deep_extend("keep", h.get_hl("TabLineSel"), hl_normal)
+  vim.api.nvim_set_hl(
+    0,
+    h.const.HL_BUFPIN_TAB_LINE_SEL,
+    vim.tbl_deep_extend("force", hl_tab_line_sel, attribs_base)
+  )
+  vim.api.nvim_set_hl(
+    0,
+    h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL,
+    vim.tbl_deep_extend("force", hl_tab_line_sel, attribs_ghost)
+  )
+  local hl_tab_line_fill =
+    vim.tbl_deep_extend("keep", h.get_hl("TabLineFill"), hl_normal)
+  vim.api.nvim_set_hl(
+    0,
+    h.const.HL_BUFPIN_TAB_LINE_FILL,
+    vim.tbl_deep_extend("force", hl_tab_line_fill, attribs_base)
+  )
 end
 
 --- Find the index of a value in a list-like table.
