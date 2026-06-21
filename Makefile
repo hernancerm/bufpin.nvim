@@ -9,7 +9,7 @@ MINI_DOC_GIT_COMMIT := v0.17.0
 # Check formatting.
 .PHONY: testmft
 testfmt:
-	stylua --check lua/bufpin/init.lua scripts/
+	stylua --check lua/ scripts/
 
 # Check docs are up to date.
 .PHONY: testdocs
@@ -19,7 +19,7 @@ testdocs: deps/mini.doc
 # Format.
 .PHONY: fmt
 fmt:
-	stylua lua/ scripts/ tests/
+	stylua lua/ scripts/
 
 # Update docs.
 .PHONY: docs

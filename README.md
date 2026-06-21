@@ -22,7 +22,6 @@ On .editorconfig `max_line_length`s to: 0
 ## Features
 
 - Display the pinned bufs in the tabline.
-- Sensible default colors for Bufpin's highlight groups.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.

@@ -48,7 +48,12 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE_SEL
       .. "#  "
-      .. h.get_icon_string_for_tabline_buf(basename, true, false, config_icons_style)
+      .. h.get_icon_string_for_tabline_buf(
+        basename,
+        true,
+        false,
+        config_icons_style
+      )
       .. basename
       .. "  %*"
       .. "%X"
@@ -59,7 +64,12 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE_FILL
       .. "#  "
-      .. h.get_icon_string_for_tabline_buf(basename, false, false, config_icons_style)
+      .. h.get_icon_string_for_tabline_buf(
+        basename,
+        false,
+        false,
+        config_icons_style
+      )
       .. basename
       .. "  %*"
       .. "%X"
@@ -85,7 +95,12 @@ function h.build_tabline_ghost_buf(config_icons_style)
     .. "%#"
     .. hl
     .. "#  "
-    .. h.get_icon_string_for_tabline_buf(basename, ghost_buf_is_selected, true, config_icons_style)
+    .. h.get_icon_string_for_tabline_buf(
+      basename,
+      ghost_buf_is_selected,
+      true,
+      config_icons_style
+    )
     .. basename
     .. "  %*"
     .. "%X"
@@ -197,6 +212,7 @@ function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
 end
 
 --- Get highlight group. Follows links.
+--- Returns empty table for non-defined highlight groups.
 ---@param hl_name string
 ---@return vim.api.keyset.get_hl_info
 function h.get_hl(hl_name)
@@ -217,10 +233,15 @@ end
 ---@param pinned_bufs PinnedBuf[]
 ---@param config_icons_style string
 ---@return string
-function h.build_tabline(pinned_bufs, config_icons_style, config_ghost_buf_enabled)
+function h.build_tabline(
+  pinned_bufs,
+  config_icons_style,
+  config_ghost_buf_enabled
+)
   local tabline = ""
   for _, pinned_buf in ipairs(pinned_bufs) do
-    tabline = tabline .. h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
+    tabline = tabline
+      .. h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
   end
   if h.should_include_ghost_buf(config_ghost_buf_enabled) then
     tabline = tabline .. h.build_tabline_ghost_buf(config_icons_style)
@@ -232,8 +253,7 @@ end
 ---@return boolean
 function h.should_include_ghost_buf(config_ghost_buf_enabled)
   if
-    h.state.ghost_bufnr ~= nil
-    and vim.bo[h.state.ghost_bufnr].buftype == "help"
+    h.state.ghost_bufnr ~= nil and vim.bo[h.state.ghost_bufnr].buftype == "help"
   then
     -- For some reason uknown to me, help files need special handling.
     h.state.ghost_bufnr = nil
@@ -255,56 +275,34 @@ end
 
 --- Don't override existing hl definitions.
 function h.set_hl_defaults()
-  local hsluv = require("bufpin.hsluv")
-  local hl_status_line = h.get_hl("StatusLine")
-  h.log(function()
-    return vim.fn.execute("verbose hi StatusLine")
-  end)
-  local hl_bufpin_tab_line_sel = hl_status_line
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
-    fg = hl_bufpin_tab_line_sel.fg,
-    bg = hl_bufpin_tab_line_sel.bg,
-    reverse = hl_bufpin_tab_line_sel.reverse,
-    default = true,
-  })
-  vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
-    fg = hl_bufpin_tab_line_sel.fg,
-    bg = hl_bufpin_tab_line_sel.bg,
-    reverse = hl_bufpin_tab_line_sel.reverse,
-    italic = true,
-    default = true,
-  })
-  local hl_normal = h.get_hl("Normal")
-  if vim.tbl_isempty(hl_normal) then
-    h.log("Skipping setting default highlights since Normal is cleared")
-    h.log(function()
-      return vim.fn.execute("verbose hi Normal")
-    end)
-  else
-    h.log(function()
-      return vim.fn.execute("verbose hi Normal")
-    end)
-    local hsluv_normal_bg = hsluv.hex_to_hsluv("#" .. bit.tohex(hl_normal.bg, 6))
-    local hl_normal_bg_adjusted = hsluv.hsluv_to_hex({
-      hsluv_normal_bg[1],
-      hsluv_normal_bg[2],
-      (vim.o.background == "light" and 90 or 20),
+  local hl_tab_line_sel = h.get_hl("TabLineSel")
+  if not vim.tbl_isempty(hl_tab_line_sel) then
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
+      fg = hl_tab_line_sel.fg,
+      bg = hl_tab_line_sel.bg,
+      reverse = hl_tab_line_sel.reverse,
+      default = true,
     })
-    local hl_bufpin_tab_line_fill = {
-      fg = hl_normal.fg,
-      bg = hl_normal_bg_adjusted,
-      reverse = hl_normal.reverse,
-    }
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
+      fg = hl_tab_line_sel.fg,
+      bg = hl_tab_line_sel.bg,
+      reverse = hl_tab_line_sel.reverse,
+      italic = true,
+      default = true,
+    })
+  end
+  local hl_tab_line_fill = h.get_hl("TabLineFill")
+  if not vim.tbl_isempty(hl_tab_line_fill) then
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
-      fg = hl_bufpin_tab_line_fill.fg,
-      bg = hl_bufpin_tab_line_fill.bg,
-      reverse = hl_bufpin_tab_line_fill.reverse,
+      fg = hl_tab_line_fill.fg,
+      bg = hl_tab_line_fill.bg,
+      reverse = hl_tab_line_fill.reverse,
       default = true,
     })
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
-      fg = hl_bufpin_tab_line_fill.fg,
-      bg = hl_bufpin_tab_line_fill.bg,
-      reverse = hl_bufpin_tab_line_fill.reverse,
+      fg = hl_tab_line_fill.fg,
+      bg = hl_tab_line_fill.bg,
+      reverse = hl_tab_line_fill.reverse,
       italic = true,
       default = true,
     })
