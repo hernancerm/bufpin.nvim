@@ -39,7 +39,6 @@ default config is in `bufpin.default_config`. Below is the default config:
     icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
     remove_with = "delete",
-    log_enabled = false,
   }
 <
                                                *bufpin.config.auto_hide_tabline*
@@ -77,18 +76,15 @@ buf. If any, it's displayed always as the last item in the tabline.
 Set how buf removal is done for both the function |bufpin.remove()| and the
 mouse middle click input on a buf in the tabline.
 
-                                                     *bufpin.config.log_enabled*
-`(boolean)`
-Whether to write to the log file: `stdpath("log")` .. `/bufpin.log`
-
 ------------------------------------------------------------------------------
                                                        *bufpin-highlight-groups*
 Highlight groups ~
 
-• Active buffer: `BufpinTabLineSel`
+• Selected buffer: `BufpinTabLineSel`
+• Selected ghost buffer: `BufpinGhostTabLineSel`
+• Unselected buffer: `BufpinTabLine`
+• Unselected ghost buffer: `BufpinGhostTabLine`
 • Tabline background: `BufpinTabLineFill`
-• Active ghost buffer: `BufpinGhostTabLineSel`
-• Inactive ghost buffer: `BufpinGhostTabLineFill`
 
 ------------------------------------------------------------------------------
                                                               *bufpin-functions*
@@ -151,5 +147,6 @@ Set the option 'tabline'. The tabline is not drawn during a session
 (|session-file|) load. To force draw send `force` as true.
 Parameters ~
 {force} `(boolean?)`
+
 
  vim:tw=78:ts=8:noet:ft=help:norl:

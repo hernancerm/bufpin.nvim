@@ -114,10 +114,11 @@ bufpin.default_config = {
 --- #tag bufpin-highlight-groups
 --- Highlight groups ~
 ---
---- * Active buffer: `BufpinTabLineSel`
+--- * Selected buffer: `BufpinTabLineSel`
+--- * Selected ghost buffer: `BufpinGhostTabLineSel`
+--- * Unselected buffer: `BufpinTabLine`
+--- * Unselected ghost buffer: `BufpinGhostTabLine`
 --- * Tabline background: `BufpinTabLineFill`
---- * Active ghost buffer: `BufpinGhostTabLineSel`
---- * Inactive ghost buffer: `BufpinGhostTabLineFill`
 
 --- #delimiter
 --- #tag bufpin-functions
