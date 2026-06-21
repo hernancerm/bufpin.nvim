@@ -289,14 +289,20 @@ function h.set_hl_defaults()
       fg = hl_tab_line.fg,
       bg = hl_tab_line.bg,
       reverse = hl_tab_line.reverse,
+      underline = hl_tab_line.underline,
+      underdouble = hl_tab_line.underdouble,
       bold = hl_tab_line.bold,
+      sp = hl_tab_line.sp,
       default = true,
     })
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE, {
       fg = hl_tab_line.fg,
       bg = hl_tab_line.bg,
       reverse = hl_tab_line.reverse,
+      underline = hl_tab_line.underline,
+      underdouble = hl_tab_line.underdouble,
       bold = hl_tab_line.bold,
+      sp = hl_tab_line.sp,
       italic = true,
       default = true,
     })
@@ -308,14 +314,20 @@ function h.set_hl_defaults()
       fg = hl_tab_line_sel.fg,
       bg = hl_tab_line_sel.bg,
       reverse = hl_tab_line_sel.reverse,
+      underline = hl_tab_line_sel.underline,
+      underdouble = hl_tab_line_sel.underdouble,
       bold = hl_tab_line_sel.bold,
+      sp = hl_tab_line_sel.sp,
       default = true,
     })
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
       fg = hl_tab_line_sel.fg,
       bg = hl_tab_line_sel.bg,
       reverse = hl_tab_line_sel.reverse,
+      underline = hl_tab_line_sel.underline,
+      underdouble = hl_tab_line_sel.underdouble,
       bold = hl_tab_line_sel.bold,
+      sp = hl_tab_line_sel.sp,
       italic = true,
       default = true,
     })
@@ -327,7 +339,10 @@ function h.set_hl_defaults()
       fg = hl_tab_line_fill.fg,
       bg = hl_tab_line_fill.bg,
       reverse = hl_tab_line_fill.reverse,
+      underline = hl_tab_line_fill.underline,
+      underdouble = hl_tab_line_fill.underdouble,
       bold = hl_tab_line_fill.bold,
+      sp = hl_tab_line_fill.sp,
       default = true,
     })
   end
