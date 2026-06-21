@@ -412,7 +412,7 @@ end
 
 --- Show the tabline only when there is a pinned buf to show.
 function h.show_tabline()
-  if #h.state.pinned_bufnrs > 0 then
+  if #h.state.pinned_bufnrs > 0 or #vim.api.nvim_list_tabpages() > 1 then
     vim.o.showtabline = 2
   else
     vim.o.showtabline = 0
