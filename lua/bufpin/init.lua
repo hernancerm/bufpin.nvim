@@ -348,6 +348,8 @@ vim.api.nvim_create_autocmd({
   "VimResume",
   "TermLeave",
   "WinEnter",
+  "TabNew",
+  "TabClosed",
 }, {
   group = "Bufpin",
   callback = function()

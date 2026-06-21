@@ -50,7 +50,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
   if pinned_buf.selected then
     return "%"
       .. pinned_buf.bufnr
-      .. "@bufpin#_on_click_buf@"
+      .. "@bufpin#_on_click_buffer@"
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE_SEL
       .. "#  "
@@ -66,7 +66,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
   else
     return "%"
       .. pinned_buf.bufnr
-      .. "@bufpin#_on_click_buf@"
+      .. "@bufpin#_on_click_buffer@"
       .. "%#"
       .. h.const.HL_BUFPIN_TAB_LINE
       .. "#  "
@@ -97,7 +97,7 @@ function h.build_tabline_ghost_buf(config_icons_style)
   local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_buf))
   return "%"
     .. ghost_buf
-    .. "@bufpin#_on_click_buf@"
+    .. "@bufpin#_on_click_buffer@"
     .. "%#"
     .. hl
     .. "#  "
@@ -252,7 +252,35 @@ function h.build_tabline(
   if h.should_include_ghost_buf(config_ghost_buf_enabled) then
     tabline = tabline .. h.build_tabline_ghost_buf(config_icons_style)
   end
-  return tabline .. "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#"
+  tabline = tabline .. "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#"
+  tabline = tabline .. h.build_tabline_vim_tabpages()
+  return tabline
+end
+
+function h.build_tabline_vim_tabpages()
+  local vim_tabpages = "%=  "
+  local tabpages = vim.api.nvim_list_tabpages()
+  -- Do not show vim tabpages when there is only one.
+  if #tabpages == 1 then
+    return ""
+  end
+  local current_tabpage = vim.api.nvim_get_current_tabpage()
+  for i, tabpage in ipairs(tabpages) do
+    local hl = h.const.HL_BUFPIN_TAB_LINE
+    if current_tabpage == tabpage then
+      hl = h.const.HL_BUFPIN_TAB_LINE_SEL
+    end
+    vim_tabpages = vim_tabpages
+      .. "%"
+      .. tabpage
+      .. "@bufpin#_on_click_tabpage@"
+      .. "%#"
+      .. hl
+      .. "#["
+      .. i
+      .. "]%*%X"
+  end
+  return vim_tabpages
 end
 
 ---@param config_ghost_buf_enabled boolean
