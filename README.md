@@ -22,7 +22,6 @@ On .editorconfig `max_line_length`s to: 0
 ## Features
 
 - Display the pinned bufs in the tabline.
-- Out of the box key mappings to manage pinned bufs.
 - Sensible default colors for Bufpin's highlight groups.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
@@ -50,17 +49,31 @@ Suggested complementary plugins:
 
 ## Installation
 
-Use your favorite package manager. For example, [Lazy.nvim](https://github.com/folke/lazy.nvim):
+Install with your favorite package manager. For example, using Neovim's builtin package manager,
+[vim.pack](https://neovim.io/doc/user/pack/#vim.pack):
 
 ```lua
-{
-  "hernancerm/bufpin.nvim",
-  opts = {}
-},
+vim.pack.add({
+  "https://github.com/hernancerm/bufpin.nvim",
+})
+
+local opts = { silent = true }
+vim.keymap.set("n",  "<Leader>p",  ":lua Bufpin.toggle()<CR>",          opts)
+vim.keymap.set("n",  "<Leader>w",  ":lua Bufpin.remove()<CR>",          opts)
+vim.keymap.set("n",  "<Up>",       ":lua Bufpin.edit_left()<CR>",       opts)
+vim.keymap.set("n",  "<Down>",     ":lua Bufpin.edit_right()<CR>",      opts)
+vim.keymap.set("n",  "<Left>",     ":lua Bufpin.move_to_left()<CR>",    opts)
+vim.keymap.set("n",  "<Right>",    ":lua Bufpin.move_to_right()<CR>",   opts)
+vim.keymap.set("n",  "<F1>",       ":lua Bufpin.edit_by_index(1)<CR>",  opts)
+vim.keymap.set("n",  "<F2>",       ":lua Bufpin.edit_by_index(2)<CR>",  opts)
+vim.keymap.set("n",  "<F3>",       ":lua Bufpin.edit_by_index(3)<CR>",  opts)
+vim.keymap.set("n",  "<F4>",       ":lua Bufpin.edit_by_index(4)<CR>",  opts)
 ```
 
-The function `require("bufpin").setup()` needs to be called. Lazy.nvim does this using the snippet
-above.
+Some things to notice:
+
+- `require("bufpin").setup()` does **not** need to be called. You may call it to configure the plugin.
+- The plugin does **not** create keymaps, you need to define them as shown above.
 
 ## Default config
 
@@ -75,35 +88,13 @@ Is equivalent to:
 local bufpin = require("bufpin")
 bufpin.setup({
   auto_hide_tabline = true,
-  set_default_keymaps = true,
   exclude = function(_) end,
-  exclude_runr_bufs = true,
   use_mini_bufremove = true,
   icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",
-  logging = {
-    enabled = false,
-    level = vim.log.levels.INFO,
-  },
+  log_enabled = false,
 })
-```
-
-Default key mappings:
-
-```lua
-local kset = vim.keymap.set
-local opts = { silent = true }
-kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>",          opts)
-kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>",          opts)
-kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>",       opts)
-kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>",      opts)
-kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>",    opts)
-kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>",   opts)
-kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>",  opts)
-kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>",  opts)
-kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>",  opts)
-kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
 ```
 
 ## Documentation

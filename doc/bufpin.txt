@@ -13,20 +13,12 @@ Contents:
                                                            *bufpin-introduction*
 Introduction ~
 
-To enable the plugin you need to call the |bufpin.setup()| function. To use
-the defaults, call it without arguments:
->lua
-  require("bufpin").setup()
-<
-After calling |bufpin.setup()| the Lua global `Bufpin` gets defined. This
-global variable provides acces to everything that `require("bufpin")` does.
-This is useful for setting key maps on functions which expect an arg, e.g.:
->lua
-  vim.keymap.set("n", "<F1>", ":call v:lua.Bufpin.edit_by_index(1)<CR>")
-<
+No need to call |bufpin.setup()|, but you may to configure the plugin.
+
                                                                 *bufpin.setup()*
                             `bufpin.setup`({config})
 Module setup.
+Sets `require("bufpin").config`.
 Parameters ~
 {config} `(table?)` Merged with the default config (|bufpin.default_config|).
 The former takes priority on duplicate keys.
@@ -40,44 +32,20 @@ Configuration ~
 The merged config (defaults with user overrides) is in `bufpin.config`. The
 default config is in `bufpin.default_config`. Below is the default config:
 >lua
-  {
+  bufpin.default_config = {
     auto_hide_tabline = true,
-    set_default_keymaps = true,
     exclude = function(_) end,
-    exclude_runr_bufs = true,
     use_mini_bufremove = true,
     icons_style = "monochrome_selected",
     ghost_buf_enabled = true,
     remove_with = "delete",
-    logging = {
-      enabled = false,
-      level = vim.log.levels.INFO,
-    },
+    log_enabled = false,
   }
 <
                                                *bufpin.config.auto_hide_tabline*
 `(boolean)`
 When true and there are no pinned bufs, hide the tabline.
 
-                                             *bufpin.config.set_default_keymaps*
-`(boolean)`
-When true, the default key maps listed below are set.
-
-Default key maps:
->lua
-  local kset = vim.keymap.set
-  local opts = { silent = true }
-  kset("n",  "<Leader>p",  ":cal v:lua.Bufpin.toggle()<CR>",          opts)
-  kset("n",  "<Leader>w",  ":cal v:lua.Bufpin.remove()<CR>",          opts)
-  kset("n",  "<Up>",       ":cal v:lua.Bufpin.edit_left()<CR>",       opts)
-  kset("n",  "<Down>",     ":cal v:lua.Bufpin.edit_right()<CR>",      opts)
-  kset("n",  "<Left>",     ":cal v:lua.Bufpin.move_to_left()<CR>",    opts)
-  kset("n",  "<Right>",    ":cal v:lua.Bufpin.move_to_right()<CR>",   opts)
-  kset("n",  "<F1>",       ":cal v:lua.Bufpin.edit_by_index(1)<CR>",  opts)
-  kset("n",  "<F2>",       ":cal v:lua.Bufpin.edit_by_index(2)<CR>",  opts)
-  kset("n",  "<F3>",       ":cal v:lua.Bufpin.edit_by_index(3)<CR>",  opts)
-  kset("n",  "<F4>",       ":cal v:lua.Bufpin.edit_by_index(4)<CR>",  opts)
-<
                                                          *bufpin.config.exclude*
 `(fun(bufnr:integer):boolean)`
 When the function returns true, the buf (`bufnr`) is ignored. This means that
@@ -85,11 +53,6 @@ the buf is not displayed in the tabline and calling |bufpin.pin()| on it has
 no effect. Some bufs are excluded regardless of this opt: bufs without a
 name ([No Name]), Vim help files, man pages, detected plugin bufs (e.g.,
 nvimtree) and floating wins.
-
-                                               *bufpin.config.exclude_runr_bufs*
-`(boolean)`
-When true the bufs managed by <https://github.com/hernancerm/runr.nvim> are
-excluded, as if set to be excluded by the opt |bufpin.config.exclude|.
 
                                               *bufpin.config.use_mini_bufremove*
 `(boolean)`
@@ -114,16 +77,9 @@ buf. If any, it's displayed always as the last item in the tabline.
 Set how buf removal is done for both the function |bufpin.remove()| and the
 mouse middle click input on a buf in the tabline.
 
-                                                         *bufpin.config.logging*
-Log file location: `stdpath("log")` .. `/bufpin.log`.
-
-                                                 *bufpin.config.logging.enabled*
-    {enabled} `(boolean)`
-      Whether to write to the log file.
-
-                                                   *bufpin.config.logging.level*
-    {level} `(integer)`
-      Log statements on this level and up are written to the log file.
+                                                     *bufpin.config.log_enabled*
+`(boolean)`
+Whether to write to the log file: `stdpath("log")` .. `/bufpin.log`
 
 ------------------------------------------------------------------------------
                                                        *bufpin-highlight-groups*
