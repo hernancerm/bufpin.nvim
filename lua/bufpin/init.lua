@@ -362,7 +362,11 @@ vim.api.nvim_create_autocmd({
     then
       h.state.ghost_bufnr = current_bufnr
     end
-    bufpin.refresh_tabline()
+    -- Use `vim.schedule()` to cover case of `:tabmove`, so refresh happens after
+    -- the effect of the command.
+    vim.schedule(function()
+      bufpin.refresh_tabline()
+    end)
   end,
 })
 
