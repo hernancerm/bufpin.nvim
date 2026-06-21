@@ -1,6 +1,6 @@
 # Bufpin
 
-Manually track a list of bufs and visualize it in the tabline.
+Pin buffers for quick navigation.
 
 <div align=center>
   <img src="media/demo.gif" alt="bufpin.nvim demo" />
@@ -18,6 +18,21 @@ nvim \
 Recording width/height: 215x14 (https://getkap.co/)
 On .editorconfig `max_line_length`s to: 0
 -->
+
+## Problem
+
+From https://github.com/ThePrimeagen/harpoon/tree/harpoon2:
+
+> You're working on a codebase. medium, large, tiny, whatever. You find
+> yourself frequenting a small set of files and you are tired of using a fuzzy
+> finder, :bnext & :bprev are getting too repetitive, alternate file doesn't
+> quite cut it, etc etc.
+
+## Solution
+
+Pin buffers and allow navigating to them via keymaps. The pinned bufs are
+drawn in the 'tabline'. Visually, this looks like tabs in a modern text
+editor, but the distinction is that the bufs are all manually tracked.
 
 ## Features
 
@@ -57,16 +72,16 @@ vim.pack.add({
 })
 
 local opts = { silent = true }
-vim.keymap.set("n",  "<Leader>p",  ":lua Bufpin.toggle()<CR>",          opts)
-vim.keymap.set("n",  "<Leader>w",  ":lua Bufpin.remove()<CR>",          opts)
-vim.keymap.set("n",  "<Up>",       ":lua Bufpin.edit_left()<CR>",       opts)
-vim.keymap.set("n",  "<Down>",     ":lua Bufpin.edit_right()<CR>",      opts)
-vim.keymap.set("n",  "<Left>",     ":lua Bufpin.move_to_left()<CR>",    opts)
-vim.keymap.set("n",  "<Right>",    ":lua Bufpin.move_to_right()<CR>",   opts)
-vim.keymap.set("n",  "<F1>",       ":lua Bufpin.edit_by_index(1)<CR>",  opts)
-vim.keymap.set("n",  "<F2>",       ":lua Bufpin.edit_by_index(2)<CR>",  opts)
-vim.keymap.set("n",  "<F3>",       ":lua Bufpin.edit_by_index(3)<CR>",  opts)
-vim.keymap.set("n",  "<F4>",       ":lua Bufpin.edit_by_index(4)<CR>",  opts)
+vim.keymap.set("n", "<Leader>p", ":lua Bufpin.toggle()<CR>",         opts)
+vim.keymap.set("n", "<Leader>w", ":lua Bufpin.remove()<CR>",         opts)
+vim.keymap.set("n", "<Up>",      ":lua Bufpin.edit_left()<CR>",      opts)
+vim.keymap.set("n", "<Down>",    ":lua Bufpin.edit_right()<CR>",     opts)
+vim.keymap.set("n", "<Left>",    ":lua Bufpin.move_to_left()<CR>",   opts)
+vim.keymap.set("n", "<Right>",   ":lua Bufpin.move_to_right()<CR>",  opts)
+vim.keymap.set("n", "<F1>",      ":lua Bufpin.edit_by_index(1)<CR>", opts)
+vim.keymap.set("n", "<F2>",      ":lua Bufpin.edit_by_index(2)<CR>", opts)
+vim.keymap.set("n", "<F3>",      ":lua Bufpin.edit_by_index(3)<CR>", opts)
+vim.keymap.set("n", "<F4>",      ":lua Bufpin.edit_by_index(4)<CR>", opts)
 ```
 
 Some things to notice:
@@ -77,15 +92,7 @@ Some things to notice:
 ## Default config
 
 ```lua
-local bufpin = require("bufpin")
-bufpin.setup()
-```
-
-Is equivalent to:
-
-```lua
-local bufpin = require("bufpin")
-bufpin.setup({
+require("bufpin").setup({
   auto_hide_tabline = true,
   exclude = function(_) end,
   use_mini_bufremove = true,
@@ -109,16 +116,16 @@ To get a similar experience in JetBrains IDEs follow these instructions:
   key maps of this plugin:
 
 ```vim
-nmap      <Space>p  <Action>(PinActiveEditorTab)
-nmap      <Space>w  <Action>(CloseContent)
-nmap      <Up>      <Action>(PreviousTab)
-nmap      <Down>    <Action>(NextTab)
-nnoremap  <Left>    :tabmove -1<CR>
-nnoremap  <Right>   :tabmove +1<CR>
-nmap      <F1>      <Action>(GoToTab1)
-nmap      <F2>      <Action>(GoToTab2)
-nmap      <F3>      <Action>(GoToTab3)
-nmap      <F4>      <Action>(GoToTab4)
+nmap     <Space>p <Action>(PinActiveEditorTab)
+nmap     <Space>w <Action>(CloseContent)
+nmap     <Up>     <Action>(PreviousTab)
+nmap     <Down>   <Action>(NextTab)
+nnoremap <Left>   :tabmove -1<CR>
+nnoremap <Right>  :tabmove +1<CR>
+nmap     <F1>     <Action>(GoToTab1)
+nmap     <F2>     <Action>(GoToTab2)
+nmap     <F3>     <Action>(GoToTab3)
+nmap     <F4>     <Action>(GoToTab4)
 ```
 
 ## Inspiration

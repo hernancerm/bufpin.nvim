@@ -1,4 +1,4 @@
-*bufpin* Manually track a list of bufs and visualize it in the tabline.
+*bufpin* Pin buffers for quick navigation.
 
 MIT License Copyright (c) 2025 Hernán Cervera.
 
@@ -13,15 +13,51 @@ Contents:
                                                            *bufpin-introduction*
 Introduction ~
 
-No need to call |bufpin.setup()|, but you may to configure the plugin.
+Problem:
 
-                                                                *bufpin.setup()*
-                            `bufpin.setup`({config})
-Module setup.
-Sets `require("bufpin").config`.
-Parameters ~
-{config} `(table?)` Merged with the default config (|bufpin.default_config|).
-The former takes priority on duplicate keys.
+From https://github.com/ThePrimeagen/harpoon/tree/harpoon2:
+>text
+  You're working on a codebase. medium, large, tiny, whatever. You find
+  yourself frequenting a small set of files and you are tired of using a fuzzy
+  finder, :bnext & :bprev are getting too repetitive, alternate file doesn't
+  quite cut it, etc etc.
+<
+Solution:
+
+Pin buffers and allow navigating to them via keymaps. The pinned bufs are
+drawn in the 'tabline'. Visually, this looks like tabs in a modern text
+editor, but the distinction is that the bufs are all manually tracked.
+
+Quickstart:
+
+Install the plugin with your favorite package manager, then set these keymaps:
+>lua
+  local opts = { silent = true }
+  vim.keymap.set("n", "<Leader>p", ":lua Bufpin.toggle()<CR>",         opts)
+  vim.keymap.set("n", "<Leader>w", ":lua Bufpin.remove()<CR>",         opts)
+  vim.keymap.set("n", "<Up>",      ":lua Bufpin.edit_left()<CR>",      opts)
+  vim.keymap.set("n", "<Down>",    ":lua Bufpin.edit_right()<CR>",     opts)
+  vim.keymap.set("n", "<Left>",    ":lua Bufpin.move_to_left()<CR>",   opts)
+  vim.keymap.set("n", "<Right>",   ":lua Bufpin.move_to_right()<CR>",  opts)
+  vim.keymap.set("n", "<F1>",      ":lua Bufpin.edit_by_index(1)<CR>", opts)
+  vim.keymap.set("n", "<F2>",      ":lua Bufpin.edit_by_index(2)<CR>", opts)
+  vim.keymap.set("n", "<F3>",      ":lua Bufpin.edit_by_index(3)<CR>", opts)
+  vim.keymap.set("n", "<F4>",      ":lua Bufpin.edit_by_index(4)<CR>", opts)
+<
+Some things to notice:
+
+• No need to call |bufpin.setup()|, but you may do so to configure the plugin.
+• The plugin sets the Lua global `Bufpin`, equivalent to `require("bufpin")`.
+• The plugin doesn't create keymaps, you need to define them yourself.
+
+With the keymaps above you may try:
+
+1. |:edit| an existent file.
+2. Press <Leader>p to pin the buffer. See the buffer is shown in the tabline.
+3. Press <Leader>p on other files to pin them as well.
+4. Re-order the pinned bufs with <Left> and <Right>.
+5. Cycle through pinned bufs with <Up> and <Down>.
+6. Press <Leader>w to unpin a buf.
 
 ------------------------------------------------------------------------------
                                                                  *bufpin.config*
@@ -29,8 +65,18 @@ The former takes priority on duplicate keys.
                                                           *bufpin-configuration*
 Configuration ~
 
-The merged config (defaults with user overrides) is in `bufpin.config`. The
-default config is in `bufpin.default_config`. Below is the default config:
+The effective config (defaults with overrides) is in `require("bufpin").config`,
+which is set by |bufpin.setup()|. The default config remains constant and is in
+`require("bufpin").default_config`, for reference.
+
+                                                                *bufpin.setup()*
+                            `bufpin.setup`({config})
+Module setup.
+Sets `require("bufpin").config`.
+Parameters ~
+{config} `(table?)`
+
+Default config:
 >lua
   bufpin.default_config = {
     auto_hide_tabline = true,
@@ -80,11 +126,10 @@ mouse middle click input on a buf in the tabline.
                                                        *bufpin-highlight-groups*
 Highlight groups ~
 
-• Selected buffer: `BufpinTabLineSel`
-• Selected ghost buffer: `BufpinGhostTabLineSel`
-• Unselected buffer: `BufpinTabLine`
-• Unselected ghost buffer: `BufpinGhostTabLine`
-• Tabline background: `BufpinTabLineFill`
+• `BufpinTabLineSel`: Selected pinned buffer.
+• `BufpinGhostTabLineSel`: Selected ghost buffer.
+• `BufpinTabLine`: Unselected pinned buffer.
+• `BufpinTabLineFill`: Tabline background.
 
 ------------------------------------------------------------------------------
                                                               *bufpin-functions*
