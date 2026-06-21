@@ -22,11 +22,10 @@ _G.Bufpin = bufpin
 vim.api.nvim_create_augroup("Bufpin", { clear = true })
 
 -- Changes to the config table spec requires changes here:
--- 1. `BufpinConfig` class
--- 2. `bufpin.default_config`
--- 3. Validations in `h.get_config_with_fallback`
--- 4. Documentation for Vim help file
--- 5. README.md
+-- 1. `bufpin.default_config`
+-- 2. Validations in `bufpin.setup()`
+-- 3. Documentation in Vim help file
+-- 4. README.md
 
 --- Module setup.
 --- Sets `require("bufpin").config`.
@@ -450,26 +449,5 @@ function! BufpinTlOnClickBuf(minwid,clicks,button,modifiers)
   endif
 endfunction
 ]])
-
----@class PinnedBuf
----@field bufnr integer
----@field basename string
----@field differentiator string?
----@field selected boolean
-
----@class BufpinConfig
----@field auto_hide_tabline boolean
----@field exclude fun(bufnr:integer): boolean
----@field use_mini_bufremove boolean
----@field icons_style "color"|"monochrome"|"monochrome_selected"|"hidden"
----@field ghost_buf_enabled boolean
----@field remove_with "delete"|"wipeout"
----@field log_enabled boolean
-
--- Useful to debug.
-
-function bufpin._get_state()
-  return require("bufpin.helpers").state
-end
 
 return bufpin

@@ -1,5 +1,11 @@
 local h = {}
 
+---@class PinnedBuf
+---@field bufnr integer
+---@field basename string
+---@field differentiator string?
+---@field selected boolean
+
 ---@param config_use_mini_bufremove boolean
 ---@return boolean
 function h.should_use_mini_bufremove(config_use_mini_bufremove)
