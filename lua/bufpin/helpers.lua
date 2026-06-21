@@ -62,7 +62,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
       .. pinned_buf.bufnr
       .. "@BufpinTlOnClickBuf@"
       .. "%#"
-      .. h.const.HL_BUFPIN_TAB_LINE_FILL
+      .. h.const.HL_BUFPIN_TAB_LINE
       .. "#  "
       .. h.get_icon_string_for_tabline_buf(
         basename,
@@ -84,7 +84,7 @@ function h.build_tabline_ghost_buf(config_icons_style)
     return ""
   end
   local ghost_buf_is_selected = ghost_buf == vim.fn.bufnr()
-  local hl = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
+  local hl = h.const.HL_BUFPIN_GHOST_TAB_LINE
   if ghost_buf_is_selected then
     hl = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
   end
@@ -150,9 +150,9 @@ function h.get_icon_string_for_tabline_buf(
   if is_ghost_buf then
     hl_buf_selected = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
   end
-  local hl_buf_fill = h.const.HL_BUFPIN_TAB_LINE_FILL
+  local hl_buf = h.const.HL_BUFPIN_TAB_LINE
   if is_ghost_buf then
-    hl_buf_fill = h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL
+    hl_buf = h.const.HL_BUFPIN_GHOST_TAB_LINE
   end
   if buf_is_selected then
     if has_mini_icons then
@@ -182,7 +182,7 @@ function h.get_icon_string_for_tabline_buf(
           .. "#"
           .. icon
           .. "%*%#"
-          .. hl_buf_fill
+          .. hl_buf
           .. "# "
       elseif config_icons_style == "monochrome" then
         icon_string = icon .. " "
@@ -200,13 +200,13 @@ function h.get_icon_hi_bg(buf_is_selected, is_ghost_buf)
     return h.get_hl(h.const.HL_BUFPIN_TAB_LINE_SEL).bg
   end
   if not buf_is_selected and not is_ghost_buf then
-    return h.get_hl(h.const.HL_BUFPIN_TAB_LINE_FILL).bg
+    return h.get_hl(h.const.HL_BUFPIN_TAB_LINE).bg
   end
   if buf_is_selected and is_ghost_buf then
     return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL).bg
   end
   if not buf_is_selected and is_ghost_buf then
-    return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL).bg
+    return h.get_hl(h.const.HL_BUFPIN_GHOST_TAB_LINE).bg
   end
   error("Invalid state: Highlight group not found")
 end
@@ -273,37 +273,55 @@ function h.should_include_ghost_buf(config_ghost_buf_enabled)
   return true
 end
 
---- Don't override existing hl definitions.
+-- Don't override existing hl definitions.
 function h.set_hl_defaults()
+  local hl_normal = h.get_hl("Normal")
+  local hl_tab_line = h.get_hl("TabLine")
+  if not vim.tbl_isempty(hl_tab_line) then
+    hl_tab_line = vim.tbl_deep_extend("keep", hl_tab_line, hl_normal)
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE, {
+      fg = hl_tab_line.fg,
+      bg = hl_tab_line.bg,
+      reverse = hl_tab_line.reverse,
+      bold = hl_tab_line.bold,
+      default = true,
+    })
+    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE, {
+      fg = hl_tab_line.fg,
+      bg = hl_tab_line.bg,
+      reverse = hl_tab_line.reverse,
+      bold = hl_tab_line.bold,
+      italic = true,
+      default = true,
+    })
+  end
   local hl_tab_line_sel = h.get_hl("TabLineSel")
   if not vim.tbl_isempty(hl_tab_line_sel) then
+    hl_tab_line_sel = vim.tbl_deep_extend("keep", hl_tab_line_sel, hl_normal)
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_SEL, {
       fg = hl_tab_line_sel.fg,
       bg = hl_tab_line_sel.bg,
       reverse = hl_tab_line_sel.reverse,
+      bold = hl_tab_line_sel.bold,
       default = true,
     })
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL, {
       fg = hl_tab_line_sel.fg,
       bg = hl_tab_line_sel.bg,
       reverse = hl_tab_line_sel.reverse,
+      bold = hl_tab_line_sel.bold,
       italic = true,
       default = true,
     })
   end
   local hl_tab_line_fill = h.get_hl("TabLineFill")
   if not vim.tbl_isempty(hl_tab_line_fill) then
+    hl_tab_line_fill = vim.tbl_deep_extend("keep", hl_tab_line_fill, hl_normal)
     vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_TAB_LINE_FILL, {
       fg = hl_tab_line_fill.fg,
       bg = hl_tab_line_fill.bg,
       reverse = hl_tab_line_fill.reverse,
-      default = true,
-    })
-    vim.api.nvim_set_hl(0, h.const.HL_BUFPIN_GHOST_TAB_LINE_FILL, {
-      fg = hl_tab_line_fill.fg,
-      bg = hl_tab_line_fill.bg,
-      reverse = hl_tab_line_fill.reverse,
-      italic = true,
+      bold = hl_tab_line_fill.bold,
       default = true,
     })
   end
@@ -468,10 +486,11 @@ h.state = {
 }
 
 h.const = {
+  HL_BUFPIN_TAB_LINE = "BufpinTabLine",
+  HL_BUFPIN_GHOST_TAB_LINE = "BufpinGhostTabLine",
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
-  HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
   HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
-  HL_BUFPIN_GHOST_TAB_LINE_FILL = "BufpinGhostTabLineFill",
+  HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
 }
 
 --- Returns true when mini.icons is installed:
