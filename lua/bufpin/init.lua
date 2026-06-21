@@ -21,12 +21,6 @@ _G.Bufpin = bufpin
 
 vim.api.nvim_create_augroup("Bufpin", { clear = true })
 
--- Changes to the config table spec requires changes here:
--- 1. `bufpin.default_config`
--- 2. Validations in `bufpin.setup()`
--- 3. Documentation in Vim help file
--- 4. README.md
-
 --- Module setup.
 --- Sets `require("bufpin").config`.
 ---@param config table? Merged with the default config (|bufpin.default_config|).
