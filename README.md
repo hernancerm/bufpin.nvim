@@ -99,7 +99,6 @@ require("bufpin").setup({
   icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",
-  log_enabled = false,
 })
 ```
 
