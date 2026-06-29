@@ -275,9 +275,9 @@ function h.build_tabline_vim_tabpages()
       .. "@bufpin#_on_click_tabpage@"
       .. "%#"
       .. hl
-      .. "#["
+      .. "# "
       .. i
-      .. "]%*%X"
+      .. " %*%X"
   end
   return vim_tabpages
 end
