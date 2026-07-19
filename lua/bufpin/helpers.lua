@@ -344,11 +344,14 @@ end
 --- is anchored to that edge (leftmost when scrolling left, rightmost when
 --- scrolling right), matching the direction of |bufpin.edit_left()| and
 --- |bufpin.edit_right()|. Edge indicators (`<`, `>`) signal hidden items.
+--- Records the screen column range of each drawn item in
+--- `h.state.tabline_item_cols`.
 ---@param items TablineItem[]
 ---@param available integer
 ---@return string
 function h.build_tabline_window(items, available)
   local n = #items
+  h.state.tabline_item_cols = {}
   if n == 0 then
     return ""
   end
@@ -356,48 +359,125 @@ function h.build_tabline_window(items, available)
   for _, item in ipairs(items) do
     total = total + item.width
   end
-  if total <= available then
-    -- Everything fits, no windowing needed.
-    h.state.tabline_first_visible = 1
-    local parts = {}
-    for _, item in ipairs(items) do
-      table.insert(parts, item.render)
+  local first, last = 1, n
+  if total > available then
+    local selected = nil
+    for i, item in ipairs(items) do
+      if item.selected then
+        selected = i
+        break
+      end
     end
-    return table.concat(parts)
-  end
-  local selected = nil
-  for i, item in ipairs(items) do
-    if item.selected then
-      selected = i
-      break
+    -- Start from the previously drawn viewport for stability across refreshes.
+    first = math.min(math.max(h.state.tabline_first_visible or 1, 1), n)
+    -- Anchor the selected item to the left edge when it scrolled off the left.
+    if selected ~= nil and selected < first then
+      first = selected
     end
-  end
-  -- Start from the previously drawn viewport for stability across refreshes.
-  local first = math.min(math.max(h.state.tabline_first_visible or 1, 1), n)
-  -- Anchor the selected item to the left edge when it scrolled off the left.
-  if selected ~= nil and selected < first then
-    first = selected
-  end
-  local last = h.fit_last_visible_item(items, available, first)
-  -- Anchor the selected item to the right edge when it scrolled off the right.
-  if selected ~= nil then
-    while selected > last and first < n do
-      first = first + 1
-      last = h.fit_last_visible_item(items, available, first)
+    last = h.fit_last_visible_item(items, available, first)
+    -- Anchor the selected item to the right edge when it scrolled off the right.
+    if selected ~= nil then
+      while selected > last and first < n do
+        first = first + 1
+        last = h.fit_last_visible_item(items, available, first)
+      end
     end
   end
   h.state.tabline_first_visible = first
   local parts = {}
+  local col = 1
   if first > 1 then
     table.insert(parts, h.build_tabline_indicator("<"))
+    col = col + 1
   end
   for i = first, last do
     table.insert(parts, items[i].render)
+    -- Record where each item is drawn, for mouse support.
+    table.insert(h.state.tabline_item_cols, {
+      index = i,
+      first_col = col,
+      last_col = col + items[i].width - 1,
+    })
+    col = col + items[i].width
   end
   if last < n then
     table.insert(parts, h.build_tabline_indicator(">"))
   end
   return table.concat(parts)
+end
+
+--- The item (in the drawn items, i.e., pinned bufs then ghost buf) drawn at the
+--- given tabline screen column, or nil when no item is there. The return value
+--- is an entry of `h.state.tabline_item_cols`.
+---@param col integer
+---@return { index:integer, first_col:integer, last_col:integer }?
+function h.get_tabline_item_at_col(col)
+  for _, item_cols in ipairs(h.state.tabline_item_cols) do
+    if col >= item_cols.first_col and col <= item_cols.last_col then
+      return item_cols
+    end
+  end
+  return nil
+end
+
+--- Start a tabline drag, for |bufpin.config.mouse_drag_reorder|. Called on left
+--- mouse press on a tabline buf, from the click handler in
+--- `autoload/bufpin.vim`. The <LeftDrag> and <LeftRelease> keymaps exist only
+--- for the duration of the drag gesture and are buffer-local, so mouse behavior
+--- everywhere else (e.g., dragging a visual selection) is unaffected.
+---@param bufnr integer
+function h.on_tabline_buf_press(bufnr)
+  if not require("bufpin").config.mouse_drag_reorder then
+    return
+  end
+  h.state.drag_bufnr = bufnr
+  -- The pressed buf is the current buf: the click handler just switched to it.
+  vim.keymap.set("n", "<LeftDrag>", h.on_tabline_drag, { buffer = bufnr })
+  vim.keymap.set("n", "<LeftRelease>", h.on_tabline_release, { buffer = bufnr })
+end
+
+--- <LeftDrag> handler during a tabline drag. Re-orders the pinned bufs,
+--- Firefox-style: the dragged buf takes the place of the hovered buf.
+function h.on_tabline_drag()
+  local mousepos = vim.fn.getmousepos()
+  if mousepos.screenrow ~= 1 then
+    return
+  end
+  local drag_index = h.table_find_index(h.state.pinned_bufnrs, h.state.drag_bufnr)
+  local target = h.get_tabline_item_at_col(mousepos.screencol)
+  if
+    -- The ghost buf can neither be dragged nor be a drop target.
+    drag_index == nil
+    or target == nil
+    or target.index > #h.state.pinned_bufnrs
+    or target.index == drag_index
+  then
+    return
+  end
+  -- Re-order only once the mouse crosses the midpoint of the hovered buf, in
+  -- the drag direction. Otherwise, when the swapped bufs have different widths,
+  -- the re-order oscillates: after the swap the mouse hovers the displaced buf,
+  -- immediately triggering the reverse swap. Crossing the midpoint guarantees
+  -- that after the swap the mouse is not past the displaced buf's midpoint.
+  local target_mid = (target.first_col + target.last_col) / 2
+  if target.index > drag_index and mousepos.screencol <= target_mid then
+    return
+  end
+  if target.index < drag_index and mousepos.screencol >= target_mid then
+    return
+  end
+  table.remove(h.state.pinned_bufnrs, drag_index)
+  table.insert(h.state.pinned_bufnrs, target.index, h.state.drag_bufnr)
+  require("bufpin").refresh_tabline()
+end
+
+--- <LeftRelease> handler during a tabline drag. Ends the drag gesture and
+--- removes the gesture's buffer-local keymaps.
+function h.on_tabline_release()
+  local bufnr = h.state.drag_bufnr
+  h.state.drag_bufnr = nil
+  pcall(vim.keymap.del, "n", "<LeftDrag>", { buffer = bufnr })
+  pcall(vim.keymap.del, "n", "<LeftRelease>", { buffer = bufnr })
 end
 
 ---@param pinned_bufs PinnedBuf[]
@@ -673,6 +753,12 @@ h.state = {
   -- Index of the leftmost item drawn in the tabline. Persisted across refreshes
   -- so the horizontal scroll position is stable when the tabline overflows.
   tabline_first_visible = 1,
+  -- Screen column ranges ({ index, first_col, last_col }) of the items drawn in
+  -- the tabline, set on each refresh. Used for mouse support.
+  tabline_item_cols = {},
+  -- Buf being mouse-dragged in the tabline, when `mouse_drag_reorder` is
+  -- enabled. Set on left mouse press on a tabline buf, unset on release.
+  drag_bufnr = nil,
 }
 
 h.const = {

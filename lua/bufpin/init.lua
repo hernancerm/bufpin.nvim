@@ -106,6 +106,11 @@ function bufpin.setup(config)
     "boolean"
   )
   vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
+  vim.validate(
+    "bufpin.config.mouse_drag_reorder",
+    bufpin.config.mouse_drag_reorder,
+    "boolean"
+  )
 end
 
 --- Default config:
@@ -118,6 +123,7 @@ bufpin.default_config = {
   icons_style = "monochrome_selected",
   ghost_buf_enabled = true,
   remove_with = "delete",
+  mouse_drag_reorder = false,
 }
 --minidoc_afterlines_end
 
@@ -155,6 +161,15 @@ bufpin.default_config = {
 --- `("delete"|"wipeout")`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
+
+--- #tag bufpin.config.mouse_drag_reorder
+--- `(boolean)`
+--- When true, allow re-ordering the pinned bufs by mouse-dragging them in the
+--- tabline. As an exception to the plugin not defining keymaps, this opt makes
+--- the plugin define buffer-local normal mode keymaps for <LeftDrag> and
+--- <LeftRelease>, which exist only for the duration of the drag gesture (from
+--- left mouse press on a tabline buf until release). Mouse behavior everywhere
+--- else, e.g., dragging a visual selection in a window, is unaffected.
 
 --- #delimiter
 --- #tag bufpin-highlight-groups
