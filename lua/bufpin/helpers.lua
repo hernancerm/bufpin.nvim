@@ -241,20 +241,15 @@ end
 ---@field width integer The display width of the visible content.
 ---@field selected boolean Whether this item is the current buf.
 
---- The display width of the file type icon as drawn in the tabline, including
---- its trailing space. Returns 0 when no icon is drawn.
----@param buf_name string
----@param config_icons_style string
+--- The display width of a 'tabline' string: the width of its visible content,
+--- ignoring the statusline items used in this plugin, i.e., `%#hl#`, `%N@fn@`,
+--- `%*`, `%X` and `%=`.
+---@param tabline string
 ---@return integer
-function h.get_icon_display_width(buf_name, config_icons_style)
-  if not h.has_mini_icons() or config_icons_style == "hidden" then
-    return 0
-  end
-  ---@diagnostic disable-next-line: undefined-global
-  local icon = MiniIcons.get("file", buf_name)
-  -- The icon is always followed by a single space, see
-  -- `h.get_icon_string_for_tabline_buf`.
-  return vim.fn.strdisplaywidth(icon) + 1
+function h.get_display_width(tabline)
+  local visible =
+    tabline:gsub("%%#[^#]*#", ""):gsub("%%%d+@[^@]*@", ""):gsub("%%[*X=]", "")
+  return vim.fn.strdisplaywidth(visible)
 end
 
 --- Build the drawable items for the tabline: the pinned bufs followed by the
@@ -271,30 +266,19 @@ function h.build_tabline_items(
 )
   local items = {}
   for _, pinned_buf in ipairs(pinned_bufs) do
-    local display_basename = pinned_buf.basename
-    if pinned_buf.differentiator ~= nil then
-      display_basename = pinned_buf.differentiator .. "/" .. display_basename
-    end
-    -- Visible content is: 2 leading spaces + icon + basename + 2 trailing spaces.
-    local width = 4
-      + h.get_icon_display_width(pinned_buf.basename, config_icons_style)
-      + vim.fn.strdisplaywidth(display_basename)
+    local render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
     table.insert(items, {
-      render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style),
-      width = width,
+      render = render,
+      width = h.get_display_width(render),
       selected = pinned_buf.selected,
     })
   end
   if h.should_include_ghost_buf(config_ghost_buf_enabled) then
-    local ghost_bufnr = h.state.ghost_bufnr
-    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_bufnr))
-    local width = 4
-      + h.get_icon_display_width(basename, config_icons_style)
-      + vim.fn.strdisplaywidth(basename)
+    local render = h.build_tabline_ghost_buf(config_icons_style)
     table.insert(items, {
-      render = h.build_tabline_ghost_buf(config_icons_style),
-      width = width,
-      selected = ghost_bufnr == vim.fn.bufnr(),
+      render = render,
+      width = h.get_display_width(render),
+      selected = h.state.ghost_bufnr == vim.fn.bufnr(),
     })
   end
   return items
@@ -338,10 +322,7 @@ function h.fit_last_visible_item(items, available, first)
     last = fit(budget - 1)
   end
   -- Always draw at least the leftmost item, even if it overflows.
-  if last < first then
-    last = first
-  end
-  return last
+  return math.max(last, first)
 end
 
 --- Concatenate the tabline items, windowing them to fit `available` columns.
@@ -418,29 +399,15 @@ function h.build_tabline(
     config_icons_style,
     config_ghost_buf_enabled
   )
+  local vim_tabpages = h.build_tabline_vim_tabpages()
   -- The tabline spans the whole editor width. Reserve room for the vim tabpages
   -- section, which is right-aligned via `%=`.
-  local tabline =
-    h.build_tabline_window(items, vim.o.columns - h.get_tabpages_display_width())
-  tabline = tabline .. "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#"
-  tabline = tabline .. h.build_tabline_vim_tabpages()
-  return tabline
-end
-
---- The display width of the vim tabpages section, or 0 when it is not drawn.
---- Must mirror the visible content produced by |h.build_tabline_vim_tabpages()|.
----@return integer
-function h.get_tabpages_display_width()
-  local tabpages = vim.api.nvim_list_tabpages()
-  if #tabpages == 1 then
-    return 0
-  end
-  -- 2 leading spaces, then " N " (2 spaces + digits) per tabpage.
-  local width = 2
-  for i = 1, #tabpages do
-    width = width + 2 + #tostring(i)
-  end
-  return width
+  local available = vim.o.columns - h.get_display_width(vim_tabpages)
+  return h.build_tabline_window(items, available)
+    .. "%#"
+    .. h.const.HL_BUFPIN_TAB_LINE_FILL
+    .. "#"
+    .. vim_tabpages
 end
 
 function h.build_tabline_vim_tabpages()
