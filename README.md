@@ -98,9 +98,9 @@ require("bufpin").setup({
   exclude = function(_) end,
   use_mini_bufremove = true,
   icons_style = "monochrome_selected",
+  mouse_drag_reorder = false,
   ghost_buf_enabled = true,
   remove_with = "delete",
-  mouse_drag_reorder = false,
 })
 ```
 

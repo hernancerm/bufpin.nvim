@@ -121,9 +121,9 @@ bufpin.default_config = {
   exclude = function(_) end,
   use_mini_bufremove = true,
   icons_style = "monochrome_selected",
+  mouse_drag_reorder = false,
   ghost_buf_enabled = true,
   remove_with = "delete",
-  mouse_drag_reorder = false,
 }
 --minidoc_afterlines_end
 
@@ -145,6 +145,15 @@ bufpin.default_config = {
 --- When true, all buf deletions and wipeouts are done via the `mini.bufremove`
 --- plugin, thus preserving window layouts.
 
+--- #tag bufpin.config.mouse_drag_reorder
+--- `(boolean)`
+--- When true, allow re-ordering the pinned bufs by mouse-dragging them in the
+--- tabline. As an exception to the plugin not defining keymaps, this opt makes
+--- the plugin define buffer-local normal mode keymaps for <LeftDrag> and
+--- <LeftRelease>, which exist only for the duration of the drag gesture (from
+--- left mouse press on a tabline buf until release). Mouse behavior everywhere
+--- else, e.g., dragging a visual selection in a window, is unaffected.
+
 --- #tag bufpin.config.icons_style
 --- `("color"|"monochrome"|"monochrome_selected"|"hidden")`
 --- You need to have installed <https://github.com/nvim-mini/mini.icons>. Use
@@ -161,15 +170,6 @@ bufpin.default_config = {
 --- `("delete"|"wipeout")`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
-
---- #tag bufpin.config.mouse_drag_reorder
---- `(boolean)`
---- When true, allow re-ordering the pinned bufs by mouse-dragging them in the
---- tabline. As an exception to the plugin not defining keymaps, this opt makes
---- the plugin define buffer-local normal mode keymaps for <LeftDrag> and
---- <LeftRelease>, which exist only for the duration of the drag gesture (from
---- left mouse press on a tabline buf until release). Mouse behavior everywhere
---- else, e.g., dragging a visual selection in a window, is unaffected.
 
 --- #delimiter
 --- #tag bufpin-highlight-groups
