@@ -38,6 +38,7 @@ editor, but the distinction is that the bufs are all manually tracked.
 
 - Display the pinned bufs in the tabline.
 - Mouse support to left-click to edit buf and middle-click to remove buf.
+- Re-order the pinned bufs by mouse-dragging them (opt-in: `mouse_drag_reorder`).
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.
 - Expose an API to track the pinned bufs.
