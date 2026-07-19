@@ -235,6 +235,176 @@ function h.get_hl(hl_name)
   return hl
 end
 
+--- A drawable tabline item (a pinned buf or the ghost buf).
+---@class TablineItem
+---@field render string The 'tabline' string, including highlight/click escapes.
+---@field width integer The display width of the visible content.
+---@field selected boolean Whether this item is the current buf.
+
+--- The display width of the file type icon as drawn in the tabline, including
+--- its trailing space. Returns 0 when no icon is drawn.
+---@param buf_name string
+---@param config_icons_style string
+---@return integer
+function h.get_icon_display_width(buf_name, config_icons_style)
+  if not h.has_mini_icons() or config_icons_style == "hidden" then
+    return 0
+  end
+  ---@diagnostic disable-next-line: undefined-global
+  local icon = MiniIcons.get("file", buf_name)
+  -- The icon is always followed by a single space, see
+  -- `h.get_icon_string_for_tabline_buf`.
+  return vim.fn.strdisplaywidth(icon) + 1
+end
+
+--- Build the drawable items for the tabline: the pinned bufs followed by the
+--- ghost buf (when applicable). Each item carries its display width so the
+--- tabline can be windowed to fit the available space.
+---@param pinned_bufs PinnedBuf[]
+---@param config_icons_style string
+---@param config_ghost_buf_enabled boolean
+---@return TablineItem[]
+function h.build_tabline_items(
+  pinned_bufs,
+  config_icons_style,
+  config_ghost_buf_enabled
+)
+  local items = {}
+  for _, pinned_buf in ipairs(pinned_bufs) do
+    local display_basename = pinned_buf.basename
+    if pinned_buf.differentiator ~= nil then
+      display_basename = pinned_buf.differentiator .. "/" .. display_basename
+    end
+    -- Visible content is: 2 leading spaces + icon + basename + 2 trailing spaces.
+    local width = 4
+      + h.get_icon_display_width(pinned_buf.basename, config_icons_style)
+      + vim.fn.strdisplaywidth(display_basename)
+    table.insert(items, {
+      render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style),
+      width = width,
+      selected = pinned_buf.selected,
+    })
+  end
+  if h.should_include_ghost_buf(config_ghost_buf_enabled) then
+    local ghost_bufnr = h.state.ghost_bufnr
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_bufnr))
+    local width = 4
+      + h.get_icon_display_width(basename, config_icons_style)
+      + vim.fn.strdisplaywidth(basename)
+    table.insert(items, {
+      render = h.build_tabline_ghost_buf(config_icons_style),
+      width = width,
+      selected = ghost_bufnr == vim.fn.bufnr(),
+    })
+  end
+  return items
+end
+
+--- A truncation indicator (`<` or `>`) drawn at an edge of the tabline to signal
+--- that there are more items in that direction. Its display width is 1.
+---@param char string
+---@return string
+function h.build_tabline_indicator(char)
+  return "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#" .. char
+end
+
+--- Given the leftmost visible item `first`, find the rightmost item that still
+--- fits within `available` columns, reserving space for the edge indicators.
+---@param items TablineItem[]
+---@param available integer
+---@param first integer
+---@return integer last The index of the rightmost visible item.
+function h.fit_last_visible_item(items, available, first)
+  local n = #items
+  local function fit(budget)
+    local acc = 0
+    local last = first - 1
+    for i = first, n do
+      acc = acc + items[i].width
+      if acc <= budget then
+        last = i
+      else
+        break
+      end
+    end
+    return last
+  end
+  -- Reserve a column for the left indicator when not starting at the first item.
+  local budget = available - (first > 1 and 1 or 0)
+  local last = fit(budget)
+  if last < n then
+    -- More items remain to the right, so reserve a column for the right
+    -- indicator and re-fit.
+    last = fit(budget - 1)
+  end
+  -- Always draw at least the leftmost item, even if it overflows.
+  if last < first then
+    last = first
+  end
+  return last
+end
+
+--- Concatenate the tabline items, windowing them to fit `available` columns.
+--- The selected item is kept visible: when it crosses an edge of the viewport it
+--- is anchored to that edge (leftmost when scrolling left, rightmost when
+--- scrolling right), matching the direction of |bufpin.edit_left()| and
+--- |bufpin.edit_right()|. Edge indicators (`<`, `>`) signal hidden items.
+---@param items TablineItem[]
+---@param available integer
+---@return string
+function h.build_tabline_window(items, available)
+  local n = #items
+  if n == 0 then
+    return ""
+  end
+  local total = 0
+  for _, item in ipairs(items) do
+    total = total + item.width
+  end
+  if total <= available then
+    -- Everything fits, no windowing needed.
+    h.state.tabline_first_visible = 1
+    local parts = {}
+    for _, item in ipairs(items) do
+      table.insert(parts, item.render)
+    end
+    return table.concat(parts)
+  end
+  local selected = nil
+  for i, item in ipairs(items) do
+    if item.selected then
+      selected = i
+      break
+    end
+  end
+  -- Start from the previously drawn viewport for stability across refreshes.
+  local first = math.min(math.max(h.state.tabline_first_visible or 1, 1), n)
+  -- Anchor the selected item to the left edge when it scrolled off the left.
+  if selected ~= nil and selected < first then
+    first = selected
+  end
+  local last = h.fit_last_visible_item(items, available, first)
+  -- Anchor the selected item to the right edge when it scrolled off the right.
+  if selected ~= nil then
+    while selected > last and first < n do
+      first = first + 1
+      last = h.fit_last_visible_item(items, available, first)
+    end
+  end
+  h.state.tabline_first_visible = first
+  local parts = {}
+  if first > 1 then
+    table.insert(parts, h.build_tabline_indicator("<"))
+  end
+  for i = first, last do
+    table.insert(parts, items[i].render)
+  end
+  if last < n then
+    table.insert(parts, h.build_tabline_indicator(">"))
+  end
+  return table.concat(parts)
+end
+
 ---@param pinned_bufs PinnedBuf[]
 ---@param config_icons_style string
 ---@return string
@@ -243,17 +413,34 @@ function h.build_tabline(
   config_icons_style,
   config_ghost_buf_enabled
 )
-  local tabline = ""
-  for _, pinned_buf in ipairs(pinned_bufs) do
-    tabline = tabline
-      .. h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
-  end
-  if h.should_include_ghost_buf(config_ghost_buf_enabled) then
-    tabline = tabline .. h.build_tabline_ghost_buf(config_icons_style)
-  end
+  local items = h.build_tabline_items(
+    pinned_bufs,
+    config_icons_style,
+    config_ghost_buf_enabled
+  )
+  -- The tabline spans the whole editor width. Reserve room for the vim tabpages
+  -- section, which is right-aligned via `%=`.
+  local tabline =
+    h.build_tabline_window(items, vim.o.columns - h.get_tabpages_display_width())
   tabline = tabline .. "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#"
   tabline = tabline .. h.build_tabline_vim_tabpages()
   return tabline
+end
+
+--- The display width of the vim tabpages section, or 0 when it is not drawn.
+--- Must mirror the visible content produced by |h.build_tabline_vim_tabpages()|.
+---@return integer
+function h.get_tabpages_display_width()
+  local tabpages = vim.api.nvim_list_tabpages()
+  if #tabpages == 1 then
+    return 0
+  end
+  -- 2 leading spaces, then " N " (2 spaces + digits) per tabpage.
+  local width = 2
+  for i = 1, #tabpages do
+    width = width + 2 + #tostring(i)
+  end
+  return width
 end
 
 function h.build_tabline_vim_tabpages()
@@ -502,6 +689,9 @@ h.state = {
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
   ghost_bufnr = nil,
+  -- Index of the leftmost item drawn in the tabline. Persisted across refreshes
+  -- so the horizontal scroll position is stable when the tabline overflows.
+  tabline_first_visible = 1,
 }
 
 h.const = {
