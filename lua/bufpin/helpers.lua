@@ -39,6 +39,14 @@ function h.serialize_state(config_ghost_buf_enabled)
   vim.g.BufpinState = vim.json.encode(state)
 end
 
+--- Escape text for literal display in the tabline. A `%` in a file name would
+--- otherwise be parsed as the start of a statusline item, see 'statusline'.
+---@param text string
+---@return string
+function h.escape_tabline_text(text)
+  return (text:gsub("%%", "%%%%"))
+end
+
 ---@param pinned_buf PinnedBuf
 ---@param config_icons_style string
 ---@return string
@@ -60,7 +68,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
         false,
         config_icons_style
       )
-      .. basename
+      .. h.escape_tabline_text(basename)
       .. "  %*"
       .. "%X"
   else
@@ -76,7 +84,7 @@ function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
         false,
         config_icons_style
       )
-      .. basename
+      .. h.escape_tabline_text(basename)
       .. "  %*"
       .. "%X"
   end
@@ -107,7 +115,7 @@ function h.build_tabline_ghost_buf(config_icons_style)
       true,
       config_icons_style
     )
-    .. basename
+    .. h.escape_tabline_text(basename)
     .. "  %*"
     .. "%X"
 end
@@ -243,12 +251,18 @@ end
 
 --- The display width of a 'tabline' string: the width of its visible content,
 --- ignoring the statusline items used in this plugin, i.e., `%#hl#`, `%N@fn@`,
---- `%*`, `%X` and `%=`.
+--- `%*`, `%X` and `%=`. The escaped percent (`%%`) counts as one column.
 ---@param tabline string
 ---@return integer
 function h.get_display_width(tabline)
-  local visible =
-    tabline:gsub("%%#[^#]*#", ""):gsub("%%%d+@[^@]*@", ""):gsub("%%[*X=]", "")
+  -- Resolve `%%` first so an escaped `%` cannot be parsed as an item start.
+  -- Use a placeholder so the resulting `%` is not re-parsed either.
+  local visible = tabline
+    :gsub("%%%%", "\1")
+    :gsub("%%#[^#]*#", "")
+    :gsub("%%%d+@[^@]*@", "")
+    :gsub("%%[*X=]", "")
+    :gsub("\1", "%%")
   return vim.fn.strdisplaywidth(visible)
 end
 
