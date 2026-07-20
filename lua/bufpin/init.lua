@@ -407,6 +407,7 @@ vim.api.nvim_create_autocmd({
   "CmdlineLeave",
   "FocusGained",
   "VimResume",
+  "VimResized",
   "TermLeave",
   "WinEnter",
   "TabNew",
