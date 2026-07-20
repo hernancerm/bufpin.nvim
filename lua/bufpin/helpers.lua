@@ -298,12 +298,22 @@ function h.build_tabline_items(
   return items
 end
 
---- A truncation indicator (`<` or `>`) drawn at an edge of the tabline to signal
---- that there are more items in that direction. Its display width is 1.
----@param char string
+--- A truncation indicator drawn at an edge of the tabline to signal how many
+--- items are hidden in that direction. The arrow points outwards, i.e., `<3` on
+--- the left edge and `3>` on the right edge.
+---@param side "left"|"right"
+---@param hidden integer
 ---@return string
-function h.build_tabline_indicator(char)
-  return "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#" .. char
+function h.build_tabline_indicator(side, hidden)
+  local text = side == "left" and "<" .. hidden or hidden .. ">"
+  return "%#" .. h.const.HL_BUFPIN_TAB_LINE_FILL .. "#" .. text
+end
+
+--- The display width of a truncation indicator, e.g., 2 for `<3`.
+---@param hidden integer
+---@return integer
+function h.get_tabline_indicator_width(hidden)
+  return 1 + #tostring(hidden)
 end
 
 --- Given the leftmost visible item `first`, find the rightmost item that still
@@ -314,26 +324,25 @@ end
 ---@return integer last The index of the rightmost visible item.
 function h.fit_last_visible_item(items, available, first)
   local n = #items
-  local function fit(budget)
-    local acc = 0
-    local last = first - 1
-    for i = first, n do
-      acc = acc + items[i].width
-      if acc <= budget then
-        last = i
-      else
-        break
-      end
-    end
-    return last
+  -- Reserve columns for the left indicator when not starting at the first item.
+  local budget = available
+  if first > 1 then
+    budget = budget - h.get_tabline_indicator_width(first - 1)
   end
-  -- Reserve a column for the left indicator when not starting at the first item.
-  local budget = available - (first > 1 and 1 or 0)
-  local last = fit(budget)
-  if last < n then
-    -- More items remain to the right, so reserve a column for the right
-    -- indicator and re-fit.
-    last = fit(budget - 1)
+  local acc = 0
+  local last = first - 1
+  for i = first, n do
+    acc = acc + items[i].width
+    -- Reserve columns for the right indicator when items remain hidden past `i`.
+    local reserved = 0
+    if i < n then
+      reserved = h.get_tabline_indicator_width(n - i)
+    end
+    if acc + reserved <= budget then
+      last = i
+    else
+      break
+    end
   end
   -- Always draw at least the leftmost item, even if it overflows.
   return math.max(last, first)
@@ -343,7 +352,8 @@ end
 --- The selected item is kept visible: when it crosses an edge of the viewport it
 --- is anchored to that edge (leftmost when scrolling left, rightmost when
 --- scrolling right), matching the direction of |bufpin.edit_left()| and
---- |bufpin.edit_right()|. Edge indicators (`<`, `>`) signal hidden items.
+--- |bufpin.edit_right()|. Edge indicators (`<3`, `3>`) signal how many items are
+--- hidden in that direction.
 --- Records the screen column range of each drawn item in
 --- `h.state.tabline_item_cols`.
 ---@param items TablineItem[]
@@ -387,8 +397,8 @@ function h.build_tabline_window(items, available)
   local parts = {}
   local col = 1
   if first > 1 then
-    table.insert(parts, h.build_tabline_indicator("<"))
-    col = col + 1
+    table.insert(parts, h.build_tabline_indicator("left", first - 1))
+    col = col + h.get_tabline_indicator_width(first - 1)
   end
   for i = first, last do
     table.insert(parts, items[i].render)
@@ -401,7 +411,7 @@ function h.build_tabline_window(items, available)
     col = col + items[i].width
   end
   if last < n then
-    table.insert(parts, h.build_tabline_indicator(">"))
+    table.insert(parts, h.build_tabline_indicator("right", n - last))
   end
   return table.concat(parts)
 end
