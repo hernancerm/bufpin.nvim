@@ -416,13 +416,13 @@ function h.build_tabline_window(items, available)
   return table.concat(parts)
 end
 
---- The item (in the drawn items, i.e., pinned bufs then ghost buf) drawn at the
---- given tabline screen column, or nil when no item is there. The return value
---- is an entry of `h.state.tabline_item_cols`.
+--- The entry of `drawn_cols` covering the given tabline screen column, or nil
+--- when nothing is drawn there.
+---@param drawn_cols { index:integer, first_col:integer, last_col:integer }[]
 ---@param col integer
 ---@return { index:integer, first_col:integer, last_col:integer }?
-function h.get_tabline_item_at_col(col)
-  for _, item_cols in ipairs(h.state.tabline_item_cols) do
+function h.get_item_at_col(drawn_cols, col)
+  for _, item_cols in ipairs(drawn_cols) do
     if col >= item_cols.first_col and col <= item_cols.last_col then
       return item_cols
     end
@@ -430,31 +430,50 @@ function h.get_tabline_item_at_col(col)
   return nil
 end
 
---- Start a tabline drag, for |bufpin.config.mouse_drag_reorder|. Called on left
---- mouse press on a tabline buf, from the click handler in
+--- Start a tabline drag gesture, for |bufpin.config.mouse_drag_reorder|. Called
+--- on left mouse press on a tabline item, from the click handlers in
 --- `autoload/bufpin.vim`. The <LeftDrag> and <LeftRelease> keymaps exist only
 --- for the duration of the drag gesture and are buffer-local, so mouse behavior
 --- everywhere else (e.g., dragging a visual selection) is unaffected.
+---@param on_drag function The <LeftDrag> handler for the dragged item's kind.
+function h.start_tabline_drag(on_drag)
+  -- The click handler already switched to the pressed buf/tabpage, so the
+  -- gesture's keymaps go on the buf which is current for the whole gesture.
+  local bufnr = vim.api.nvim_get_current_buf()
+  h.state.drag_keymap_bufnr = bufnr
+  vim.keymap.set("n", "<LeftDrag>", on_drag, { buffer = bufnr })
+  vim.keymap.set("n", "<LeftRelease>", h.on_tabline_release, { buffer = bufnr })
+end
+
+--- Left mouse press on a tabline buf.
 ---@param bufnr integer
 function h.on_tabline_buf_press(bufnr)
   if not require("bufpin").config.mouse_drag_reorder then
     return
   end
   h.state.drag_bufnr = bufnr
-  -- The pressed buf is the current buf: the click handler just switched to it.
-  vim.keymap.set("n", "<LeftDrag>", h.on_tabline_drag, { buffer = bufnr })
-  vim.keymap.set("n", "<LeftRelease>", h.on_tabline_release, { buffer = bufnr })
+  h.start_tabline_drag(h.on_tabline_buf_drag)
 end
 
---- <LeftDrag> handler during a tabline drag. Re-orders the pinned bufs,
+--- Left mouse press on a tabline vim tabpage.
+---@param tabpage integer
+function h.on_tabline_tabpage_press(tabpage)
+  if not require("bufpin").config.mouse_drag_reorder then
+    return
+  end
+  h.state.drag_tabpage = tabpage
+  h.start_tabline_drag(h.on_tabline_tabpage_drag)
+end
+
+--- <LeftDrag> handler during a buf drag. Re-orders the pinned bufs,
 --- Firefox-style: the dragged buf takes the place of the hovered buf.
-function h.on_tabline_drag()
+function h.on_tabline_buf_drag()
   local mousepos = vim.fn.getmousepos()
   if mousepos.screenrow ~= 1 then
     return
   end
   local drag_index = h.table_find_index(h.state.pinned_bufnrs, h.state.drag_bufnr)
-  local target = h.get_tabline_item_at_col(mousepos.screencol)
+  local target = h.get_item_at_col(h.state.tabline_item_cols, mousepos.screencol)
   if
     -- The ghost buf can neither be dragged nor be a drop target.
     drag_index == nil
@@ -481,11 +500,48 @@ function h.on_tabline_drag()
   require("bufpin").refresh_tabline()
 end
 
+--- <LeftDrag> handler during a vim tabpage drag. Re-orders the vim tabpages:
+--- the dragged tabpage takes the place of the hovered tabpage. Unlike the
+--- pinned bufs, the vim tabpages are labeled by their number, so they all have
+--- the same width. Hence, no midpoint check is needed to prevent the re-order
+--- from oscillating, so the drag can re-order as soon as the mouse moves onto
+--- the hovered tabpage.
+function h.on_tabline_tabpage_drag()
+  local mousepos = vim.fn.getmousepos()
+  if mousepos.screenrow ~= 1 then
+    return
+  end
+  if
+    h.state.drag_tabpage == nil
+    or not vim.api.nvim_tabpage_is_valid(h.state.drag_tabpage)
+  then
+    return
+  end
+  local drag_index = vim.api.nvim_tabpage_get_number(h.state.drag_tabpage)
+  local target =
+    h.get_item_at_col(h.state.tabline_tabpage_cols, mousepos.screencol)
+  if target == nil or target.index == drag_index then
+    return
+  end
+  -- `:tabmove {count}` moves the current tabpage to after tabpage {count},
+  -- with {count} being counted before the move; zero makes it the first one.
+  -- The dragged tabpage is the current one: the click handler switched to it on
+  -- press, and moving it around keeps it current.
+  local count = target.index
+  if target.index < drag_index then
+    count = target.index - 1
+  end
+  vim.cmd("tabmove " .. count)
+  require("bufpin").refresh_tabline()
+end
+
 --- <LeftRelease> handler during a tabline drag. Ends the drag gesture and
 --- removes the gesture's buffer-local keymaps.
 function h.on_tabline_release()
-  local bufnr = h.state.drag_bufnr
+  local bufnr = h.state.drag_keymap_bufnr
   h.state.drag_bufnr = nil
+  h.state.drag_tabpage = nil
+  h.state.drag_keymap_bufnr = nil
   pcall(vim.keymap.del, "n", "<LeftDrag>", { buffer = bufnr })
   pcall(vim.keymap.del, "n", "<LeftRelease>", { buffer = bufnr })
 end
@@ -514,13 +570,24 @@ function h.build_tabline(
     .. vim_tabpages
 end
 
+--- The vim tabpages section of the tabline, right-aligned via `%=`. Records the
+--- screen column range of each drawn tabpage in `h.state.tabline_tabpage_cols`.
+---@return string
 function h.build_tabline_vim_tabpages()
-  local vim_tabpages = "%=  "
+  h.state.tabline_tabpage_cols = {}
+  local vim_tabpages = "%=" .. h.const.VIM_TABPAGES_LEFT_PAD
   local tabpages = vim.api.nvim_list_tabpages()
   -- Do not show vim tabpages when there is only one.
   if #tabpages == 1 then
     return ""
   end
+  -- The section is drawn flush right, so its first column follows from its
+  -- total width. Knowing it up front allows recording absolute screen columns.
+  local width = #h.const.VIM_TABPAGES_LEFT_PAD
+  for i = 1, #tabpages do
+    width = width + h.get_tabline_vim_tabpage_width(i)
+  end
+  local col = vim.o.columns - width + #h.const.VIM_TABPAGES_LEFT_PAD + 1
   local current_tabpage = vim.api.nvim_get_current_tabpage()
   for i, tabpage in ipairs(tabpages) do
     local hl = h.const.HL_BUFPIN_TAB_LINE
@@ -536,8 +603,23 @@ function h.build_tabline_vim_tabpages()
       .. "# "
       .. i
       .. " %*%X"
+    -- Record where each tabpage is drawn, for mouse support.
+    local tabpage_width = h.get_tabline_vim_tabpage_width(i)
+    table.insert(h.state.tabline_tabpage_cols, {
+      index = i,
+      first_col = col,
+      last_col = col + tabpage_width - 1,
+    })
+    col = col + tabpage_width
   end
   return vim_tabpages
+end
+
+--- The display width of a vim tabpage drawn in the tabline, e.g., 3 for ` 1 `.
+---@param tabpage_number integer
+---@return integer
+function h.get_tabline_vim_tabpage_width(tabpage_number)
+  return #tostring(tabpage_number) + 2
 end
 
 ---@param config_ghost_buf_enabled boolean
@@ -766,12 +848,20 @@ h.state = {
   -- Screen column ranges ({ index, first_col, last_col }) of the items drawn in
   -- the tabline, set on each refresh. Used for mouse support.
   tabline_item_cols = {},
+  -- As `tabline_item_cols`, for the vim tabpages drawn in the tabline.
+  tabline_tabpage_cols = {},
   -- Buf being mouse-dragged in the tabline, when `mouse_drag_reorder` is
   -- enabled. Set on left mouse press on a tabline buf, unset on release.
   drag_bufnr = nil,
+  -- As `drag_bufnr`, for a vim tabpage being mouse-dragged in the tabline.
+  drag_tabpage = nil,
+  -- Buf holding the buffer-local keymaps of the ongoing drag gesture.
+  drag_keymap_bufnr = nil,
 }
 
 h.const = {
+  -- Padding between the pinned bufs and the vim tabpages in the tabline.
+  VIM_TABPAGES_LEFT_PAD = "  ",
   HL_BUFPIN_TAB_LINE = "BufpinTabLine",
   HL_BUFPIN_GHOST_TAB_LINE = "BufpinGhostTabLine",
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",

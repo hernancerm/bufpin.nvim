@@ -147,12 +147,13 @@ bufpin.default_config = {
 
 --- #tag bufpin.config.mouse_drag_reorder
 --- `(boolean)`
---- When true, allow re-ordering the pinned bufs by mouse-dragging them in the
---- tabline. As an exception to the plugin not defining keymaps, this opt makes
---- the plugin define buffer-local normal mode keymaps for <LeftDrag> and
---- <LeftRelease>, which exist only for the duration of the drag gesture (from
---- left mouse press on a tabline buf until release). Mouse behavior everywhere
---- else, e.g., dragging a visual selection in a window, is unaffected.
+--- When true, allow re-ordering both the pinned bufs and the vim tabpages by
+--- mouse-dragging them in the tabline. As an exception to the plugin not
+--- defining keymaps, this opt makes the plugin define buffer-local normal mode
+--- keymaps for <LeftDrag> and <LeftRelease>, which exist only for the duration
+--- of the drag gesture (from left mouse press on a tabline buf or vim tabpage
+--- until release). Mouse behavior everywhere else, e.g., dragging a visual
+--- selection in a window, is unaffected.
 
 --- #tag bufpin.config.icons_style
 --- `("color"|"monochrome"|"monochrome_selected"|"hidden")`
