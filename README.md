@@ -36,8 +36,8 @@ editor, but the distinction is that the bufs are all manually tracked.
 
 ## Features
 
-- Display the pinned bufs in the tabline.
-- Mouse support to left-click to edit buf and middle-click to remove buf.
+- Display the pinned bufs and the vim tabpages in the tabline.
+- Mouse support to left-click to edit buf and middle-click to remove buf (also works on vim tabpages).
 - Re-order the pinned bufs and the vim tabpages by mouse-dragging them (opt-in: `mouse_drag_reorder`).
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.
