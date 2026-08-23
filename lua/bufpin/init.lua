@@ -384,9 +384,15 @@ function bufpin.edit_by_index(index)
 end
 
 --- Get all the pinned bufs. This is the actual list, not a copy.
----@return integer[] Buf handlers.
+---@return integer[]
 function bufpin.get_pinned_bufs()
   return require("bufpin.helpers").state.pinned_bufnrs
+end
+
+--- Get the ghost buf. Tracked regardless of |bufpin.config.ghost_buf_enabled|.
+---@return integer
+function bufpin.get_ghost_buf()
+  return require("bufpin.helpers").state.ghost_bufnr
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session

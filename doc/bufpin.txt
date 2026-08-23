@@ -202,7 +202,13 @@ Parameters ~
                            `bufpin.get_pinned_bufs`()
 Get all the pinned bufs. This is the actual list, not a copy.
 Return ~
-`(integer[])` Buf handlers.
+`(integer[])`
+
+                                                        *bufpin.get_ghost_buf()*
+                            `bufpin.get_ghost_buf`()
+Get the ghost buf. Tracked regardless of |bufpin.config.ghost_buf_enabled|.
+Return ~
+`(integer)`
 
                                                       *bufpin.refresh_tabline()*
                        `bufpin.refresh_tabline`({force})
