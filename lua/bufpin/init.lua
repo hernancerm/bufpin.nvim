@@ -236,26 +236,16 @@ function bufpin.remove(bufnr)
   bufnr = bufnr or vim.fn.bufnr()
   local h = require("bufpin.helpers")
   local operation = bufpin.config.remove_with
-  if vim.bo[bufnr].modified then
-    if h.should_use_mini_bufremove(bufpin.config.use_mini_bufremove) then
-      require("mini.bufremove")[operation](bufnr)
-    else
-      vim.cmd(bufnr .. "b" .. operation)
+  if not vim.bo[bufnr].modified then
+    bufpin.unpin(bufnr)
+    if h.state.ghost_bufnr == bufnr then
+      h.state.ghost_bufnr = nil
     end
+  end
+  if h.should_use_mini_bufremove(bufpin.config.use_mini_bufremove) then
+    require("mini.bufremove")[operation](bufnr)
   else
-    if h.should_use_mini_bufremove(bufpin.config.use_mini_bufremove) then
-      bufpin.unpin(bufnr)
-      if h.state.ghost_bufnr == bufnr then
-        h.state.ghost_bufnr = nil
-      end
-      require("mini.bufremove")[operation](bufnr)
-    else
-      bufpin.unpin(bufnr)
-      if h.state.ghost_bufnr == bufnr then
-        h.state.ghost_bufnr = nil
-      end
-      vim.cmd(bufnr .. "b" .. operation)
-    end
+    vim.cmd(bufnr .. "b" .. operation)
   end
   bufpin.refresh_tabline()
 end
