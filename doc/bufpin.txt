@@ -83,6 +83,7 @@ Default config:
     exclude = function(_) end,
     use_mini_bufremove = true,
     icons_style = "monochrome_selected",
+    sticky_remove_enabled = true,
     mouse_drag_reorder = false,
     ghost_buf_enabled = true,
     remove_with = "delete",
@@ -109,12 +110,7 @@ plugin, thus preserving window layouts.
                                               *bufpin.config.mouse_drag_reorder*
 `(boolean)`
 When true, allow re-ordering both the pinned bufs and the vim tabpages by
-mouse-dragging them in the tabline. As an exception to the plugin not
-defining keymaps, this opt makes the plugin define buffer-local normal mode
-keymaps for <LeftDrag> and <LeftRelease>, which exist only for the duration
-of the drag gesture (from left mouse press on a tabline buf or vim tabpage
-until release). Mouse behavior everywhere else, e.g., dragging a visual
-selection in a window, is unaffected.
+mouse-dragging them in the tabline.
 
                                                      *bufpin.config.icons_style*
 `("color"|"monochrome"|"monochrome_selected"|"hidden")`
@@ -122,6 +118,17 @@ You need to have installed <https://github.com/nvim-mini/mini.icons>. Use
 `monochrome_selected` to display only the selected buf's file type icon as
 monochrome, the other icons are colored. Use `hidden` to not display icons
 altogether.
+
+#tag.bufpin.config.sticky_remove_enabled
+`(boolean)`
+Affects |bufpin.remove()|. When false, the function removes the buf as per
+the opt |bufpin.config.remove_with|, that's it. When true, in addition to the
+buf removal, the new focused buf is the last one visited that is tracked by
+bufpin (either a pinned buf or the ghost buf), if there is one.
+
+The motivation of this opt is to simulate that only the bufs drawn in the
+tabline exist without actually deleting or wiping out the other bufs. This
+prevents consecutive ghost bufs appearing on ghost buf removal.
 
                                                *bufpin.config.ghost_buf_enabled*
 `(boolean)`

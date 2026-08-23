@@ -101,16 +101,21 @@ function bufpin.setup(config)
   )
   vim.validate("bufpin.config.icons_style", bufpin.config.icons_style, "string")
   vim.validate(
-    "bufpin.config.ghost_buf_enabled",
-    bufpin.config.ghost_buf_enabled,
+    "bufpin.config.sticky_remove_enabled",
+    bufpin.config.sticky_remove_enabled,
     "boolean"
   )
-  vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
   vim.validate(
     "bufpin.config.mouse_drag_reorder",
     bufpin.config.mouse_drag_reorder,
     "boolean"
   )
+  vim.validate(
+    "bufpin.config.ghost_buf_enabled",
+    bufpin.config.ghost_buf_enabled,
+    "boolean"
+  )
+  vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
 end
 
 --- Default config:
@@ -121,6 +126,7 @@ bufpin.default_config = {
   exclude = function(_) end,
   use_mini_bufremove = true,
   icons_style = "monochrome_selected",
+  sticky_remove_enabled = true,
   mouse_drag_reorder = false,
   ghost_buf_enabled = true,
   remove_with = "delete",
@@ -148,12 +154,7 @@ bufpin.default_config = {
 --- #tag bufpin.config.mouse_drag_reorder
 --- `(boolean)`
 --- When true, allow re-ordering both the pinned bufs and the vim tabpages by
---- mouse-dragging them in the tabline. As an exception to the plugin not
---- defining keymaps, this opt makes the plugin define buffer-local normal mode
---- keymaps for <LeftDrag> and <LeftRelease>, which exist only for the duration
---- of the drag gesture (from left mouse press on a tabline buf or vim tabpage
---- until release). Mouse behavior everywhere else, e.g., dragging a visual
---- selection in a window, is unaffected.
+--- mouse-dragging them in the tabline.
 
 --- #tag bufpin.config.icons_style
 --- `("color"|"monochrome"|"monochrome_selected"|"hidden")`
@@ -161,6 +162,17 @@ bufpin.default_config = {
 --- `monochrome_selected` to display only the selected buf's file type icon as
 --- monochrome, the other icons are colored. Use `hidden` to not display icons
 --- altogether.
+
+--- #tag.bufpin.config.sticky_remove_enabled
+--- `(boolean)`
+--- Affects |bufpin.remove()|. When false, the function removes the buf as per
+--- the opt |bufpin.config.remove_with|, that's it. When true, in addition to the
+--- buf removal, the new focused buf is the last one visited that is tracked by
+--- bufpin (either a pinned buf or the ghost buf), if there is one.
+---
+--- The motivation of this opt is to simulate that only the bufs drawn in the
+--- tabline exist without actually deleting or wiping out the other bufs. This
+--- prevents consecutive ghost bufs appearing on ghost buf removal.
 
 --- #tag bufpin.config.ghost_buf_enabled
 --- `(boolean)`
@@ -233,15 +245,42 @@ end
 --- When no bufnr is provided, the current buf is attempted to be removed.
 ---@param bufnr integer?
 function bufpin.remove(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
+  bufnr = (not bufnr or bufnr == 0) and vim.fn.bufnr() or bufnr
   local h = require("bufpin.helpers")
-  local operation = bufpin.config.remove_with
+
   if not vim.bo[bufnr].modified then
+    -- Used to apply stickiness only if the focused buf is one tracked by bufpin.
+    local is_curbuf_bufpin_buf = false
+    if bufpin.config.sticky_remove_enabled then
+      is_curbuf_bufpin_buf = vim.tbl_contains(h.state.pinned_bufnrs, bufnr)
+        or bufnr == h.state.ghost_bufnr
+    end
+
     bufpin.unpin(bufnr)
     if h.state.ghost_bufnr == bufnr then
       h.state.ghost_bufnr = nil
     end
+
+    if
+      bufpin.config.sticky_remove_enabled
+      and #h.state.pinned_bufnrs > 0
+      and is_curbuf_bufpin_buf
+    then
+      -- Sticky buf determination needs to happen after unpinning the current buf,
+      -- so the pinned buf is already unpinned or the ghost buf is already unset.
+      local sticky_bufnr = nil
+      while
+        #h.state.sticky_bufnrs > 0 and not h.is_buf_valid_sticky(sticky_bufnr)
+      do
+        sticky_bufnr = table.remove(h.state.sticky_bufnrs)
+      end
+      if sticky_bufnr then
+        vim.cmd.buffer(sticky_bufnr)
+      end
+    end
   end
+
+  local operation = bufpin.config.remove_with
   if h.should_use_mini_bufremove(bufpin.config.use_mini_bufremove) then
     require("mini.bufremove")[operation](bufnr)
   else
@@ -386,6 +425,21 @@ vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, event.buf)
     if bufnr_index ~= nil then
       table.remove(h.state.pinned_bufnrs, bufnr_index)
+    end
+  end,
+})
+
+-- Track bufs for sticky removal.
+vim.api.nvim_create_autocmd("BufEnter", {
+  group = "Bufpin",
+  callback = function()
+    if not bufpin.config.sticky_remove_enabled then
+      return
+    end
+    local bufnr = vim.fn.bufnr()
+    local h = require("bufpin.helpers")
+    if h.is_buf_valid_sticky(bufnr) then
+      table.insert(h.state.sticky_bufnrs, bufnr)
     end
   end,
 })

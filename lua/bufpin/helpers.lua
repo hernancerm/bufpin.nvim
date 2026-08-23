@@ -799,6 +799,20 @@ function h.normalize_pinned_bufs()
   return pinned_bufnrs
 end
 
+--- Both used to:
+--- 1. Check if buf should be added to sticky bufs stack.
+--- 2. Check if buf can be used as new buf after pop.
+---@param bufnr integer?
+function h.is_buf_valid_sticky(bufnr)
+  return bufnr ~= nil
+    and vim.api.nvim_buf_is_valid(bufnr)
+    and h.state.sticky_bufnrs[#h.state.sticky_bufnrs] ~= bufnr
+    and (
+      vim.tbl_contains(h.state.pinned_bufnrs, bufnr)
+      or bufnr == h.state.ghost_bufnr
+    )
+end
+
 ---@param bufnr integer
 ---@param config_exclude function
 ---@return boolean
@@ -818,6 +832,8 @@ h.state = {
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
   ghost_bufnr = nil,
+  -- Stack storing the visit order of bufs tracked by bufpin (pinned and ghost).
+  sticky_bufnrs = {},
   -- Index of the leftmost item drawn in the tabline. Persisted across refreshes
   -- so the horizontal scroll position is stable when the tabline overflows.
   tabline_first_visible = 1,
