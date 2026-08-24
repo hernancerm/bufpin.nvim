@@ -249,6 +249,9 @@ function bufpin.remove(bufnr)
   local h = require("bufpin.helpers")
 
   if not vim.bo[bufnr].modified then
+    -- Used to apply stickiness only if the focused buf is the one being removed.
+    local is_curbuf_bufnr = bufnr == vim.fn.bufnr()
+
     -- Used to apply stickiness only if the focused buf is one tracked by bufpin.
     local is_curbuf_bufpin_buf = false
     if bufpin.config.sticky_remove_enabled then
@@ -262,7 +265,8 @@ function bufpin.remove(bufnr)
     end
 
     if
-      bufpin.config.sticky_remove_enabled
+      is_curbuf_bufnr
+      and bufpin.config.sticky_remove_enabled
       and #h.state.pinned_bufnrs > 0
       and is_curbuf_bufpin_buf
     then
