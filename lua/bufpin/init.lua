@@ -248,34 +248,33 @@ function bufpin.remove(bufnr)
   bufnr = (not bufnr or bufnr == 0) and vim.fn.bufnr() or bufnr
   local h = require("bufpin.helpers")
 
-  if not vim.bo[bufnr].modified then
-    local sticky_bufnr = nil
-    if
-      bufpin.config.sticky_remove_enabled
-      and bufnr == vim.fn.bufnr()
-      and h.is_tracked_buf(bufnr)
-    then
-      sticky_bufnr = h.most_recently_visited_tracked_buf(
-        bufnr,
-        bufpin.config.ghost_buf_enabled
-      )
+  local force = vim.bo[bufnr].modified
+  if force then
+    local prompt = "Buf " .. bufnr .. " has unsaved changes. Remove anyway?"
+    if vim.fn.confirm(prompt, "&No\n&Yes", 1, "Question") ~= 2 then
+      return
     end
+  end
 
-    bufpin.unpin(bufnr)
-    if h.state.ghost_bufnr == bufnr then
-      h.state.ghost_bufnr = nil
-    end
+  local sticky_bufnr = nil
+  if
+    bufpin.config.sticky_remove_enabled
+    and bufnr == vim.fn.bufnr()
+    and h.is_tracked_buf(bufnr)
+  then
+    sticky_bufnr =
+      h.most_recently_visited_tracked_buf(bufnr, bufpin.config.ghost_buf_enabled)
+  end
 
-    if sticky_bufnr then
-      vim.cmd.buffer(sticky_bufnr)
-    end
+  if sticky_bufnr then
+    vim.cmd.buffer(sticky_bufnr)
   end
 
   local operation = bufpin.config.remove_with
   if h.should_use_mini_bufremove(bufpin.config.use_mini_bufremove) then
-    require("mini.bufremove")[operation](bufnr)
+    require("mini.bufremove")[operation](bufnr, force)
   else
-    vim.cmd(bufnr .. "b" .. operation)
+    vim.cmd(bufnr .. "b" .. operation .. (force and "!" or ""))
   end
   bufpin.refresh_tabline()
 end
