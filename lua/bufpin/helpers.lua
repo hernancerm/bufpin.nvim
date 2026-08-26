@@ -799,9 +799,7 @@ function h.normalize_pinned_bufs()
   return pinned_bufnrs
 end
 
---- Bufs tracked by bufpin in the order they are drawn in the tabline. Unlisted
---- bufs are left out, so a jump never lands on a buf the user removed from the
---- buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
+--- Bufs tracked by bufpin in the order they are drawn in the tabline.
 ---@param config_ghost_buf_enabled boolean
 ---@return integer[]
 function h.tracked_bufs(config_ghost_buf_enabled)
@@ -809,9 +807,7 @@ function h.tracked_bufs(config_ghost_buf_enabled)
   if config_ghost_buf_enabled and h.state.ghost_bufnr ~= nil then
     table.insert(bufnrs, h.state.ghost_bufnr)
   end
-  return vim.tbl_filter(function(bufnr)
-    return vim.fn.buflisted(bufnr) == 1
-  end, bufnrs)
+  return bufnrs
 end
 
 --- Get the buf to focus after removing `bufnr`: the tracked buf visited most
@@ -821,7 +817,11 @@ end
 ---@param config_ghost_buf_enabled boolean
 ---@return integer?
 function h.sticky_buf(bufnr, config_ghost_buf_enabled)
-  local tracked_bufnrs = h.tracked_bufs(config_ghost_buf_enabled)
+  -- Require 'buflisted' so the jump never lands on a buf the user removed from
+  -- the buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
+  local tracked_bufnrs = vim.tbl_filter(function(tracked_bufnr)
+    return vim.fn.buflisted(tracked_bufnr) == 1
+  end, h.tracked_bufs(config_ghost_buf_enabled))
   local latest_order = 0
   local latest_bufnr = nil
   for _, candidate_bufnr in ipairs(tracked_bufnrs) do

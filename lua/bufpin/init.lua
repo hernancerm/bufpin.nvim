@@ -316,60 +316,48 @@ function bufpin.move_to_right(bufnr)
   end
 end
 
+--- Edit the buf to the left in the tabline, wrapping around at the left edge.
 function bufpin.edit_left()
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local current_bufnr = vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, current_bufnr)
-  if bufnr_index == nil then
-    -- Ghost buf is active.
-    vim.cmd("buffer " .. h.state.pinned_bufnrs[#h.state.pinned_bufnrs])
-  elseif bufnr_index > 1 then
-    vim.cmd("buffer " .. h.state.pinned_bufnrs[bufnr_index - 1])
-    bufpin.refresh_tabline()
-  elseif bufnr_index == 1 then
-    -- Circular editing.
-    if h.state.ghost_bufnr ~= nil then
-      vim.cmd("buffer " .. h.state.ghost_bufnr)
-    else
-      vim.cmd("buffer " .. h.state.pinned_bufnrs[#h.state.pinned_bufnrs])
-    end
-    bufpin.refresh_tabline()
+  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  local index = h.table_find_index(tracked_bufnrs, vim.fn.bufnr())
+  -- A nil index means the current buf is not drawn in the tabline, e.g. a help
+  -- file, in which case entering the tabline from its right edge reads best.
+  local target_bufnr = tracked_bufnrs[#tracked_bufnrs]
+  if index ~= nil then
+    target_bufnr = tracked_bufnrs[index - 1] or tracked_bufnrs[#tracked_bufnrs]
   end
+  vim.cmd("buffer " .. target_bufnr)
+  bufpin.refresh_tabline()
 end
 
+--- Edit the buf to the right in the tabline, wrapping around at the right edge.
 function bufpin.edit_right()
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, vim.fn.bufnr())
-  if bufnr_index == nil then
-    -- Ghost buf is active.
-    vim.cmd("buffer " .. h.state.pinned_bufnrs[1])
-  elseif bufnr_index < #h.state.pinned_bufnrs then
-    vim.cmd("buffer " .. h.state.pinned_bufnrs[bufnr_index + 1])
-    bufpin.refresh_tabline()
-  elseif bufnr_index == #h.state.pinned_bufnrs then
-    if h.state.ghost_bufnr ~= nil then
-      vim.cmd("buffer " .. h.state.ghost_bufnr)
-    else
-      -- Circular editing.
-      vim.cmd("buffer " .. h.state.pinned_bufnrs[1])
-    end
-    bufpin.refresh_tabline()
+  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  local index = h.table_find_index(tracked_bufnrs, vim.fn.bufnr())
+  -- As in |bufpin.edit_left()|, but entering from the left edge.
+  local target_bufnr = tracked_bufnrs[1]
+  if index ~= nil then
+    target_bufnr = tracked_bufnrs[index + 1] or tracked_bufnrs[1]
   end
+  vim.cmd("buffer " .. target_bufnr)
+  bufpin.refresh_tabline()
 end
 
----@param index integer Index of a pinned buf in |bufpin.get_pinned_bufs()|.
+---@param index integer Index of a buf as drawn in the tabline, i.e., the pinned
+--- bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
 function bufpin.edit_by_index(index)
   local h = require("bufpin.helpers")
-  if index <= #h.state.pinned_bufnrs then
-    vim.cmd("buffer " .. h.state.pinned_bufnrs[index])
-  elseif index == #h.state.pinned_bufnrs + 1 and h.state.ghost_bufnr ~= nil then
-    vim.cmd("buffer " .. h.state.ghost_bufnr)
+  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  if tracked_bufnrs[index] ~= nil then
+    vim.cmd("buffer " .. tracked_bufnrs[index])
   end
   bufpin.refresh_tabline()
 end
