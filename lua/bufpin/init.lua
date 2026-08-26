@@ -168,7 +168,9 @@ bufpin.default_config = {
 --- Affects |bufpin.remove()|. When false, the function removes the buf as per
 --- the opt |bufpin.config.remove_with|, that's it. When true, in addition to the
 --- buf removal, the new focused buf is the last one visited that is tracked by
---- bufpin (either a pinned buf or the ghost buf), if there is one.
+--- bufpin (either a pinned buf or the ghost buf). When none of them has been
+--- visited yet, as right after a session load, the new focused buf is the
+--- neighbor in the tabline of the removed buf.
 ---
 --- The motivation of this opt is to simulate that only the bufs drawn in the
 --- tabline exist without actually deleting or wiping out the other bufs. This
@@ -262,8 +264,7 @@ function bufpin.remove(bufnr)
     and bufnr == vim.fn.bufnr()
     and h.is_tracked_buf(bufnr)
   then
-    sticky_bufnr =
-      h.most_recently_visited_tracked_buf(bufnr, bufpin.config.ghost_buf_enabled)
+    sticky_bufnr = h.sticky_buf(bufnr, bufpin.config.ghost_buf_enabled)
   end
 
   if sticky_bufnr then

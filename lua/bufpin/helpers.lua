@@ -799,37 +799,47 @@ function h.normalize_pinned_bufs()
   return pinned_bufnrs
 end
 
---- Get the pinned or ghost buf visited most recently.
----@param exclude_bufnr integer? Buf to skip.
+--- Bufs tracked by bufpin in the order they are drawn in the tabline. Unlisted
+--- bufs are left out, so a jump never lands on a buf the user removed from the
+--- buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
+---@param config_ghost_buf_enabled boolean
+---@return integer[]
+function h.tracked_bufs(config_ghost_buf_enabled)
+  local bufnrs = vim.deepcopy(h.state.pinned_bufnrs)
+  if config_ghost_buf_enabled and h.state.ghost_bufnr ~= nil then
+    table.insert(bufnrs, h.state.ghost_bufnr)
+  end
+  return vim.tbl_filter(function(bufnr)
+    return vim.fn.buflisted(bufnr) == 1
+  end, bufnrs)
+end
+
+--- Get the buf to focus after removing `bufnr`: the tracked buf visited most
+--- recently, or else the neighbor of `bufnr` in the tabline, right before left.
+--- The neighbor is the fallback for when no candidate holds a visit.
+---@param bufnr integer Buf being removed.
 ---@param config_ghost_buf_enabled boolean
 ---@return integer?
-function h.most_recently_visited_tracked_buf(
-  exclude_bufnr,
-  config_ghost_buf_enabled
-)
+function h.sticky_buf(bufnr, config_ghost_buf_enabled)
+  local tracked_bufnrs = h.tracked_bufs(config_ghost_buf_enabled)
   local latest_order = 0
   local latest_bufnr = nil
-  -- Order of `candidates` is ghost buf followed by pinned bufs in the order they
-  -- appear in the tabline. So only the ghost buf changes place. This change in
-  -- order in `candidates` is so the rightmost pinned buf wins ties.
-  local candidates = {}
-  if config_ghost_buf_enabled then
-    candidates = { h.state.ghost_bufnr }
-  end
-  vim.list_extend(candidates, h.state.pinned_bufnrs)
-  for _, bufnr in ipairs(candidates) do
-    -- Require 'buflisted' so a jump never lands on a buf the user removed from
-    -- the buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
-    if bufnr ~= exclude_bufnr and vim.fn.buflisted(bufnr) == 1 then
-      local order = h.state.visit_order[bufnr] or 0
-      -- `>=` so on a tie the last pinned buf wins.
-      if order >= latest_order then
-        latest_order = order
-        latest_bufnr = bufnr
-      end
+  for _, candidate_bufnr in ipairs(tracked_bufnrs) do
+    -- Unvisited candidates hold order 0, so they never win.
+    local order = h.state.visit_order[candidate_bufnr] or 0
+    if candidate_bufnr ~= bufnr and order > latest_order then
+      latest_order = order
+      latest_bufnr = candidate_bufnr
     end
   end
-  return latest_bufnr
+  if latest_bufnr ~= nil then
+    return latest_bufnr
+  end
+  local index = h.table_find_index(tracked_bufnrs, bufnr)
+  if index == nil then
+    return nil
+  end
+  return tracked_bufnrs[index + 1] or tracked_bufnrs[index - 1]
 end
 
 --- Whether the buf is tracked by bufpin, i.e., pinned or the ghost buf.
