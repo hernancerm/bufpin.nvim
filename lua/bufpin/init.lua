@@ -249,14 +249,13 @@ function bufpin.remove(bufnr)
   local h = require("bufpin.helpers")
 
   if not vim.bo[bufnr].modified then
-    -- Used to apply stickiness only if the focused buf is the one being removed.
-    local is_curbuf_bufnr = bufnr == vim.fn.bufnr()
-
-    -- Used to apply stickiness only if the focused buf is one tracked by bufpin.
-    local is_curbuf_bufpin_buf = false
-    if bufpin.config.sticky_remove_enabled then
-      is_curbuf_bufpin_buf = vim.tbl_contains(h.state.pinned_bufnrs, bufnr)
-        or bufnr == h.state.ghost_bufnr
+    local sticky_bufnr = nil
+    if
+      bufpin.config.sticky_remove_enabled
+      and bufnr == vim.fn.bufnr()
+      and h.is_tracked_buf(bufnr)
+    then
+      sticky_bufnr = h.most_recently_visited_tracked_buf(bufnr)
     end
 
     bufpin.unpin(bufnr)
@@ -264,26 +263,8 @@ function bufpin.remove(bufnr)
       h.state.ghost_bufnr = nil
     end
 
-    if
-      is_curbuf_bufnr
-      and bufpin.config.sticky_remove_enabled
-      and #h.state.pinned_bufnrs > 0
-      and is_curbuf_bufpin_buf
-    then
-      -- Sticky buf determination needs to happen after unpinning the current buf,
-      -- so the pinned buf is already unpinned or the ghost buf is already unset.
-      local sticky_bufnr = nil
-      while not h.is_buf_valid_sticky(sticky_bufnr) do
-        if #h.state.sticky_bufnrs > 0 then
-          sticky_bufnr = table.remove(h.state.sticky_bufnrs)
-        else
-          -- Go to last pinned buf if the stack is empty.
-          sticky_bufnr = h.state.pinned_bufnrs[#h.state.pinned_bufnrs]
-        end
-      end
-      if sticky_bufnr then
-        vim.cmd.buffer(sticky_bufnr)
-      end
+    if sticky_bufnr then
+      vim.cmd.buffer(sticky_bufnr)
     end
   end
 
@@ -442,18 +423,13 @@ vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
   end,
 })
 
--- Track bufs for sticky removal.
+-- Track visit order for sticky removal.
 vim.api.nvim_create_autocmd("BufEnter", {
   group = "Bufpin",
   callback = function()
-    if not bufpin.config.sticky_remove_enabled then
-      return
-    end
-    local bufnr = vim.fn.bufnr()
     local h = require("bufpin.helpers")
-    if h.is_buf_valid_sticky(bufnr) then
-      table.insert(h.state.sticky_bufnrs, bufnr)
-    end
+    h.state.visit_count = h.state.visit_count + 1
+    h.state.visit_order[vim.fn.bufnr()] = h.state.visit_count
   end,
 })
 

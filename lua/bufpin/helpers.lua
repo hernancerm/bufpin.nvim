@@ -799,14 +799,35 @@ function h.normalize_pinned_bufs()
   return pinned_bufnrs
 end
 
---- Both used to:
---- 1. Check if buf should be added to sticky bufs stack.
---- 2. Check if buf can be used as new buf after pop.
+--- Get the pinned or ghost buf visited most recently.
+---@param exclude_bufnr integer? Buf to skip.
+---@return integer?
+function h.most_recently_visited_tracked_buf(exclude_bufnr)
+  local latest_order = 0
+  local latest_bufnr = nil
+  -- Order of `candidates` is ghost buf followed by pinned bufs in the order they
+  -- appear in the tabline. So only the ghost buf changes place. This change in
+  -- order in `candidates` is so the rightmost pinned buf wins ties.
+  local candidates = { h.state.ghost_bufnr }
+  vim.list_extend(candidates, h.state.pinned_bufnrs)
+  for _, bufnr in ipairs(candidates) do
+    if bufnr ~= exclude_bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+      local order = h.state.visit_order[bufnr] or 0
+      -- `>=` so on a tie the last pinned buf wins.
+      if order >= latest_order then
+        latest_order = order
+        latest_bufnr = bufnr
+      end
+    end
+  end
+  return latest_bufnr
+end
+
+--- Whether the buf is tracked by bufpin, i.e., pinned or the ghost buf.
 ---@param bufnr integer?
-function h.is_buf_valid_sticky(bufnr)
+---@return boolean
+function h.is_tracked_buf(bufnr)
   return bufnr ~= nil
-    and vim.api.nvim_buf_is_valid(bufnr)
-    and h.state.sticky_bufnrs[#h.state.sticky_bufnrs] ~= bufnr
     and (
       vim.tbl_contains(h.state.pinned_bufnrs, bufnr)
       or bufnr == h.state.ghost_bufnr
@@ -832,8 +853,10 @@ h.state = {
   -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
   -- to nil (or rearely to another buf) on a case-by-case basis per API function.
   ghost_bufnr = nil,
-  -- Stack storing the visit order of bufs tracked by bufpin (pinned and ghost).
-  sticky_bufnrs = {},
+  -- Visit order per buf, as `bufnr -> visit_count` at the time of the visit. The
+  -- bufnr with the highest `visit_count` is the most recently visited buf.
+  visit_order = {},
+  visit_count = 0,
   -- Index of the leftmost item drawn in the tabline. Persisted across refreshes
   -- so the horizontal scroll position is stable when the tabline overflows.
   tabline_first_visible = 1,
