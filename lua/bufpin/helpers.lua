@@ -801,14 +801,21 @@ end
 
 --- Get the pinned or ghost buf visited most recently.
 ---@param exclude_bufnr integer? Buf to skip.
+---@param config_ghost_buf_enabled boolean
 ---@return integer?
-function h.most_recently_visited_tracked_buf(exclude_bufnr)
+function h.most_recently_visited_tracked_buf(
+  exclude_bufnr,
+  config_ghost_buf_enabled
+)
   local latest_order = 0
   local latest_bufnr = nil
   -- Order of `candidates` is ghost buf followed by pinned bufs in the order they
   -- appear in the tabline. So only the ghost buf changes place. This change in
   -- order in `candidates` is so the rightmost pinned buf wins ties.
-  local candidates = { h.state.ghost_bufnr }
+  local candidates = {}
+  if config_ghost_buf_enabled then
+    candidates = { h.state.ghost_bufnr }
+  end
   vim.list_extend(candidates, h.state.pinned_bufnrs)
   for _, bufnr in ipairs(candidates) do
     -- Require 'buflisted' so a jump never lands on a buf the user removed from

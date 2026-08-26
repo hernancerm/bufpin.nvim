@@ -255,7 +255,10 @@ function bufpin.remove(bufnr)
       and bufnr == vim.fn.bufnr()
       and h.is_tracked_buf(bufnr)
     then
-      sticky_bufnr = h.most_recently_visited_tracked_buf(bufnr)
+      sticky_bufnr = h.most_recently_visited_tracked_buf(
+        bufnr,
+        bufpin.config.ghost_buf_enabled
+      )
     end
 
     bufpin.unpin(bufnr)
