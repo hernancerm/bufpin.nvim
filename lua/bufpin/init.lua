@@ -273,10 +273,13 @@ function bufpin.remove(bufnr)
       -- Sticky buf determination needs to happen after unpinning the current buf,
       -- so the pinned buf is already unpinned or the ghost buf is already unset.
       local sticky_bufnr = nil
-      while
-        #h.state.sticky_bufnrs > 0 and not h.is_buf_valid_sticky(sticky_bufnr)
-      do
-        sticky_bufnr = table.remove(h.state.sticky_bufnrs)
+      while not h.is_buf_valid_sticky(sticky_bufnr) do
+        if #h.state.sticky_bufnrs > 0 then
+          sticky_bufnr = table.remove(h.state.sticky_bufnrs)
+        else
+          -- Go to last pinned buf if the stack is empty.
+          sticky_bufnr = h.state.pinned_bufnrs[#h.state.pinned_bufnrs]
+        end
       end
       if sticky_bufnr then
         vim.cmd.buffer(sticky_bufnr)
