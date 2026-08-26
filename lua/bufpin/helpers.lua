@@ -278,21 +278,25 @@ function h.build_tabline_items(
   config_icons_style,
   config_ghost_buf_enabled
 )
-  local items = {}
+  local pinned_bufs_by_bufnr = {}
   for _, pinned_buf in ipairs(pinned_bufs) do
-    local render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
-    table.insert(items, {
-      render = render,
-      width = h.get_display_width(render),
-      selected = pinned_buf.selected,
-    })
+    pinned_bufs_by_bufnr[pinned_buf.bufnr] = pinned_buf
   end
-  if h.should_include_ghost_buf(config_ghost_buf_enabled) then
-    local render = h.build_tabline_ghost_buf(config_icons_style)
+  local items = {}
+  for _, bufnr in ipairs(h.tracked_bufs(config_ghost_buf_enabled)) do
+    local pinned_buf = pinned_bufs_by_bufnr[bufnr]
+    local render, selected
+    if pinned_buf ~= nil then
+      render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
+      selected = pinned_buf.selected
+    else
+      render = h.build_tabline_ghost_buf(config_icons_style)
+      selected = bufnr == vim.fn.bufnr()
+    end
     table.insert(items, {
       render = render,
       width = h.get_display_width(render),
-      selected = h.state.ghost_bufnr == vim.fn.bufnr(),
+      selected = selected,
     })
   end
   return items
@@ -601,30 +605,12 @@ end
 ---@param config_ghost_buf_enabled boolean
 ---@return boolean
 function h.should_include_ghost_buf(config_ghost_buf_enabled)
-  if
-    h.state.ghost_bufnr ~= nil and vim.bo[h.state.ghost_bufnr].buftype == "help"
-  then
-    -- For some reason uknown to me, help files need special handling.
-    h.state.ghost_bufnr = nil
+  if h.state.ghost_bufnr == nil or not config_ghost_buf_enabled then
     return false
   end
-  if not config_ghost_buf_enabled then
-    return false
-  end
-  if #h.state.pinned_bufnrs == 0 then
-    -- Do not include ghost buf when there are no pinned bufs.
-    -- This is relevant when using vim tabpages only.
-    return false
-  end
-  local current_bufnr = vim.fn.bufnr()
-  if
-    vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
-    and h.state.ghost_bufnr == nil
-  then
-    -- Current buf is pinned and there is no ghost buf.
-    return false
-  end
-  return true
+  -- Do not include ghost buf when there are no pinned bufs.
+  -- This is relevant when using vim tabpages only.
+  return #h.state.pinned_bufnrs > 0
 end
 
 function h.set_hl_defaults()
@@ -710,6 +696,11 @@ function h.prune_invalid_ghost_buf_from_state()
   if
     vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)
     or vim.fn.bufexists(h.state.ghost_bufnr) == 0
+    -- For some reason uknown to me, help files need special handling.
+    or (
+      h.state.ghost_bufnr ~= nil
+      and vim.bo[h.state.ghost_bufnr].buftype == "help"
+    )
   then
     h.state.ghost_bufnr = nil
   end
@@ -804,7 +795,7 @@ end
 ---@return integer[]
 function h.tracked_bufs(config_ghost_buf_enabled)
   local bufnrs = vim.deepcopy(h.state.pinned_bufnrs)
-  if config_ghost_buf_enabled and h.state.ghost_bufnr ~= nil then
+  if h.should_include_ghost_buf(config_ghost_buf_enabled) then
     table.insert(bufnrs, h.state.ghost_bufnr)
   end
   return bufnrs
