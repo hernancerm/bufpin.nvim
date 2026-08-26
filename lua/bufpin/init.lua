@@ -420,6 +420,9 @@ vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     if bufnr_index ~= nil then
       table.remove(h.state.pinned_bufnrs, bufnr_index)
     end
+    if h.state.ghost_bufnr == event.buf then
+      h.state.ghost_bufnr = nil
+    end
   end,
 })
 

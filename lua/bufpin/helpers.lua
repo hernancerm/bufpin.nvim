@@ -811,7 +811,9 @@ function h.most_recently_visited_tracked_buf(exclude_bufnr)
   local candidates = { h.state.ghost_bufnr }
   vim.list_extend(candidates, h.state.pinned_bufnrs)
   for _, bufnr in ipairs(candidates) do
-    if bufnr ~= exclude_bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+    -- Require 'buflisted' so a jump never lands on a buf the user removed from
+    -- the buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
+    if bufnr ~= exclude_bufnr and vim.fn.buflisted(bufnr) == 1 then
       local order = h.state.visit_order[bufnr] or 0
       -- `>=` so on a tie the last pinned buf wins.
       if order >= latest_order then
