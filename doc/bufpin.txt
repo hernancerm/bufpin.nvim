@@ -211,7 +211,16 @@ bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
 
                                                       *bufpin.get_pinned_bufs()*
                            `bufpin.get_pinned_bufs`()
-Get all the pinned bufs. This is the actual list, not a copy.
+Get all the pinned bufs. This is a copy, so mutating it does not change the
+pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
+Return ~
+`(integer[])`
+
+                                                     *bufpin.get_tabline_bufs()*
+                          `bufpin.get_tabline_bufs`()
+Get the bufs of the tabline (pinned bufs, then the ghost buf), in the order
+they are drawn. All of them, including those hidden when the tabline
+overflows. As |bufpin.get_pinned_bufs()|, this is a copy.
 Return ~
 `(integer[])`
 

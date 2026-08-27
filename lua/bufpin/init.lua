@@ -322,7 +322,7 @@ function bufpin.edit_left()
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
   local index = h.table_find_index(tracked_bufnrs, vim.fn.bufnr())
   -- A nil index means the current buf is not drawn in the tabline, e.g. a help
   -- file, in which case entering the tabline from its right edge reads best.
@@ -340,7 +340,7 @@ function bufpin.edit_right()
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
   local index = h.table_find_index(tracked_bufnrs, vim.fn.bufnr())
   -- As in |bufpin.edit_left()|, but entering from the left edge.
   local target_bufnr = tracked_bufnrs[1]
@@ -355,7 +355,7 @@ end
 --- bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
 function bufpin.edit_by_index(index)
   local h = require("bufpin.helpers")
-  local tracked_bufnrs = h.tracked_bufs(bufpin.config.ghost_buf_enabled)
+  local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
   if tracked_bufnrs[index] ~= nil then
     vim.cmd("buffer " .. tracked_bufnrs[index])
   end
@@ -366,7 +366,17 @@ end
 --- pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
 ---@return integer[]
 function bufpin.get_pinned_bufs()
-  return require("bufpin.helpers").state.pinned_bufnrs
+  return vim.deepcopy(require("bufpin.helpers").state.pinned_bufnrs)
+end
+
+--- Get the bufs of the tabline (pinned bufs, then the ghost buf), in the order
+--- they are drawn. All of them, including those hidden when the tabline
+--- overflows. As |bufpin.get_pinned_bufs()|, this is a copy.
+---@return integer[]
+function bufpin.get_tabline_bufs()
+  return require("bufpin.helpers").get_tabline_bufs(
+    bufpin.config.ghost_buf_enabled
+  )
 end
 
 --- Get the ghost buf. Tracked regardless of |bufpin.config.ghost_buf_enabled|.

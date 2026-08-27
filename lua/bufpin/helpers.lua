@@ -283,7 +283,7 @@ function h.build_tabline_items(
     pinned_bufs_by_bufnr[pinned_buf.bufnr] = pinned_buf
   end
   local items = {}
-  for _, bufnr in ipairs(h.tracked_bufs(config_ghost_buf_enabled)) do
+  for _, bufnr in ipairs(h.get_tabline_bufs(config_ghost_buf_enabled)) do
     local pinned_buf = pinned_bufs_by_bufnr[bufnr]
     local render, selected
     if pinned_buf ~= nil then
@@ -798,10 +798,11 @@ function h.normalize_pinned_bufs()
   return pinned_bufnrs
 end
 
---- Bufs tracked by bufpin in the order they are drawn in the tabline.
+--- The bufs of the tabline (pinned bufs, then the ghost buf), in the order they
+--- are drawn. All of them, including those hidden when the tabline overflows.
 ---@param config_ghost_buf_enabled boolean
 ---@return integer[]
-function h.tracked_bufs(config_ghost_buf_enabled)
+function h.get_tabline_bufs(config_ghost_buf_enabled)
   local bufnrs = vim.deepcopy(h.state.pinned_bufnrs)
   if h.should_include_ghost_buf(config_ghost_buf_enabled) then
     table.insert(bufnrs, h.state.ghost_bufnr)
@@ -820,7 +821,7 @@ function h.sticky_buf(bufnr, config_ghost_buf_enabled)
   -- the buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
   local tracked_bufnrs = vim.tbl_filter(function(tracked_bufnr)
     return vim.fn.buflisted(tracked_bufnr) == 1
-  end, h.tracked_bufs(config_ghost_buf_enabled))
+  end, h.get_tabline_bufs(config_ghost_buf_enabled))
   local latest_order = 0
   local latest_bufnr = nil
   for _, candidate_bufnr in ipairs(tracked_bufnrs) do
