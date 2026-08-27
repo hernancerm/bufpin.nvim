@@ -179,7 +179,9 @@ bufpin.default_config = {
 --- #tag bufpin.config.ghost_buf_enabled
 --- `(boolean)`
 --- Whether to display the ghost buf, i.e., the last visited non-pinned pin-able
---- buf. If any, it's displayed always as the last item in the tabline.
+--- buf. If any, it's displayed always as the last item in the tabline. This buf
+--- is tracked by the plugin regardless of this opt, this opt only controls its
+--- visibility in the tabline.
 
 --- #tag bufpin.config.remove_with
 --- `("delete"|"wipeout")`
@@ -369,9 +371,9 @@ function bufpin.get_pinned_bufs()
   return vim.deepcopy(require("bufpin.helpers").state.pinned_bufnrs)
 end
 
---- Get the bufs of the tabline (pinned bufs, then the ghost buf), in the order
---- they are drawn. All of them, including those hidden when the tabline
---- overflows. As |bufpin.get_pinned_bufs()|, this is a copy.
+--- Get the bufs of the tabline (pinned bufs, then ghost buf), in the order they
+--- are drawn. All of them, including those hidden when the tabline overflows.
+--- This is a copy. Respects |bufpin.config.ghost_buf_enabled|.
 ---@return integer[]
 function bufpin.get_tabline_bufs()
   return require("bufpin.helpers").get_tabline_bufs(
@@ -379,7 +381,7 @@ function bufpin.get_tabline_bufs()
   )
 end
 
---- Get the ghost buf. Tracked regardless of |bufpin.config.ghost_buf_enabled|.
+--- Get the ghost buf. Disregards |bufpin.config.ghost_buf_enabled|.
 ---@return integer
 function bufpin.get_ghost_buf()
   return require("bufpin.helpers").state.ghost_bufnr
