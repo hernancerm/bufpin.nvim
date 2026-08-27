@@ -692,6 +692,14 @@ function h.prune_invalid_pinned_bufs_from_state()
     :totable()
 end
 
+function h.prune_invalid_visit_order_from_state()
+  for bufnr, _ in pairs(h.state.visit_order) do
+    if vim.fn.bufexists(bufnr) == 0 then
+      h.state.visit_order[bufnr] = nil
+    end
+  end
+end
+
 function h.prune_invalid_ghost_buf_from_state()
   if
     vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)

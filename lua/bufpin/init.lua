@@ -385,6 +385,7 @@ function bufpin.refresh_tabline(force)
   local tabline = ""
   h.prune_invalid_ghost_buf_from_state()
   h.prune_invalid_pinned_bufs_from_state()
+  h.prune_invalid_visit_order_from_state()
   local pinned_bufs = h.normalize_pinned_bufs()
   tabline = tabline
     .. h.build_tabline(
@@ -414,6 +415,7 @@ vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     if h.state.ghost_bufnr == event.buf then
       h.state.ghost_bufnr = nil
     end
+    h.state.visit_order[event.buf] = nil
   end,
 })
 
