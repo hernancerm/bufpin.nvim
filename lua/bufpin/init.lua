@@ -249,7 +249,9 @@ end
 --- When no bufnr is provided, the current buf is attempted to be removed.
 ---@param bufnr integer?
 function bufpin.remove(bufnr)
-  bufnr = (not bufnr or bufnr == 0) and vim.fn.bufnr() or bufnr
+  if not bufnr or bufnr == 0 then
+    bufnr = vim.fn.bufnr()
+  end
   local h = require("bufpin.helpers")
 
   local force = vim.bo[bufnr].modified
@@ -266,7 +268,7 @@ function bufpin.remove(bufnr)
     and bufnr == vim.fn.bufnr()
     and h.is_tracked_buf(bufnr)
   then
-    sticky_bufnr = h.sticky_buf(bufnr, bufpin.config.ghost_buf_enabled)
+    sticky_bufnr = h.get_sticky_buf(bufnr, bufpin.config.ghost_buf_enabled)
   end
 
   if sticky_bufnr then

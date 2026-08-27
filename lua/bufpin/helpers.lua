@@ -816,7 +816,7 @@ end
 ---@param bufnr integer Buf being removed.
 ---@param config_ghost_buf_enabled boolean
 ---@return integer?
-function h.sticky_buf(bufnr, config_ghost_buf_enabled)
+function h.get_sticky_buf(bufnr, config_ghost_buf_enabled)
   -- Require 'buflisted' so the jump never lands on a buf the user removed from
   -- the buf list, e.g. via `:noautocmd bdelete`, which fires no BufDelete.
   local tracked_bufnrs = vim.tbl_filter(function(tracked_bufnr)
