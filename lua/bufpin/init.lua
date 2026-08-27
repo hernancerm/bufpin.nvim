@@ -362,7 +362,8 @@ function bufpin.edit_by_index(index)
   bufpin.refresh_tabline()
 end
 
---- Get all the pinned bufs. This is the actual list, not a copy.
+--- Get all the pinned bufs. This is a copy, so mutating it does not change the
+--- pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
 ---@return integer[]
 function bufpin.get_pinned_bufs()
   return require("bufpin.helpers").state.pinned_bufnrs
