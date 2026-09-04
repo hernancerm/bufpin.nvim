@@ -320,8 +320,16 @@ function bufpin.move_to_right(bufnr)
   end
 end
 
+local function is_buf_fixed_to_win()
+  return vim.wo.winfixbuf
+end
+
 --- Edit the buf to the left in the tabline, wrapping around at the left edge.
+--- No-op when the current win has 'winfixbuf' set.
 function bufpin.edit_left()
+  if is_buf_fixed_to_win() then
+    return
+  end
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
@@ -339,7 +347,11 @@ function bufpin.edit_left()
 end
 
 --- Edit the buf to the right in the tabline, wrapping around at the right edge.
+--- No-op when the current win has 'winfixbuf' set.
 function bufpin.edit_right()
+  if is_buf_fixed_to_win() then
+    return
+  end
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
@@ -357,7 +369,11 @@ end
 
 ---@param index integer Index of a buf as drawn in the tabline, i.e., the pinned
 --- bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
+--- No-op when the current win has 'winfixbuf' set.
 function bufpin.edit_by_index(index)
+  if is_buf_fixed_to_win() then
+    return
+  end
   local h = require("bufpin.helpers")
   local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
   if tracked_bufnrs[index] ~= nil then
