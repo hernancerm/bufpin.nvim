@@ -87,6 +87,12 @@ Default config:
     mouse_drag_reorder = false,
     ghost_buf_enabled = true,
     remove_with = "delete",
+    git_status_enabled = true,
+    git_status_symbols = {
+      added = "&",
+      modified = "~",
+      conflict = "!",
+    },
   }
 <
                                                *bufpin.config.auto_hide_tabline*
@@ -143,6 +149,18 @@ visibility in the tabline.
 `("delete"|"wipeout")`
 Set how buf removal is done for both the function |bufpin.remove()| and the
 mouse middle click input on a buf in the tabline.
+
+                                              *bufpin.config.git_status_enabled*
+`(boolean)`
+When true, draw a symbol next to the name of each tabline buf which is dirty
+in git, as per |bufpin.config.git_status_symbols|. Requires `git` in Neovim's
+`$PATH`. Staged and unstaged changes are not differentiated. Limitation: A git
+operation done in another terminal while Neovim keeps the focus, e.g., `git
+commit`, is picked up when Neovim regains the focus.
+
+                                              *bufpin.config.git_status_symbols*
+`(table<"added"|"modified"|"conflict", string>)`
+The symbol drawn per git status, see |bufpin.config.git_status_enabled|.
 
 ------------------------------------------------------------------------------
                                                        *bufpin-highlight-groups*

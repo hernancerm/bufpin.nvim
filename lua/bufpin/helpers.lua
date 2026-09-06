@@ -47,75 +47,41 @@ function h.escape_tabline_text(text)
   return (text:gsub("%%", "%%%%"))
 end
 
----@param pinned_buf PinnedBuf
+---@param bufnr integer
+---@param basename string As drawn, so it includes the differentiator.
+---@param selected boolean
+---@param is_ghost_buf boolean
 ---@param config_icons_style string
 ---@return string
-function h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
-  local basename = pinned_buf.basename
-  if pinned_buf.differentiator ~= nil then
-    basename = pinned_buf.differentiator .. "/" .. basename
-  end
-  if pinned_buf.selected then
-    return "%"
-      .. pinned_buf.bufnr
-      .. "@bufpin#_on_click_buffer@"
-      .. "%#"
-      .. h.const.HL_BUFPIN_TAB_LINE_SEL
-      .. "#  "
-      .. h.get_icon_string_for_tabline_buf(
-        basename,
-        true,
-        false,
-        config_icons_style
-      )
-      .. h.escape_tabline_text(basename)
-      .. "  %*"
-      .. "%X"
-  else
-    return "%"
-      .. pinned_buf.bufnr
-      .. "@bufpin#_on_click_buffer@"
-      .. "%#"
-      .. h.const.HL_BUFPIN_TAB_LINE
-      .. "#  "
-      .. h.get_icon_string_for_tabline_buf(
-        basename,
-        false,
-        false,
-        config_icons_style
-      )
-      .. h.escape_tabline_text(basename)
-      .. "  %*"
-      .. "%X"
-  end
-end
-
----@param config_icons_style string
----@return string
-function h.build_tabline_ghost_buf(config_icons_style)
-  local ghost_buf = h.state.ghost_bufnr
-  if ghost_buf == nil then
-    return ""
-  end
-  local ghost_buf_is_selected = ghost_buf == vim.fn.bufnr()
-  local hl = h.const.HL_BUFPIN_GHOST_TAB_LINE
-  if ghost_buf_is_selected then
+function h.build_tabline_buf(
+  bufnr,
+  basename,
+  selected,
+  is_ghost_buf,
+  config_icons_style
+)
+  local hl = h.const.HL_BUFPIN_TAB_LINE
+  if is_ghost_buf and selected then
     hl = h.const.HL_BUFPIN_GHOST_TAB_LINE_SEL
+  elseif is_ghost_buf then
+    hl = h.const.HL_BUFPIN_GHOST_TAB_LINE
+  elseif selected then
+    hl = h.const.HL_BUFPIN_TAB_LINE_SEL
   end
-  local basename = vim.fs.basename(vim.api.nvim_buf_get_name(ghost_buf))
   return "%"
-    .. ghost_buf
+    .. bufnr
     .. "@bufpin#_on_click_buffer@"
     .. "%#"
     .. hl
     .. "#  "
     .. h.get_icon_string_for_tabline_buf(
       basename,
-      ghost_buf_is_selected,
-      true,
+      selected,
+      is_ghost_buf,
       config_icons_style
     )
     .. h.escape_tabline_text(basename)
+    .. h.get_git_status_string_for_tabline_buf(bufnr)
     .. "  %*"
     .. "%X"
 end
@@ -285,14 +251,25 @@ function h.build_tabline_items(
   local items = {}
   for _, bufnr in ipairs(h.get_tabline_bufs(config_ghost_buf_enabled)) do
     local pinned_buf = pinned_bufs_by_bufnr[bufnr]
-    local render, selected
+    local basename, selected
     if pinned_buf ~= nil then
-      render = h.build_tabline_pinned_buf(pinned_buf, config_icons_style)
+      basename = pinned_buf.basename
+      if pinned_buf.differentiator ~= nil then
+        basename = pinned_buf.differentiator .. "/" .. basename
+      end
       selected = pinned_buf.selected
     else
-      render = h.build_tabline_ghost_buf(config_icons_style)
+      basename = vim.fs.basename(vim.api.nvim_buf_get_name(bufnr))
       selected = bufnr == vim.fn.bufnr()
     end
+    local is_ghost_buf = pinned_buf == nil
+    local render = h.build_tabline_buf(
+      bufnr,
+      basename,
+      selected,
+      is_ghost_buf,
+      config_icons_style
+    )
     table.insert(items, {
       render = render,
       width = h.get_display_width(render),
@@ -533,6 +510,7 @@ end
 
 ---@param pinned_bufs PinnedBuf[]
 ---@param config_icons_style string
+---@param config_ghost_buf_enabled boolean
 ---@return string
 function h.build_tabline(
   pinned_bufs,
@@ -866,6 +844,230 @@ function h.should_exclude_from_pin(bufnr, config_exclude)
     or h.is_floating_win(0)
 end
 
+--- Git status kind of a tabline buf. Staged and unstaged are not distinguished,
+--- so `git add`ing an untracked file keeps it as `added`.
+---@alias GitStatusKind "added"|"modified"|"conflict"
+
+--- Map a porcelain status code (`XY`) to the kind drawn in the tabline.
+---@param x string Index status.
+---@param y string Work tree status.
+---@return GitStatusKind
+function h.get_git_status_kind(x, y)
+  if h.const.GIT_UNMERGED_CODES[x .. y] then
+    return "conflict"
+  end
+  -- `?` is untracked and `A` is added to the index. Both are new to HEAD.
+  if x == "?" or x == "A" then
+    return "added"
+  end
+  return "modified"
+end
+
+--- Parse the output of `git status --porcelain -z`, i.e., NUL-separated entries
+--- of the form `XY <path>`, where `<path>` is relative to the repo root. NUL
+--- separation avoids the path quoting done by the newline-separated format.
+---@param stdout string
+---@return table<string, GitStatusKind> Keyed by repo-relative path.
+function h.parse_git_status(stdout)
+  local kinds = {}
+  local fields = vim.split(stdout, "\0", { trimempty = true })
+  local i = 1
+  while i <= #fields do
+    local x, y, path = fields[i]:match("^(.)(.) (.+)$")
+    i = i + 1
+    -- A field which does not match is dropped on its own, so one unexpected
+    -- field does not hide the rest.
+    if path ~= nil then
+      -- Renames and copies carry the origin path in the next field. Skip it.
+      if x == "R" or x == "C" then
+        i = i + 1
+      end
+      kinds[path] = h.get_git_status_kind(x, y)
+    end
+  end
+  return kinds
+end
+
+--- The git repo root of a buf, nil when the buf is not in a repo or has no file.
+---@param bufnr integer
+---@return string?
+function h.get_git_root(bufnr)
+  local buf_name = vim.api.nvim_buf_get_name(bufnr)
+  if buf_name == "" or vim.bo[bufnr].buftype ~= "" then
+    return nil
+  end
+  local dir = vim.fs.dirname(buf_name)
+  if h.state.git_roots[dir] == nil then
+    -- In worktrees and submodules `.git` is a file, not a dir. `vim.fs.root`
+    -- accepts both and walks the filesystem, so no `git` process is spawned.
+    h.state.git_roots[dir] = vim.fs.root(dir, ".git") or false
+  end
+  if h.state.git_roots[dir] == false then
+    return nil
+  end
+  return h.state.git_roots[dir]
+end
+
+--- The absolute file name of a buf, as stored in `h.state.git_status`.
+---@param bufnr integer
+---@return string
+function h.get_git_status_key(bufnr)
+  return vim.fs.normalize(vim.api.nvim_buf_get_name(bufnr))
+end
+
+--- The tabline bufs which live in a git repo, grouped by repo root. Each group
+--- is the set of keys (see `h.get_git_status_key`) to ask that repo about.
+---@return table<string, table<string, boolean>>
+function h.get_git_status_keys_by_root()
+  local keys_by_root = {}
+  for _, bufnr in
+    ipairs(h.get_tabline_bufs(require("bufpin").config.ghost_buf_enabled))
+  do
+    local root = h.get_git_root(bufnr)
+    if root ~= nil then
+      keys_by_root[root] = keys_by_root[root] or {}
+      keys_by_root[root][h.get_git_status_key(bufnr)] = true
+    end
+  end
+  return keys_by_root
+end
+
+--- Add the answer of one repo to the `git_status` of a run. Paths outside the
+--- tabline are dropped, and a tabline file absent from the answer is clean.
+---@param git_status table<string, GitStatusKind|false> Mutated.
+---@param root string
+---@param keys table<string, boolean> The keys this repo was asked about.
+---@param stdout string
+function h.merge_git_status(git_status, root, keys, stdout)
+  for key in pairs(keys) do
+    git_status[key] = false
+  end
+  for path, kind in pairs(h.parse_git_status(stdout)) do
+    local key = vim.fs.normalize(root .. "/" .. path)
+    if keys[key] then
+      git_status[key] = kind
+    end
+  end
+end
+
+--- Store the git status of the tabline bufs and redraw only when it changed.
+--- Redrawing on every refresh would fight with the tabline horizontal scroll.
+---@param git_status table<string, GitStatusKind|false>
+---@param run_id integer Run which produced it, see `h.refresh_git_status`.
+function h.apply_git_status(git_status, run_id)
+  -- A run started later has fresher data, and it may finish first, e.g. when
+  -- this run has to wait on a bigger repo. Dropping the superseded result keeps
+  -- the cache from going backwards.
+  if run_id ~= h.state.git_status_run_id then
+    return
+  end
+  if vim.deep_equal(h.state.git_status, git_status) then
+    return
+  end
+  h.state.git_status = git_status
+  require("bufpin").refresh_tabline()
+end
+
+--- Run `git status` once per repo which has a buf in the tabline, then hand the
+--- merged result to `h.apply_git_status`. Async: the tabline keeps drawing from
+--- the previous result until the git processes are done.
+function h.refresh_git_status()
+  h.state.git_status_run_id = h.state.git_status_run_id + 1
+  local run_id = h.state.git_status_run_id
+  local keys_by_root = h.get_git_status_keys_by_root()
+  local pending = vim.tbl_count(keys_by_root)
+  if pending == 0 then
+    h.apply_git_status({}, run_id)
+    return
+  end
+  local git_status = {}
+  for root, keys in pairs(keys_by_root) do
+    vim.system(h.const.GIT_STATUS_CMD, { cwd = root, text = true }, function(out)
+      -- Only a repo which answered gets its bufs written into `git_status`.
+      -- The bufs of a failed repo stay unknown, so the next tabline draw
+      -- retries them rather than drawing them as clean until the next event.
+      if out.code == 0 then
+        h.merge_git_status(git_status, root, keys, out.stdout)
+      end
+      pending = pending - 1
+      if pending == 0 then
+        vim.schedule(function()
+          h.apply_git_status(git_status, run_id)
+        end)
+      end
+    end)
+  end
+end
+
+--- Queue a git status refresh, coalescing bursts (e.g., the several
+--- BufWritePost of `:wall`) into a single run of `git status` per repo.
+function h.refresh_git_status_debounced()
+  -- `vim.system` raises when the program is missing, so guard the spawn.
+  if
+    not require("bufpin").config.git_status_enabled
+    or vim.fn.executable("git") == 0
+  then
+    return
+  end
+  if h.state.git_status_timer == nil then
+    h.state.git_status_timer = vim.uv.new_timer()
+  end
+  h.state.git_status_timer:start(
+    h.const.GIT_STATUS_DEBOUNCE_MS,
+    0,
+    vim.schedule_wrap(function()
+      h.refresh_git_status()
+    end)
+  )
+end
+
+--- Release the debounce timer, on quit. As any libuv handle, it is owned by
+--- the event loop, not by the Lua GC.
+function h.close_git_status_timer()
+  if h.state.git_status_timer == nil then
+    return
+  end
+  h.state.git_status_timer:stop()
+  h.state.git_status_timer:close()
+  h.state.git_status_timer = nil
+end
+
+--- Queue a refresh only when a tabline buf has never been looked up, e.g., a
+--- buf just pinned. Called on every tabline draw, so it must stay cheap and it
+--- must not queue a refresh when nothing is new, otherwise it would loop.
+function h.refresh_git_status_if_new_bufs()
+  if not require("bufpin").config.git_status_enabled then
+    return
+  end
+  for _, bufnr in
+    ipairs(h.get_tabline_bufs(require("bufpin").config.ghost_buf_enabled))
+  do
+    if
+      h.get_git_root(bufnr) ~= nil
+      and h.state.git_status[h.get_git_status_key(bufnr)] == nil
+    then
+      h.refresh_git_status_debounced()
+      return
+    end
+  end
+end
+
+--- The git status glyph of a tabline buf, e.g., ` ~`. Empty when the file is
+--- clean, not in a repo or the feature is off.
+---@param bufnr integer
+---@return string
+function h.get_git_status_string_for_tabline_buf(bufnr)
+  local config = require("bufpin").config
+  if not config.git_status_enabled then
+    return ""
+  end
+  local kind = h.state.git_status[h.get_git_status_key(bufnr)]
+  if not kind then
+    return ""
+  end
+  return " " .. h.escape_tabline_text(config.git_status_symbols[kind])
+end
+
 h.state = {
   hl_cache = {},
   pinned_bufnrs = {},
@@ -889,6 +1091,18 @@ h.state = {
   drag_bufnr = nil,
   -- As `drag_bufnr`, for a vim tabpage being mouse-dragged in the tabline.
   drag_tabpage = nil,
+  -- Git status of the tabline bufs, as
+  -- `absolute file name -> GitStatusKind|false`. A `false` is a clean file and
+  -- a missing entry is a file not looked up yet.
+  git_status = {},
+  -- Debounce timer of `h.refresh_git_status_debounced`.
+  git_status_timer = nil,
+  -- Incremented per run of `h.refresh_git_status`, to drop the result of a run
+  -- superseded while its git processes were still running.
+  git_status_run_id = 0,
+  -- Git repo root per directory, as `dir -> root|false`. Cached for the whole
+  -- Neovim session: a dir which becomes a repo (`git init`) needs a restart.
+  git_roots = {},
 }
 
 h.const = {
@@ -897,6 +1111,29 @@ h.const = {
   HL_BUFPIN_TAB_LINE_SEL = "BufpinTabLineSel",
   HL_BUFPIN_GHOST_TAB_LINE_SEL = "BufpinGhostTabLineSel",
   HL_BUFPIN_TAB_LINE_FILL = "BufpinTabLineFill",
+  -- The two-letter porcelain codes which mean the file has a merge conflict,
+  -- see `git help status`, section "Short Format".
+  GIT_UNMERGED_CODES = {
+    DD = true,
+    AU = true,
+    UD = true,
+    UA = true,
+    DU = true,
+    AA = true,
+    UU = true,
+  },
+  -- Debounce window of `h.refresh_git_status_debounced`, in milliseconds.
+  GIT_STATUS_DEBOUNCE_MS = 100,
+  -- `--no-optional-locks` keeps this read-only: without it git may write the
+  -- index, which can collide with a git command the user runs in a terminal.
+  GIT_STATUS_CMD = {
+    "git",
+    "--no-optional-locks",
+    "status",
+    "--porcelain",
+    "-uall",
+    "-z",
+  },
 }
 
 --- Returns true when mini.icons is installed:

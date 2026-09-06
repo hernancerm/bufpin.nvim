@@ -116,6 +116,23 @@ function bufpin.setup(config)
     "boolean"
   )
   vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
+  vim.validate(
+    "bufpin.config.git_status_enabled",
+    bufpin.config.git_status_enabled,
+    "boolean"
+  )
+  vim.validate(
+    "bufpin.config.git_status_symbols",
+    bufpin.config.git_status_symbols,
+    "table"
+  )
+  for _, kind in ipairs({ "added", "modified", "conflict" }) do
+    vim.validate(
+      "bufpin.config.git_status_symbols." .. kind,
+      bufpin.config.git_status_symbols[kind],
+      "string"
+    )
+  end
 end
 
 --- Default config:
@@ -130,6 +147,12 @@ bufpin.default_config = {
   mouse_drag_reorder = false,
   ghost_buf_enabled = true,
   remove_with = "delete",
+  git_status_enabled = true,
+  git_status_symbols = {
+    added = "&",
+    modified = "~",
+    conflict = "!",
+  },
 }
 --minidoc_afterlines_end
 
@@ -187,6 +210,18 @@ bufpin.default_config = {
 --- `("delete"|"wipeout")`
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
+
+--- #tag bufpin.config.git_status_enabled
+--- `(boolean)`
+--- When true, draw a symbol next to the name of each tabline buf which is dirty
+--- in git, as per |bufpin.config.git_status_symbols|. Requires `git` in Neovim's
+--- `$PATH`. Staged and unstaged changes are not differentiated. Limitation: A git
+--- operation done in another terminal while Neovim keeps the focus, e.g., `git
+--- commit`, is picked up when Neovim regains the focus.
+
+--- #tag bufpin.config.git_status_symbols
+--- `(table<"added"|"modified"|"conflict", string>)`
+--- The symbol drawn per git status, see |bufpin.config.git_status_enabled|.
 
 --- #delimiter
 --- #tag bufpin-highlight-groups
@@ -429,6 +464,9 @@ function bufpin.refresh_tabline(force)
     h.show_tabline()
   end
   h.serialize_state(bufpin.config.ghost_buf_enabled)
+  -- Every change to the set of tabline bufs ends here, so this is the one place
+  -- which has to notice a buf whose git status was never looked up.
+  h.refresh_git_status_if_new_bufs()
 end
 
 -- The order of the definition of the autocmds is important. When autocmds have
@@ -509,6 +547,30 @@ vim.api.nvim_create_autocmd("User", {
   group = "Bufpin",
   pattern = "BlinkCmpMenuOpen",
   callback = bufpin.refresh_tabline,
+})
+
+-- Refresh the git status of the tabline bufs. Typing in a buf is not a trigger:
+-- git only sees the change once the buf is written. A buf entering the tabline
+-- is handled by `bufpin.refresh_tabline()` instead.
+vim.api.nvim_create_autocmd({
+  "BufWritePost",
+  "FileChangedShellPost",
+  "FocusGained",
+  "ShellCmdPost",
+  "TermLeave",
+  "VimResume",
+}, {
+  group = "Bufpin",
+  callback = function()
+    require("bufpin.helpers").refresh_git_status_debounced()
+  end,
+})
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  group = "Bufpin",
+  callback = function()
+    require("bufpin.helpers").close_git_status_timer()
+  end,
 })
 
 -- Re-build state from session.

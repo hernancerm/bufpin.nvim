@@ -32,35 +32,33 @@ From https://github.com/ThePrimeagen/harpoon/tree/harpoon2:
 
 Pin buffers and allow navigating to them via keymaps. The pinned bufs are
 drawn in the 'tabline'. Visually, this looks like tabs in a modern text
-editor, but the distinction is that the bufs are all manually tracked.
+editor, but the distinction is that the bufs are all **manually tracked**.
 
 ## Features
 
 - Display the pinned bufs and the vim tabpages in the tabline.
+- Display a "ghost buf" in the tabline, i.e., the last visited non-pinned pin-able buf.
 - Mouse support to left-click to edit buf and middle-click to remove buf (also works on vim tabpages).
-- Re-order the pinned bufs and the vim tabpages by mouse-dragging them (opt-in: `mouse_drag_reorder`).
+- Mouse support to re-order the pinned bufs and the vim tabpages by dragging them (opt-in: `mouse_drag_reorder`).
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
 - Auto-hide the tabline when there are no pinned bufs.
+- Git integration showing git status per tabline buf.
 - Expose an API to track the pinned bufs.
 - Show file type icons.
 
 Suggested complementary plugins:
 
-- [mini.icons](https://github.com/echasnovski/mini.icons):
-  Display file type icon next to buf name. Use a [Nerd Font](https://www.nerdfonts.com/).
 - [mini.bufremove](https://github.com/echasnovski/mini.bufremove):
   Preserve window layout when removing bufs.
 - [vim-lastplace](https://github.com/farmergreg/vim-lastplace):
   Remember the cursor location in visited bufs.
-
-## Out of scope
-
-- Be a fully-fledged tabline plugin like
-  [bufferline.nvim](https://github.com/akinsho/bufferline.nvim).
+- [mini.icons](https://github.com/echasnovski/mini.icons):
+  Display file type icons. Use a [Nerd Font](https://www.nerdfonts.com/).
 
 ## Requirements
 
 - Neovim >= 0.11.0
+- Git (optional)
 
 ## Installation
 
@@ -102,6 +100,12 @@ require("bufpin").setup({
   mouse_drag_reorder = false,
   ghost_buf_enabled = true,
   remove_with = "delete",
+  git_status_enabled = true,
+  git_status_symbols = {
+    added = "&",
+    modified = "~",
+    conflict = "!",
+  },
 })
 ```
 
