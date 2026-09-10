@@ -6,6 +6,8 @@ function! bufpin#_on_click_buffer(minwid, clicks, button, modifiers)
     elseif a:button == 'm'
       call v:lua.Bufpin.remove(a:minwid)
     endif
+  elseif a:clicks == 2 && a:button == 'l'
+    call v:lua.Bufpin.pin(a:minwid)
   endif
 endfunction
 
