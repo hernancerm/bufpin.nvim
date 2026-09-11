@@ -692,6 +692,92 @@ function h.prune_invalid_ghost_buf_from_state()
   end
 end
 
+--- A pin request item resolved to something that can be pinned: the bufnr of an
+--- existent buf, or the full path of a readable file which has no buf yet.
+---@alias ResolvedPinItem integer|string
+
+--- Resolve one item of |bufpin.set_pinned_bufs()|, without creating any buf.
+---@param item any Expected to be a bufnr or a file path.
+---@param config_exclude function
+---@return ResolvedPinItem? resolved Nil when the item is rejected.
+---@return string? error Why the item was rejected.
+function h.resolve_pin_item(item, config_exclude)
+  local bufnr, path = nil, nil
+  if type(item) == "number" then
+    if vim.fn.bufexists(item) == 0 then
+      return nil, "bufpin: no such buf: " .. item
+    end
+    bufnr = item
+  elseif type(item) == "string" then
+    path = vim.fn.fnamemodify(item, ":p")
+    if vim.fn.filereadable(path) == 0 then
+      return nil, "bufpin: no such file: " .. item
+    end
+    local existing_bufnr = vim.fn.bufnr(path)
+    if existing_bufnr ~= -1 then
+      bufnr = existing_bufnr
+    end
+  else
+    return nil,
+      "bufpin: expected a bufnr or a file path, got: " .. vim.inspect(item)
+  end
+  if bufnr ~= nil and h.should_exclude_from_pin(bufnr, config_exclude) then
+    return nil, "bufpin: buf cannot be pinned: " .. (path or bufnr)
+  end
+  return bufnr or path, nil
+end
+
+--- Resolve all the items of |bufpin.set_pinned_bufs()|. No buf is created here,
+--- so a rejected item leaves no stray buf behind.
+---@param items any[]
+---@param config_exclude function
+---@return ResolvedPinItem[]? resolved Nil when any item is rejected.
+---@return string? error Why the first rejected item was rejected.
+function h.resolve_pin_items(items, config_exclude)
+  local resolved = {}
+  for _, item in ipairs(items) do
+    local resolved_item, error = h.resolve_pin_item(item, config_exclude)
+    if resolved_item == nil then
+      return nil, error
+    end
+    table.insert(resolved, resolved_item)
+  end
+  return resolved, nil
+end
+
+--- Turn resolved items into bufnrs, adding a buf per path which has none yet.
+--- Duplicates are dropped, keeping the leftmost occurrence.
+---@param resolved ResolvedPinItem[]
+---@return integer[]
+function h.to_bufnrs(resolved)
+  local bufnrs = {}
+  for _, item in ipairs(resolved) do
+    local bufnr = item
+    if type(item) == "string" then
+      bufnr = vim.fn.bufadd(item)
+    end
+    if h.table_find_index(bufnrs, bufnr) == nil then
+      table.insert(bufnrs, bufnr)
+    end
+  end
+  return bufnrs
+end
+
+--- Keep `state.ghost_bufnr` accurate after the pinned bufs change wholesale, as
+--- |bufpin.pin()| and |bufpin.unpin()| do on their own change: the current buf
+--- is the ghost buf only while it is not pinned.
+---@param config_exclude function
+function h.sync_ghost_buf_with_pinned_bufs(config_exclude)
+  local current_bufnr = vim.fn.bufnr()
+  if h.table_find_index(h.state.pinned_bufnrs, current_bufnr) ~= nil then
+    if h.state.ghost_bufnr == current_bufnr then
+      h.state.ghost_bufnr = nil
+    end
+  elseif not h.should_exclude_from_pin(current_bufnr, config_exclude) then
+    h.state.ghost_bufnr = current_bufnr
+  end
+end
+
 ---@param bufnr integer
 function h.pin_by_bufnr(bufnr)
   local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)

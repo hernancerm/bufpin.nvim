@@ -252,7 +252,7 @@ a bufnr of a non-existent buf, a path of a non-readable file or a buf which
 Parameters ~
 {bufs} `((integer|string)[])` Bufnrs and/or file paths.
 Return ~
-`(boolean)` # Whether the pinned bufs were set.
+`(boolean)` Whether the pinned bufs were set.
 
                                                      *bufpin.get_tabline_bufs()*
                           `bufpin.get_tabline_bufs`()
