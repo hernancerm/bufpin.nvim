@@ -239,6 +239,21 @@ pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
 Return ~
 `(integer[])`
 
+                                                      *bufpin.set_pinned_bufs()*
+                        `bufpin.set_pinned_bufs`({bufs})
+Replace the pinned bufs with the given list, in the given order. Each item is
+either a bufnr or a file path; a file path without a buf gets one added
+(|bufadd()|). Duplicates are dropped, keeping the leftmost occurrence.
+
+All items are validated before anything is set, so a rejected item leaves the
+pinned bufs untouched instead of half applied. An item is rejected when it is
+a bufnr of a non-existent buf, a path of a non-readable file or a buf which
+|bufpin.pin()| would ignore (see |bufpin.config.exclude|).
+Parameters ~
+{bufs} `((integer|string)[])` Bufnrs and/or file paths.
+Return ~
+`(boolean)` # Whether the pinned bufs were set.
+
                                                      *bufpin.get_tabline_bufs()*
                           `bufpin.get_tabline_bufs`()
 Get the bufs of the tabline (pinned bufs, then ghost buf), in the order they

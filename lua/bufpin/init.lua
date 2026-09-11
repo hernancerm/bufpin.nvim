@@ -424,6 +424,81 @@ function bufpin.get_pinned_bufs()
   return vim.deepcopy(require("bufpin.helpers").state.pinned_bufnrs)
 end
 
+--- Replace the pinned bufs with the given list, in the given order. Each item is
+--- either a bufnr or a file path; a file path without a buf gets one added
+--- (|bufadd()|). Duplicates are dropped, keeping the leftmost occurrence.
+---
+--- All items are validated before anything is set, so a rejected item leaves the
+--- pinned bufs untouched instead of half applied. An item is rejected when it is
+--- a bufnr of a non-existent buf, a path of a non-readable file or a buf which
+--- |bufpin.pin()| would ignore (see |bufpin.config.exclude|).
+---@param bufs (integer|string)[] Bufnrs and/or file paths.
+---@return boolean # Whether the pinned bufs were set.
+function bufpin.set_pinned_bufs(bufs)
+  local h = require("bufpin.helpers")
+  -- Resolve and validate everything first. Paths without a buf are only added in
+  -- the second pass, so a later rejection leaves no stray bufs behind.
+  local resolved = {}
+  for _, buf in ipairs(bufs) do
+    local bufnr, path = nil, nil
+    if type(buf) == "number" then
+      if vim.fn.bufexists(buf) == 0 then
+        h.print_user_error("bufpin: no such buf: " .. buf)
+        return false
+      end
+      bufnr = buf
+    elseif type(buf) == "string" then
+      path = vim.fn.fnamemodify(buf, ":p")
+      if vim.fn.filereadable(path) == 0 then
+        h.print_user_error("bufpin: no such file: " .. buf)
+        return false
+      end
+      local existing_bufnr = vim.fn.bufnr(path)
+      if existing_bufnr ~= -1 then
+        bufnr = existing_bufnr
+      end
+    else
+      h.print_user_error(
+        "bufpin: expected a bufnr or a file path, got: " .. vim.inspect(buf)
+      )
+      return false
+    end
+    if
+      bufnr ~= nil and h.should_exclude_from_pin(bufnr, bufpin.config.exclude)
+    then
+      h.print_user_error("bufpin: buf cannot be pinned: " .. (path or bufnr))
+      return false
+    end
+    table.insert(resolved, bufnr or path)
+  end
+
+  local pinned_bufnrs = {}
+  for _, item in ipairs(resolved) do
+    local bufnr = item
+    if type(item) == "string" then
+      bufnr = vim.fn.bufadd(item)
+    end
+    if h.table_find_index(pinned_bufnrs, bufnr) == nil then
+      table.insert(pinned_bufnrs, bufnr)
+    end
+  end
+  h.state.pinned_bufnrs = pinned_bufnrs
+
+  -- Keep the ghost buf accurate, as |bufpin.pin()| and |bufpin.unpin()| do: the
+  -- current buf is the ghost buf only while it is not pinned.
+  local current_bufnr = vim.fn.bufnr()
+  if h.table_find_index(pinned_bufnrs, current_bufnr) ~= nil then
+    if h.state.ghost_bufnr == current_bufnr then
+      h.state.ghost_bufnr = nil
+    end
+  elseif not h.should_exclude_from_pin(current_bufnr, bufpin.config.exclude) then
+    h.state.ghost_bufnr = current_bufnr
+  end
+
+  bufpin.refresh_tabline()
+  return true
+end
+
 --- Get the bufs of the tabline (pinned bufs, then ghost buf), in the order they
 --- are drawn. All of them, including those hidden when the tabline overflows.
 --- This is a copy. Respects |bufpin.config.ghost_buf_enabled|.
