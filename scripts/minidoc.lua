@@ -9,12 +9,11 @@ end
 
 local hooks = vim.deepcopy(MiniDoc.default_hooks)
 
--- LuaCATS marks the start of a return description with `#` when the return has
--- no name, e.g. `---@return boolean # Whether it worked`. mini.doc does not know
--- the token and writes it out verbatim, so drop it. See |luals-annotations|.
 hooks.sections["@return"] = function(section)
   minidoc.default_hooks.sections["@return"](section)
   for index, line in ipairs(section) do
+    -- LuaCATS marks the start of a return description with `#` when the return has no name, e.g.,
+    -- `---@return boolean # Whether it worked`. mini.doc does not drop it, so drop it here.
     section[index] = line:gsub("^(%s*`%b()`)%s+#%s+", "%1 ")
   end
 end
