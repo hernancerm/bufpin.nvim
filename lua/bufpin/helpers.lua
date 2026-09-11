@@ -632,7 +632,7 @@ end
 --- Find the index of a value in a list-like table.
 ---@param tbl table Numerically indexed table (list).
 ---@param target_value any The value being searched in `tbl`.
----@return integer? Index or nil if the item was not found.
+---@return integer? # Index or nil if the item was not found.
 function h.table_find_index(tbl, target_value)
   local index = nil
   for i, tbl_value in ipairs(tbl) do
@@ -953,7 +953,7 @@ end
 --- of the form `XY <path>`, where `<path>` is relative to the repo root. NUL
 --- separation avoids the path quoting done by the newline-separated format.
 ---@param stdout string
----@return table<string, GitStatusKind> Keyed by repo-relative path.
+---@return table<string, GitStatusKind> # Keyed by repo-relative path.
 function h.parse_git_status(stdout)
   local kinds = {}
   local fields = vim.split(stdout, "\0", { trimempty = true })

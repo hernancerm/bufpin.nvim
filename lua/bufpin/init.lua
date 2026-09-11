@@ -433,7 +433,7 @@ end
 --- a bufnr of a non-existent buf, a path of a non-readable file or a buf which
 --- |bufpin.pin()| would ignore (see |bufpin.config.exclude|).
 ---@param bufs (integer|string)[] Bufnrs and/or file paths.
----@return boolean Whether the pinned bufs were set.
+---@return boolean # Whether the pinned bufs were set.
 function bufpin.set_pinned_bufs(bufs)
   local h = require("bufpin.helpers")
   local resolved, error = h.resolve_pin_items(bufs, bufpin.config.exclude)
