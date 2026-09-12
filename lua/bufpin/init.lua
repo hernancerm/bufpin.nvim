@@ -244,23 +244,11 @@ bufpin.default_config = {
 function bufpin.pin(bufnr, opts)
   local h = require("bufpin.helpers")
   local current_bufnr = vim.fn.bufnr()
-  local requested_bufnrs
-  if type(bufnr) == "table" then
-    requested_bufnrs = bufnr
-  else
-    requested_bufnrs = { bufnr or current_bufnr }
-  end
   local ask_above = (opts or {}).ask_above or 5
   vim.validate("opts.ask_above", ask_above, "number")
-  local bufnrs = {}
-  for _, requested_bufnr in ipairs(requested_bufnrs) do
-    if
-      not h.should_exclude_from_pin(requested_bufnr, bufpin.config.exclude)
-      and h.table_find_index(bufnrs, requested_bufnr) == nil
-    then
-      table.insert(bufnrs, requested_bufnr)
-    end
-  end
+  local bufnrs = vim.tbl_filter(function(pin_bufnr)
+    return not h.should_exclude_from_pin(pin_bufnr, bufpin.config.exclude)
+  end, h.to_bufnr_list(bufnr))
   if #bufnrs == 0 then
     return
   end
@@ -279,15 +267,17 @@ function bufpin.pin(bufnr, opts)
   bufpin.refresh_tabline()
 end
 
---- Unpin the current buf or the provided buf.
----@param bufnr integer?
+--- Unpin the current buf, the provided buf or the provided list of bufs. Unpin
+--- all of them with the output of |bufpin.get_pinned_bufs()|.
+---@param bufnr (integer|integer[])? Omitting this unpins the current buf.
 function bufpin.unpin(bufnr)
-  local current_bufnr = vim.fn.bufnr()
-  bufnr = bufnr or current_bufnr
   local h = require("bufpin.helpers")
-  h.unpin_by_bufnr(bufnr)
-  if current_bufnr == bufnr then
-    h.state.ghost_bufnr = bufnr
+  local current_bufnr = vim.fn.bufnr()
+  for _, unpinned_bufnr in ipairs(h.to_bufnr_list(bufnr)) do
+    h.unpin_by_bufnr(unpinned_bufnr)
+    if current_bufnr == unpinned_bufnr then
+      h.state.ghost_bufnr = unpinned_bufnr
+    end
   end
   bufpin.refresh_tabline()
 end
@@ -306,14 +296,8 @@ function bufpin.toggle(bufnr)
   bufpin.refresh_tabline()
 end
 
---- Remove a buf either by deleting it or wiping it out. This function obeys the
---- config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
---- When no bufnr is provided, the current buf is attempted to be removed.
----@param bufnr integer?
-function bufpin.remove(bufnr)
-  if not bufnr or bufnr == 0 then
-    bufnr = vim.fn.bufnr()
-  end
+-- Remove one buf, as `bufpin.remove()` does, minus the tabline refresh.
+local function remove_buf(bufnr)
   local h = require("bufpin.helpers")
 
   local force = vim.bo[bufnr].modified
@@ -342,6 +326,17 @@ function bufpin.remove(bufnr)
     require("mini.bufremove")[operation](bufnr, force)
   else
     vim.cmd(bufnr .. "b" .. operation .. (force and "!" or ""))
+  end
+end
+
+--- Remove the current buf, the provided buf or the provided list of bufs,
+--- either by deleting them or wiping them out. This function obeys the config
+--- |bufpin.config.remove_with|. Use this function to remove pinned bufs.
+---@param bufnr (integer|integer[])? Omitting this removes the current buf.
+function bufpin.remove(bufnr)
+  local h = require("bufpin.helpers")
+  for _, removed_bufnr in ipairs(h.to_bufnr_list(bufnr)) do
+    remove_buf(removed_bufnr)
   end
   bufpin.refresh_tabline()
 end
@@ -449,29 +444,6 @@ end
 ---@return integer[]
 function bufpin.get_pinned_bufs()
   return vim.deepcopy(require("bufpin.helpers").state.pinned_bufnrs)
-end
-
---- Replace the pinned bufs with the given list, in the given order. Each item is
---- either a bufnr or a file path; a file path without a buf gets one added
---- (|bufadd()|). Duplicates are dropped, keeping the leftmost occurrence.
----
---- All items are validated before anything is set, so a rejected item leaves the
---- pinned bufs untouched instead of half applied. An item is rejected when it is
---- a bufnr of a non-existent buf, a path of a non-readable file or a buf which
---- |bufpin.pin()| would ignore (see |bufpin.config.exclude|).
----@param bufs (integer|string)[] Bufnrs and/or file paths.
----@return boolean # Whether the pinned bufs were set.
-function bufpin.set_pinned_bufs(bufs)
-  local h = require("bufpin.helpers")
-  local resolved, error = h.resolve_pin_items(bufs, bufpin.config.exclude)
-  if resolved == nil then
-    h.print_user_error(error)
-    return false
-  end
-  h.state.pinned_bufnrs = h.to_bufnrs(resolved)
-  h.sync_ghost_buf_with_pinned_bufs(bufpin.config.exclude)
-  bufpin.refresh_tabline()
-  return true
 end
 
 --- Get the bufs of the tabline (pinned bufs, then ghost buf), in the order they

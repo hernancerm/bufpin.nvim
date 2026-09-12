@@ -186,9 +186,10 @@ Parameters ~
 
                                                                 *bufpin.unpin()*
                             `bufpin.unpin`({bufnr})
-Unpin the current buf or the provided buf.
+Unpin the current buf, the provided buf or the provided list of bufs. Unpin
+all of them with the output of |bufpin.get_pinned_bufs()|.
 Parameters ~
-{bufnr} `(integer?)`
+{bufnr} `((integer|integer[])?)` Omitting this unpins the current buf.
 
                                                                *bufpin.toggle()*
                             `bufpin.toggle`({bufnr})
@@ -198,11 +199,11 @@ Parameters ~
 
                                                                *bufpin.remove()*
                             `bufpin.remove`({bufnr})
-Remove a buf either by deleting it or wiping it out. This function obeys the
-config |bufpin.config.remove_with|. Use this function to remove pinned bufs.
-When no bufnr is provided, the current buf is attempted to be removed.
+Remove the current buf, the provided buf or the provided list of bufs,
+either by deleting them or wiping them out. This function obeys the config
+|bufpin.config.remove_with|. Use this function to remove pinned bufs.
 Parameters ~
-{bufnr} `(integer?)`
+{bufnr} `((integer|integer[])?)` Omitting this removes the current buf.
 
                                                          *bufpin.move_to_left()*
                          `bufpin.move_to_left`({bufnr})
@@ -241,21 +242,6 @@ Get all the pinned bufs. This is a copy, so mutating it does not change the
 pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
 Return ~
 `(integer[])`
-
-                                                      *bufpin.set_pinned_bufs()*
-                        `bufpin.set_pinned_bufs`({bufs})
-Replace the pinned bufs with the given list, in the given order. Each item is
-either a bufnr or a file path; a file path without a buf gets one added
-(|bufadd()|). Duplicates are dropped, keeping the leftmost occurrence.
-
-All items are validated before anything is set, so a rejected item leaves the
-pinned bufs untouched instead of half applied. An item is rejected when it is
-a bufnr of a non-existent buf, a path of a non-readable file or a buf which
-|bufpin.pin()| would ignore (see |bufpin.config.exclude|).
-Parameters ~
-{bufs} `((integer|string)[])` Bufnrs and/or file paths.
-Return ~
-`(boolean)` Whether the pinned bufs were set.
 
                                                      *bufpin.get_tabline_bufs()*
                           `bufpin.get_tabline_bufs`()
