@@ -745,6 +745,10 @@ function h.resolve_pin_items(items, config_exclude)
   return resolved, nil
 end
 
+function h.list_buf(bufnr)
+  vim.bo[bufnr].buflisted = true
+end
+
 --- Turn resolved items into bufnrs, adding a buf per path which has none yet.
 --- Duplicates are dropped, keeping the leftmost occurrence.
 ---@param resolved ResolvedPinItem[]
@@ -757,6 +761,7 @@ function h.to_bufnrs(resolved)
       bufnr = vim.fn.bufadd(item)
     end
     if h.table_find_index(bufnrs, bufnr) == nil then
+      h.list_buf(bufnr)
       table.insert(bufnrs, bufnr)
     end
   end
@@ -782,6 +787,7 @@ end
 function h.pin_by_bufnr(bufnr)
   local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
   if bufnr_index == nil then
+    h.list_buf(bufnr)
     table.insert(h.state.pinned_bufnrs, bufnr)
   end
 end
