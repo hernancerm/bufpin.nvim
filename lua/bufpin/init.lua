@@ -236,19 +236,46 @@ bufpin.default_config = {
 --- #tag bufpin-functions
 --- Functions ~
 
---- Pin the current buf or the provided buf.
----@param bufnr integer?
-function bufpin.pin(bufnr)
+--- Pin the current buf, the provided buf or the provided list of bufs.
+---@param bufnr (integer|integer[])? Omitting this pins the current buf.
+---@param opts table? Keys:
+--- • ask_above (`integer`) Default: 5. Ask for confirmation when attempting to
+---   pin above this amount of buffers.
+function bufpin.pin(bufnr, opts)
   local h = require("bufpin.helpers")
   local current_bufnr = vim.fn.bufnr()
-  bufnr = bufnr or current_bufnr
-  if h.should_exclude_from_pin(bufnr, bufpin.config.exclude) then
+  local requested_bufnrs
+  if type(bufnr) == "table" then
+    requested_bufnrs = bufnr
+  else
+    requested_bufnrs = { bufnr or current_bufnr }
+  end
+  local ask_above = (opts or {}).ask_above or 5
+  vim.validate("opts.ask_above", ask_above, "number")
+  local bufnrs = {}
+  for _, requested_bufnr in ipairs(requested_bufnrs) do
+    if
+      not h.should_exclude_from_pin(requested_bufnr, bufpin.config.exclude)
+      and h.table_find_index(bufnrs, requested_bufnr) == nil
+    then
+      table.insert(bufnrs, requested_bufnr)
+    end
+  end
+  if #bufnrs == 0 then
     return
   end
-  if current_bufnr == bufnr and h.state.ghost_bufnr == bufnr then
-    h.state.ghost_bufnr = nil
+  if #bufnrs > ask_above then
+    local prompt = "Pin " .. #bufnrs .. " bufs?"
+    if vim.fn.confirm(prompt, "&No\n&Yes", 1, "Question") ~= 2 then
+      return
+    end
   end
-  h.pin_by_bufnr(bufnr)
+  for _, pinned_bufnr in ipairs(bufnrs) do
+    if current_bufnr == pinned_bufnr and h.state.ghost_bufnr == pinned_bufnr then
+      h.state.ghost_bufnr = nil
+    end
+    h.pin_by_bufnr(pinned_bufnr)
+  end
   bufpin.refresh_tabline()
 end
 

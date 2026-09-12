@@ -176,10 +176,13 @@ Highlight groups ~
 Functions ~
 
                                                                   *bufpin.pin()*
-                             `bufpin.pin`({bufnr})
-Pin the current buf or the provided buf.
+                         `bufpin.pin`({bufnr}, {opts})
+Pin the current buf, the provided buf or the provided list of bufs.
 Parameters ~
-{bufnr} `(integer?)`
+{bufnr} `((integer|integer[])?)` Omitting this pins the current buf.
+{opts} `(table?)` Keys:
+• ask_above (`integer`) Default: 5. Ask for confirmation when attempting to
+  pin above this amount of buffers.
 
                                                                 *bufpin.unpin()*
                             `bufpin.unpin`({bufnr})
