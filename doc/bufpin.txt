@@ -100,8 +100,8 @@ Default config:
 When true and there are no pinned bufs, hide the tabline.
 
                                                          *bufpin.config.exclude*
-`(fun(bufnr:integer):boolean)`
-When the function returns true, the buf (`bufnr`) is ignored. This means that
+`(fun(buf:integer):boolean)`
+When the function returns true, the buf (`buf`) is ignored. This means that
 the buf is not displayed in the tabline and calling |bufpin.pin()| on it has
 no effect. Some bufs are excluded regardless of this opt: bufs without a
 name ([No Name]), Vim help files, man pages, detected plugin bufs (e.g.,
@@ -176,48 +176,46 @@ Highlight groups ~
 Functions ~
 
                                                                   *bufpin.pin()*
-                         `bufpin.pin`({bufnr}, {opts})
+                          `bufpin.pin`({buf}, {opts})
 Pin the current buf, the provided buf or the provided list of bufs.
 Parameters ~
-{bufnr} `((integer|integer[])?)` Omitting this pins the current buf.
+{buf} `((integer|integer[])?)` Omitting this pins the current buf.
 {opts} `(table?)` Keys:
 • ask_above (`integer`) Default: 5. Ask for confirmation when attempting to
   pin above this amount of buffers.
 
                                                                 *bufpin.unpin()*
-                            `bufpin.unpin`({bufnr})
+                             `bufpin.unpin`({buf})
 Unpin the current buf, the provided buf or the provided list of bufs. Unpin
 all of them with the output of |bufpin.get_pinned_bufs()|.
 Parameters ~
-{bufnr} `((integer|integer[])?)` Omitting this unpins the current buf.
+{buf} `((integer|integer[])?)` Omitting this unpins the current buf.
 
                                                                *bufpin.toggle()*
-                            `bufpin.toggle`({bufnr})
+                             `bufpin.toggle`({buf})
 Toggle the pin state of the current buf or the provided buf.
 Parameters ~
-{bufnr} `(integer?)`
+{buf} `(integer?)` Omitting this toggles the current buf.
 
                                                                *bufpin.remove()*
-                            `bufpin.remove`({bufnr})
+                             `bufpin.remove`({buf})
 Remove the current buf, the provided buf or the provided list of bufs,
 either by deleting them or wiping them out. This function obeys the config
 |bufpin.config.remove_with|. Use this function to remove pinned bufs.
 Parameters ~
-{bufnr} `((integer|integer[])?)` Omitting this removes the current buf.
+{buf} `((integer|integer[])?)` Omitting this removes the current buf.
 
                                                          *bufpin.move_to_left()*
-                         `bufpin.move_to_left`({bufnr})
+                          `bufpin.move_to_left`({buf})
 Move a buffer one step to the left in the list of pinned buffers.
-When no bufnr is provided, the current buf is attempted to be moved.
 Parameters ~
-{bufnr} `(integer?)`
+{buf} `(integer?)` Omitting this moves the current buf.
 
                                                         *bufpin.move_to_right()*
-                        `bufpin.move_to_right`({bufnr})
+                         `bufpin.move_to_right`({buf})
 Move a buffer one step to the right in the list of pinned buffers.
-When no bufnr is provided, the current buf is attempted to be moved.
 Parameters ~
-{bufnr} `(integer?)`
+{buf} `(integer?)` Omitting this moves the current buf.
 
                                                             *bufpin.edit_left()*
                               `bufpin.edit_left`()

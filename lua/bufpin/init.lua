@@ -161,8 +161,8 @@ bufpin.default_config = {
 --- When true and there are no pinned bufs, hide the tabline.
 
 --- #tag bufpin.config.exclude
---- `(fun(bufnr:integer):boolean)`
---- When the function returns true, the buf (`bufnr`) is ignored. This means that
+--- `(fun(buf:integer):boolean)`
+--- When the function returns true, the buf (`buf`) is ignored. This means that
 --- the buf is not displayed in the tabline and calling |bufpin.pin()| on it has
 --- no effect. Some bufs are excluded regardless of this opt: bufs without a
 --- name ([No Name]), Vim help files, man pages, detected plugin bufs (e.g.,
@@ -237,18 +237,18 @@ bufpin.default_config = {
 --- Functions ~
 
 --- Pin the current buf, the provided buf or the provided list of bufs.
----@param bufnr (integer|integer[])? Omitting this pins the current buf.
+---@param buf (integer|integer[])? Omitting this pins the current buf.
 ---@param opts table? Keys:
 --- • ask_above (`integer`) Default: 5. Ask for confirmation when attempting to
 ---   pin above this amount of buffers.
-function bufpin.pin(bufnr, opts)
+function bufpin.pin(buf, opts)
   local h = require("bufpin.helpers")
   local current_bufnr = vim.fn.bufnr()
   local ask_above = (opts or {}).ask_above or 5
   vim.validate("opts.ask_above", ask_above, "number")
   local bufnrs = vim.tbl_filter(function(pin_bufnr)
     return not h.should_exclude_from_pin(pin_bufnr, bufpin.config.exclude)
-  end, h.to_bufnr_list(bufnr))
+  end, h.to_bufnr_list(buf))
   if #bufnrs == 0 then
     return
   end
@@ -269,11 +269,11 @@ end
 
 --- Unpin the current buf, the provided buf or the provided list of bufs. Unpin
 --- all of them with the output of |bufpin.get_pinned_bufs()|.
----@param bufnr (integer|integer[])? Omitting this unpins the current buf.
-function bufpin.unpin(bufnr)
+---@param buf (integer|integer[])? Omitting this unpins the current buf.
+function bufpin.unpin(buf)
   local h = require("bufpin.helpers")
   local current_bufnr = vim.fn.bufnr()
-  for _, unpinned_bufnr in ipairs(h.to_bufnr_list(bufnr)) do
+  for _, unpinned_bufnr in ipairs(h.to_bufnr_list(buf)) do
     h.unpin_by_bufnr(unpinned_bufnr)
     if current_bufnr == unpinned_bufnr then
       h.state.ghost_bufnr = unpinned_bufnr
@@ -283,15 +283,15 @@ function bufpin.unpin(bufnr)
 end
 
 --- Toggle the pin state of the current buf or the provided buf.
----@param bufnr integer?
-function bufpin.toggle(bufnr)
-  bufnr = bufnr or vim.fn.bufnr()
+---@param buf integer? Omitting this toggles the current buf.
+function bufpin.toggle(buf)
+  buf = buf or vim.fn.bufnr()
   local h = require("bufpin.helpers")
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
   if bufnr_index ~= nil then
-    bufpin.unpin(bufnr)
+    bufpin.unpin(buf)
   else
-    bufpin.pin(bufnr)
+    bufpin.pin(buf)
   end
   bufpin.refresh_tabline()
 end
@@ -332,46 +332,44 @@ end
 --- Remove the current buf, the provided buf or the provided list of bufs,
 --- either by deleting them or wiping them out. This function obeys the config
 --- |bufpin.config.remove_with|. Use this function to remove pinned bufs.
----@param bufnr (integer|integer[])? Omitting this removes the current buf.
-function bufpin.remove(bufnr)
+---@param buf (integer|integer[])? Omitting this removes the current buf.
+function bufpin.remove(buf)
   local h = require("bufpin.helpers")
-  for _, removed_bufnr in ipairs(h.to_bufnr_list(bufnr)) do
+  for _, removed_bufnr in ipairs(h.to_bufnr_list(buf)) do
     remove_buf(removed_bufnr)
   end
   bufpin.refresh_tabline()
 end
 
 --- Move a buffer one step to the left in the list of pinned buffers.
---- When no bufnr is provided, the current buf is attempted to be moved.
----@param bufnr integer?
-function bufpin.move_to_left(bufnr)
+---@param buf integer? Omitting this moves the current buf.
+function bufpin.move_to_left(buf)
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  bufnr = bufnr or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  buf = buf or vim.fn.bufnr()
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
   if bufnr_index ~= nil and bufnr_index > 1 then
     local swap = h.state.pinned_bufnrs[bufnr_index - 1]
-    h.state.pinned_bufnrs[bufnr_index - 1] = bufnr
+    h.state.pinned_bufnrs[bufnr_index - 1] = buf
     h.state.pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
 end
 
 --- Move a buffer one step to the right in the list of pinned buffers.
---- When no bufnr is provided, the current buf is attempted to be moved.
----@param bufnr integer?
-function bufpin.move_to_right(bufnr)
+---@param buf integer? Omitting this moves the current buf.
+function bufpin.move_to_right(buf)
   local h = require("bufpin.helpers")
   if #h.state.pinned_bufnrs == 0 then
     return
   end
-  bufnr = bufnr or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  buf = buf or vim.fn.bufnr()
+  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
   if bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufnrs then
     local swap = h.state.pinned_bufnrs[bufnr_index + 1]
-    h.state.pinned_bufnrs[bufnr_index + 1] = bufnr
+    h.state.pinned_bufnrs[bufnr_index + 1] = buf
     h.state.pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
