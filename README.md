@@ -114,6 +114,50 @@ require("bufpin").setup({
 
 Please refer to the help file: [bufpin.txt](./doc/bufpin.txt).
 
+## Recipes
+
+Add quickfix bufs to the list of pinned bufs:
+
+```lua
+local bufpin = require("bufpin")
+vim.keymap.set("n", "<Leader>P", function()
+  local bufnrs = vim
+    .iter(vim.fn.getqflist())
+    :map(function(item)
+      return item.bufnr
+    end)
+    :filter(function(bufnr)
+      return bufnr > 0
+    end)
+    :totable()
+  if #bufnrs == 0 then
+    vim.notify("No bufs in the quickfix list.", vim.log.levels.WARN)
+    return
+  end
+  bufpin.pin(bufnrs)
+end, opts)
+```
+
+Remove all tabline bufs except current:
+
+```lua
+local bufpin = require("bufpin")
+vim.keymap.set("n", "<Leader>W", function()
+  if #bufpin.get_pinned_bufs() == 0 then
+    return
+  end
+  local cur_buf = vim.fn.bufnr()
+  bufpin.remove(vim.iter(bufpin.get_tabline_bufs())
+    :filter(function(bufnr)
+      return bufnr ~= cur_buf
+    end)
+    :totable())
+  if cur_buf == bufpin.get_ghost_buf() then
+    bufpin.pin()
+  end
+end, opts)
+```
+
 ## JetBrains IDEs
 
 To get a similar experience in JetBrains IDEs follow these instructions:
