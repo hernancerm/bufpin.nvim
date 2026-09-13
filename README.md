@@ -58,7 +58,7 @@ Suggested complementary plugins:
 
 ## Requirements
 
-- Neovim >= 0.11.0
+- Neovim >= 0.12.0
 - Git (optional)
 
 ## Installation
