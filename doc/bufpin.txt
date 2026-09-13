@@ -229,10 +229,10 @@ No-op when the current win has 'winfixbuf' set.
 
                                                         *bufpin.edit_by_index()*
                         `bufpin.edit_by_index`({index})
-Parameters ~
-{index} `(integer)` Index of a buf as drawn in the tabline, i.e., the pinned
-bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
+Edit tabline buf by index, starting at 1; 0 is last.
 No-op when the current win has 'winfixbuf' set.
+Parameters ~
+{index} `(integer)` Index of a buf in |bufpin.get_tabline_bufs()|.
 
                                                       *bufpin.get_pinned_bufs()*
                            `bufpin.get_pinned_bufs`()

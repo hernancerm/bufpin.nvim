@@ -422,15 +422,18 @@ function bufpin.edit_right()
   bufpin.refresh_tabline()
 end
 
----@param index integer Index of a buf as drawn in the tabline, i.e., the pinned
---- bufs in the order of |bufpin.get_pinned_bufs()| followed by the ghost buf.
+--- Edit tabline buf by index, starting at 1; 0 is last.
 --- No-op when the current win has 'winfixbuf' set.
+---@param index integer Index of a buf in |bufpin.get_tabline_bufs()|.
 function bufpin.edit_by_index(index)
   if is_buf_fixed_to_win() then
     return
   end
   local h = require("bufpin.helpers")
   local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
+  if index == 0 then
+    index = #tracked_bufnrs
+  end
   if tracked_bufnrs[index] ~= nil then
     vim.cmd("buffer " .. tracked_bufnrs[index])
   end

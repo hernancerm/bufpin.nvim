@@ -72,16 +72,20 @@ vim.pack.add({
 })
 
 local opts = { silent = true }
-vim.keymap.set("n", "<Leader>p", ":lua Bufpin.toggle()<CR>",         opts)
-vim.keymap.set("n", "<Leader>w", ":lua Bufpin.remove()<CR>",         opts)
-vim.keymap.set("n", "<Up>",      ":lua Bufpin.edit_left()<CR>",      opts)
-vim.keymap.set("n", "<Down>",    ":lua Bufpin.edit_right()<CR>",     opts)
-vim.keymap.set("n", "<Left>",    ":lua Bufpin.move_to_left()<CR>",   opts)
-vim.keymap.set("n", "<Right>",   ":lua Bufpin.move_to_right()<CR>",  opts)
-vim.keymap.set("n", "<F1>",      ":lua Bufpin.edit_by_index(1)<CR>", opts)
-vim.keymap.set("n", "<F2>",      ":lua Bufpin.edit_by_index(2)<CR>", opts)
-vim.keymap.set("n", "<F3>",      ":lua Bufpin.edit_by_index(3)<CR>", opts)
-vim.keymap.set("n", "<F4>",      ":lua Bufpin.edit_by_index(4)<CR>", opts)
+vim.keymap.set("n",  "<Up>",       ":lua Bufpin.edit_left()<CR>",       opts)
+vim.keymap.set("n",  "<Down>",     ":lua Bufpin.edit_right()<CR>",      opts)
+vim.keymap.set("n",  "<Left>",     ":lua Bufpin.move_to_left()<CR>",    opts)
+vim.keymap.set("n",  "<Right>",    ":lua Bufpin.move_to_right()<CR>",   opts)
+vim.keymap.set("n",  "<Leader>1",  ":lua Bufpin.edit_by_index(1)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>2",  ":lua Bufpin.edit_by_index(2)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>3",  ":lua Bufpin.edit_by_index(3)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>4",  ":lua Bufpin.edit_by_index(4)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>5",  ":lua Bufpin.edit_by_index(5)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>6",  ":lua Bufpin.edit_by_index(6)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>7",  ":lua Bufpin.edit_by_index(7)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>8",  ":lua Bufpin.edit_by_index(8)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>9",  ":lua Bufpin.edit_by_index(9)<CR>",  opts)
+vim.keymap.set("n",  "<Leader>0",  ":lua Bufpin.edit_by_index(0)<CR>",  opts)
 ```
 
 Some things to notice:
@@ -167,16 +171,22 @@ To get a similar experience in JetBrains IDEs follow these instructions:
   key maps of this plugin:
 
 ```vim
-nmap     <Space>p <Action>(PinActiveEditorTab)
-nmap     <Space>w <Action>(CloseContent)
-nmap     <Up>     <Action>(PreviousTab)
-nmap     <Down>   <Action>(NextTab)
-nnoremap <Left>   :tabmove -1<CR>
-nnoremap <Right>  :tabmove +1<CR>
-nmap     <F1>     <Action>(GoToTab1)
-nmap     <F2>     <Action>(GoToTab2)
-nmap     <F3>     <Action>(GoToTab3)
-nmap     <F4>     <Action>(GoToTab4)
+nmap      <Space>p  <Action>(PinActiveEditorTab)
+nmap      <Space>w  <Action>(CloseContent)
+nmap      <Up>      <Action>(PreviousTab)
+nmap      <Down>    <Action>(NextTab)
+nnoremap  <Left>    :tabmove -1<CR>
+nnoremap  <Right>   :tabmove +1<CR>
+nmap      <Space>1  <Action>(GoToTab1)
+nmap      <Space>2  <Action>(GoToTab2)
+nmap      <Space>3  <Action>(GoToTab3)
+nmap      <Space>4  <Action>(GoToTab4)
+nmap      <Space>5  <Action>(GoToTab5)
+nmap      <Space>6  <Action>(GoToTab6)
+nmap      <Space>7  <Action>(GoToTab7)
+nmap      <Space>8  <Action>(GoToTab8)
+nmap      <Space>9  <Action>(GoToTab9)
+nmap      <Space>0  <Action>(GoToLastTab)
 ```
 
 ## Inspiration
