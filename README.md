@@ -38,11 +38,11 @@ editor, but the distinction is that the bufs are all **manually tracked**.
 
 - Display the pinned bufs and the vim tabpages in the tabline.
 - Display a "ghost buf" in the tabline, i.e., the last visited non-pinned pin-able buf.
-- Mouse support to left-click to edit buf and middle-click to remove buf (also works on vim tabpages).
 - Store the pinned bufs in session (`:mksession`) if `vim.opt.ssop:append("globals")`.
+- Mouse support to left-click to edit buf and middle-click to remove buf (also works on vim tabpages).
 - Mouse support to re-order the pinned bufs and the vim tabpages by dragging them.
-- Mouse support to double-left-click a buf in the tabline to pin it.
 - Auto-hide the tabline when there are no pinned bufs.
+- Mouse support to double-left-click a buf in the tabline to pin it.
 - Git integration showing git status per tabline buf.
 - Expose an API to track the pinned bufs.
 - Show file type icons.
