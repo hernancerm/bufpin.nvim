@@ -475,13 +475,8 @@ function bufpin.refresh_tabline(force)
   h.prune_invalid_ghost_buf_from_state()
   h.prune_invalid_pinned_bufs_from_state()
   h.prune_invalid_visit_order_from_state()
-  local pinned_bufs = h.normalize_pinned_bufs()
-  tabline = tabline
-    .. h.build_tabline(
-      pinned_bufs,
-      bufpin.config.icons_style,
-      bufpin.config.ghost_buf_enabled
-    )
+  local tabline_bufs = h.normalize_tabline_bufs(bufpin.config.ghost_buf_enabled)
+  tabline = tabline .. h.build_tabline(tabline_bufs, bufpin.config.icons_style)
   vim.o.tabline = tabline
   if bufpin.config.auto_hide_tabline then
     h.show_tabline()

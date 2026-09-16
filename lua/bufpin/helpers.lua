@@ -1,10 +1,11 @@
 local h = {}
 
----@class PinnedBuf
+---@class TablineBuf
 ---@field bufnr integer
 ---@field basename string
 ---@field differentiator string?
 ---@field selected boolean
+---@field is_ghost boolean
 
 ---@param config_use_mini_bufremove boolean
 ---@return boolean
@@ -232,48 +233,29 @@ function h.get_display_width(tabline)
   return vim.fn.strdisplaywidth(visible)
 end
 
---- Build the drawable items for the tabline: the pinned bufs followed by the
---- ghost buf (when applicable). Each item carries its display width so the
---- tabline can be windowed to fit the available space.
----@param pinned_bufs PinnedBuf[]
+--- Build the drawable items for the tabline. Each item carries its display
+--- width so the tabline can be windowed to fit the available space.
+---@param tabline_bufs TablineBuf[]
 ---@param config_icons_style string
----@param config_ghost_buf_enabled boolean
 ---@return TablineItem[]
-function h.build_tabline_items(
-  pinned_bufs,
-  config_icons_style,
-  config_ghost_buf_enabled
-)
-  local pinned_bufs_by_bufnr = {}
-  for _, pinned_buf in ipairs(pinned_bufs) do
-    pinned_bufs_by_bufnr[pinned_buf.bufnr] = pinned_buf
-  end
+function h.build_tabline_items(tabline_bufs, config_icons_style)
   local items = {}
-  for _, bufnr in ipairs(h.get_tabline_bufs(config_ghost_buf_enabled)) do
-    local pinned_buf = pinned_bufs_by_bufnr[bufnr]
-    local basename, selected
-    if pinned_buf ~= nil then
-      basename = pinned_buf.basename
-      if pinned_buf.differentiator ~= nil then
-        basename = pinned_buf.differentiator .. "/" .. basename
-      end
-      selected = pinned_buf.selected
-    else
-      basename = vim.fs.basename(vim.api.nvim_buf_get_name(bufnr))
-      selected = bufnr == vim.fn.bufnr()
+  for _, tabline_buf in ipairs(tabline_bufs) do
+    local basename = tabline_buf.basename
+    if tabline_buf.differentiator ~= nil then
+      basename = tabline_buf.differentiator .. "/" .. basename
     end
-    local is_ghost_buf = pinned_buf == nil
     local render = h.build_tabline_buf(
-      bufnr,
+      tabline_buf.bufnr,
       basename,
-      selected,
-      is_ghost_buf,
+      tabline_buf.selected,
+      tabline_buf.is_ghost,
       config_icons_style
     )
     table.insert(items, {
       render = render,
       width = h.get_display_width(render),
-      selected = selected,
+      selected = tabline_buf.selected,
     })
   end
   return items
@@ -508,20 +490,11 @@ function h.on_tabline_tabpage_drag()
   require("bufpin").refresh_tabline()
 end
 
----@param pinned_bufs PinnedBuf[]
+---@param tabline_bufs TablineBuf[]
 ---@param config_icons_style string
----@param config_ghost_buf_enabled boolean
 ---@return string
-function h.build_tabline(
-  pinned_bufs,
-  config_icons_style,
-  config_ghost_buf_enabled
-)
-  local items = h.build_tabline_items(
-    pinned_bufs,
-    config_icons_style,
-    config_ghost_buf_enabled
-  )
+function h.build_tabline(tabline_bufs, config_icons_style)
+  local items = h.build_tabline_items(tabline_bufs, config_icons_style)
   local vim_tabpages = h.build_tabline_vim_tabpages()
   -- The tabline spans the whole editor width. Reserve room for the vim tabpages
   -- section, which is right-aligned via `%=`.
@@ -745,59 +718,60 @@ function h.show_tabline()
   end
 end
 
--- TODO: Consider ghost buf to differentiate repeating basenames in tabline.
-
+--- The bufs of the tabline whose basename is shared with another one of them,
+--- e.g., two `init.lua`.
+---@param config_ghost_buf_enabled boolean
 ---@return integer[]
-function h.get_bufnrs_with_repeating_basename()
+function h.get_bufnrs_with_repeating_basename(config_ghost_buf_enabled)
   local basenames_count = {}
   local bufs_with_repeating_basename = {}
-  for _, pinned_buf in ipairs(h.state.pinned_bufnrs) do
-    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+  local tabline_bufs = h.get_tabline_bufs(config_ghost_buf_enabled)
+  for _, bufnr in ipairs(tabline_bufs) do
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(bufnr))
     if basenames_count[basename] == nil then
       basenames_count[basename] = 1
     else
       basenames_count[basename] = basenames_count[basename] + 1
     end
   end
-  for _, pinned_buf in ipairs(h.state.pinned_bufnrs) do
-    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(pinned_buf))
+  for _, bufnr in ipairs(tabline_bufs) do
+    local basename = vim.fs.basename(vim.api.nvim_buf_get_name(bufnr))
     if basenames_count[basename] > 1 then
-      table.insert(bufs_with_repeating_basename, pinned_buf)
+      table.insert(bufs_with_repeating_basename, bufnr)
     end
   end
   return bufs_with_repeating_basename
 end
 
----@return PinnedBuf[]
-function h.normalize_pinned_bufs()
-  local pinned_bufnrs = {}
+--- The drawable description of each tabline buf, in the order they are drawn.
+---@param config_ghost_buf_enabled boolean
+---@return TablineBuf[]
+function h.normalize_tabline_bufs(config_ghost_buf_enabled)
+  local tabline_bufs = {}
   local current_bufnr = vim.fn.bufnr()
-  local bufnrs_with_repeating_basename = h.get_bufnrs_with_repeating_basename()
-  for _, bufnr in ipairs(h.state.pinned_bufnrs) do
+  local bufnrs_with_repeating_basename =
+    h.get_bufnrs_with_repeating_basename(config_ghost_buf_enabled)
+  for _, bufnr in ipairs(h.get_tabline_bufs(config_ghost_buf_enabled)) do
     local full_filename = vim.api.nvim_buf_get_name(bufnr)
+    local differentiator = nil
     if vim.tbl_contains(bufnrs_with_repeating_basename, bufnr) then
-      -- Set differentiator when >1 pinned bufs have the same basename. Use always
+      -- Set differentiator when >1 tabline bufs have the same basename. Use always
       -- the parent directory to attempt to differentiate. This strategy ignores
       -- the rare case of different parent dirs having the same name.
-      local parent_dir = vim.fn.fnamemodify(full_filename, ":h:t")
+      differentiator = vim.fn.fnamemodify(full_filename, ":h:t")
       if vim.fn.fnamemodify(full_filename, ":h") == vim.uv.cwd() then
-        parent_dir = "."
+        differentiator = "."
       end
-      table.insert(pinned_bufnrs, {
-        bufnr = bufnr,
-        basename = vim.fs.basename(full_filename),
-        selected = current_bufnr == bufnr,
-        differentiator = parent_dir,
-      })
-    else
-      table.insert(pinned_bufnrs, {
-        bufnr = bufnr,
-        basename = vim.fs.basename(full_filename),
-        selected = current_bufnr == bufnr,
-      })
     end
+    table.insert(tabline_bufs, {
+      bufnr = bufnr,
+      basename = vim.fs.basename(full_filename),
+      selected = current_bufnr == bufnr,
+      differentiator = differentiator,
+      is_ghost = bufnr == h.state.ghost_bufnr,
+    })
   end
-  return pinned_bufnrs
+  return tabline_bufs
 end
 
 --- The bufs of the tabline (pinned bufs, then the ghost buf), in the order they
