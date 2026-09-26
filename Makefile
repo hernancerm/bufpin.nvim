@@ -5,21 +5,31 @@ MINI_DOC_GENERATE_CMD := $(NVIM_CMD) -u ./scripts/minidoc_init.lua
 # Neovim plugins versions.
 # These are dev dependencies.
 MINI_DOC_GIT_COMMIT := v0.17.0
+MINI_TEST_GIT_COMMIT := v0.17.0
 
 # Check formatting.
 .PHONY: testmft
 testfmt:
-	stylua --check lua/ scripts/
+	stylua --check lua/ scripts/ tests/
 
 # Check docs are up to date.
 .PHONY: testdocs
 testdocs: deps/mini.doc
 	STDOUT=true $(MINI_DOC_GENERATE_CMD) | diff $(HELP_FILE) -
 
+# Run mini.test tests.
+.PHONY: test
+test: deps/mini.test
+	$(NVIM_CMD) -u ./scripts/minimal_init.lua -c "lua MiniTest.run()"
+
+# Run CI checks.
+.PHONY: ci
+ci: testfmt testdocs test
+
 # Format.
 .PHONY: fmt
 fmt:
-	stylua lua/ scripts/
+	stylua lua/ scripts/ tests/
 
 # Update docs.
 .PHONY: docs
@@ -30,4 +40,10 @@ deps/mini.doc:
 	@mkdir -p deps
 	git clone --depth 1 --branch $(MINI_DOC_GIT_COMMIT) \
 	https://github.com/nvim-mini/mini.doc \
+	$@
+
+deps/mini.test:
+	@mkdir -p deps
+	git clone --depth 1 --branch $(MINI_TEST_GIT_COMMIT) \
+	https://github.com/nvim-mini/mini.test \
 	$@

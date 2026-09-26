@@ -1,0 +1,1 @@
+dir_b/same.txt
