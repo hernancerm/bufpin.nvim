@@ -1,3 +1,7 @@
+<a href="https://github.com/hernancerm/bufpin.nvim/actions/workflows/ci.yml" target="_blank">
+  <img src="https://github.com/hernancerm/bufpin.nvim/actions/workflows/ci.yml/badge.svg" />
+</a>
+
 # Bufpin
 
 Pin buffers for quick navigation.
