@@ -117,6 +117,11 @@ function bufpin.setup(config)
   )
   vim.validate("bufpin.config.remove_with", bufpin.config.remove_with, "string")
   vim.validate(
+    "bufpin.config.tabpage_scope_enabled",
+    bufpin.config.tabpage_scope_enabled,
+    "boolean"
+  )
+  vim.validate(
     "bufpin.config.git_status_enabled",
     bufpin.config.git_status_enabled,
     "boolean"
@@ -147,6 +152,7 @@ bufpin.default_config = {
   mouse_drag_reorder = true,
   ghost_buf_enabled = true,
   remove_with = "delete",
+  tabpage_scope_enabled = false,
   git_status_enabled = true,
   git_status_symbols = {
     added = "&",
@@ -211,6 +217,13 @@ bufpin.default_config = {
 --- Set how buf removal is done for both the function |bufpin.remove()| and the
 --- mouse middle click input on a buf in the tabline.
 
+--- #tag bufpin.config.tabpage_scope_enabled
+--- `(boolean)`
+--- When true, each vim tabpage has its own pinned bufs and ghost buf. A new
+--- tabpage starts with none. The functions which act on or return pinned bufs
+--- or the ghost buf use those of the current tabpage. When false, all the vim
+--- tabpages share the same pinned bufs and ghost buf.
+
 --- #tag bufpin.config.git_status_enabled
 --- `(boolean)`
 --- When true, draw a symbol next to the name of each tabline buf which is dirty
@@ -259,8 +272,11 @@ function bufpin.pin(buf, opts)
     end
   end
   for _, pinned_bufnr in ipairs(bufnrs) do
-    if current_bufnr == pinned_bufnr and h.state.ghost_bufnr == pinned_bufnr then
-      h.state.ghost_bufnr = nil
+    if
+      current_bufnr == pinned_bufnr
+      and h.get_scope().ghost_bufnr == pinned_bufnr
+    then
+      h.get_scope().ghost_bufnr = nil
     end
     h.pin_by_bufnr(pinned_bufnr)
   end
@@ -276,7 +292,7 @@ function bufpin.unpin(buf)
   for _, unpinned_bufnr in ipairs(h.to_bufnr_list(buf)) do
     h.unpin_by_bufnr(unpinned_bufnr)
     if current_bufnr == unpinned_bufnr then
-      h.state.ghost_bufnr = unpinned_bufnr
+      h.get_scope().ghost_bufnr = unpinned_bufnr
     end
   end
   bufpin.refresh_tabline()
@@ -287,7 +303,7 @@ end
 function bufpin.toggle(buf)
   buf = buf or vim.fn.bufnr()
   local h = require("bufpin.helpers")
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
+  local bufnr_index = h.table_find_index(h.get_scope().pinned_bufnrs, buf)
   if bufnr_index ~= nil then
     bufpin.unpin(buf)
   else
@@ -345,15 +361,15 @@ end
 ---@param buf integer? Omitting this moves the current buf.
 function bufpin.move_to_left(buf)
   local h = require("bufpin.helpers")
-  if #h.state.pinned_bufnrs == 0 then
+  if #h.get_scope().pinned_bufnrs == 0 then
     return
   end
   buf = buf or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
+  local bufnr_index = h.table_find_index(h.get_scope().pinned_bufnrs, buf)
   if bufnr_index ~= nil and bufnr_index > 1 then
-    local swap = h.state.pinned_bufnrs[bufnr_index - 1]
-    h.state.pinned_bufnrs[bufnr_index - 1] = buf
-    h.state.pinned_bufnrs[bufnr_index] = swap
+    local swap = h.get_scope().pinned_bufnrs[bufnr_index - 1]
+    h.get_scope().pinned_bufnrs[bufnr_index - 1] = buf
+    h.get_scope().pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
 end
@@ -362,15 +378,15 @@ end
 ---@param buf integer? Omitting this moves the current buf.
 function bufpin.move_to_right(buf)
   local h = require("bufpin.helpers")
-  if #h.state.pinned_bufnrs == 0 then
+  if #h.get_scope().pinned_bufnrs == 0 then
     return
   end
   buf = buf or vim.fn.bufnr()
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, buf)
-  if bufnr_index ~= nil and bufnr_index < #h.state.pinned_bufnrs then
-    local swap = h.state.pinned_bufnrs[bufnr_index + 1]
-    h.state.pinned_bufnrs[bufnr_index + 1] = buf
-    h.state.pinned_bufnrs[bufnr_index] = swap
+  local bufnr_index = h.table_find_index(h.get_scope().pinned_bufnrs, buf)
+  if bufnr_index ~= nil and bufnr_index < #h.get_scope().pinned_bufnrs then
+    local swap = h.get_scope().pinned_bufnrs[bufnr_index + 1]
+    h.get_scope().pinned_bufnrs[bufnr_index + 1] = buf
+    h.get_scope().pinned_bufnrs[bufnr_index] = swap
     bufpin.refresh_tabline()
   end
 end
@@ -386,7 +402,7 @@ function bufpin.edit_left()
     return
   end
   local h = require("bufpin.helpers")
-  if #h.state.pinned_bufnrs == 0 then
+  if #h.get_scope().pinned_bufnrs == 0 then
     return
   end
   local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
@@ -408,7 +424,7 @@ function bufpin.edit_right()
     return
   end
   local h = require("bufpin.helpers")
-  if #h.state.pinned_bufnrs == 0 then
+  if #h.get_scope().pinned_bufnrs == 0 then
     return
   end
   local tracked_bufnrs = h.get_tabline_bufs(bufpin.config.ghost_buf_enabled)
@@ -444,7 +460,7 @@ end
 --- pin state. Use |bufpin.pin()| and |bufpin.unpin()| for that.
 ---@return integer[]
 function bufpin.get_pinned_bufs()
-  return vim.deepcopy(require("bufpin.helpers").state.pinned_bufnrs)
+  return vim.deepcopy(require("bufpin.helpers").get_scope().pinned_bufnrs)
 end
 
 --- Get the bufs of the tabline (pinned bufs, then ghost buf), in the order they
@@ -460,7 +476,7 @@ end
 --- Get the ghost buf. Disregards |bufpin.config.ghost_buf_enabled|.
 ---@return integer
 function bufpin.get_ghost_buf()
-  return require("bufpin.helpers").state.ghost_bufnr
+  return require("bufpin.helpers").get_scope().ghost_bufnr
 end
 
 --- Set the option 'tabline'. The tabline is not drawn during a session
@@ -472,6 +488,7 @@ function bufpin.refresh_tabline(force)
     return
   end
   local tabline = ""
+  h.prune_invalid_scopes_from_state()
   h.prune_invalid_ghost_buf_from_state()
   h.prune_invalid_pinned_bufs_from_state()
   h.prune_invalid_visit_order_from_state()
@@ -495,12 +512,14 @@ vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
   group = "Bufpin",
   callback = function(event)
     local h = require("bufpin.helpers")
-    local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, event.buf)
-    if bufnr_index ~= nil then
-      table.remove(h.state.pinned_bufnrs, bufnr_index)
-    end
-    if h.state.ghost_bufnr == event.buf then
-      h.state.ghost_bufnr = nil
+    for _, scope in pairs(h.state.scopes) do
+      local bufnr_index = h.table_find_index(scope.pinned_bufnrs, event.buf)
+      if bufnr_index ~= nil then
+        table.remove(scope.pinned_bufnrs, bufnr_index)
+      end
+      if scope.ghost_bufnr == event.buf then
+        scope.ghost_bufnr = nil
+      end
     end
     h.state.visit_order[event.buf] = nil
   end,
@@ -518,7 +537,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
 
 -- Do 2 things:
 -- 1. Redraw the tabline when switching bufs and wins.
--- 2. Keep accurate the value of `h.state.ghost_bufnr`.
+-- 2. Keep accurate the value of `h.get_scope().ghost_bufnr`.
 vim.api.nvim_create_autocmd({
   "BufEnter",
   "CmdlineLeave",
@@ -535,16 +554,34 @@ vim.api.nvim_create_autocmd({
     local h = require("bufpin.helpers")
     local current_bufnr = vim.fn.bufnr()
     if
-      not vim.tbl_contains(h.state.pinned_bufnrs, current_bufnr)
+      not vim.tbl_contains(h.get_scope().pinned_bufnrs, current_bufnr)
       and not h.should_exclude_from_pin(current_bufnr, bufpin.config.exclude)
     then
-      h.state.ghost_bufnr = current_bufnr
+      h.get_scope().ghost_bufnr = current_bufnr
     end
     -- Use `vim.schedule()` to cover case of `:tabmove`, so refresh happens after
     -- the effect of the command.
     vim.schedule(function()
       bufpin.refresh_tabline()
     end)
+  end,
+})
+
+-- A new tabpage first shows the buf of the previous one, so the autocmd above
+-- makes it the ghost buf even when `:tabnew` then shows [No Name]. Re-set the
+-- ghost buf from the buf the new tabpage ends up showing.
+vim.api.nvim_create_autocmd("TabNewEntered", {
+  group = "Bufpin",
+  callback = function()
+    if not bufpin.config.tabpage_scope_enabled then
+      return
+    end
+    local h = require("bufpin.helpers")
+    local current_bufnr = vim.fn.bufnr()
+    h.get_scope().ghost_bufnr = nil
+    if not h.should_exclude_from_pin(current_bufnr, bufpin.config.exclude) then
+      h.get_scope().ghost_bufnr = current_bufnr
+    end
   end,
 })
 
@@ -596,23 +633,29 @@ vim.api.nvim_create_autocmd("SessionLoadPost", {
   group = "Bufpin",
   callback = function()
     local h = require("bufpin.helpers")
+    h.state.scopes = {}
     if vim.g.BufpinState ~= nil then
-      local decoded_state = vim.json.decode(vim.g.BufpinState)
-      -- Restore `state.pinned_bufnrs`.
-      h.state.pinned_bufnrs = {}
-      local pinned_buf_names = decoded_state.pinned_buf_names
-        -- Alternative for backwards compatibility.
-        or decoded_state.pinned_bufs
-      for _, pinned_buf_name in ipairs(pinned_buf_names) do
-        table.insert(h.state.pinned_bufnrs, vim.fn.bufadd(pinned_buf_name))
+      local keys = { 0 }
+      if bufpin.config.tabpage_scope_enabled then
+        keys = vim.api.nvim_list_tabpages()
       end
-      -- Restore `state.ghost_bufnr`.
-      h.state.ghost_bufnr = nil
-      local ghost_buf_name = decoded_state.ghost_buf_name
-        -- Alternative for backwards compatibility.
-        or decoded_state.ghost_buf
-      if bufpin.config.ghost_buf_enabled and ghost_buf_name ~= nil then
-        h.state.ghost_bufnr = vim.fn.bufadd(ghost_buf_name)
+      -- The saved scopes may not match the scopes to fill, e.g., when saved with a
+      -- different `tabpage_scope_enabled`. The extra ones are dropped.
+      for i, decoded_scope in ipairs(vim.json.decode(vim.g.BufpinState)) do
+        if keys[i] == nil then
+          break
+        end
+        local scope = { pinned_bufnrs = {}, ghost_bufnr = nil }
+        for _, pinned_buf_name in ipairs(decoded_scope.pinned_buf_names) do
+          table.insert(scope.pinned_bufnrs, vim.fn.bufadd(pinned_buf_name))
+        end
+        if
+          bufpin.config.ghost_buf_enabled
+          and decoded_scope.ghost_buf_name ~= nil
+        then
+          scope.ghost_bufnr = vim.fn.bufadd(decoded_scope.ghost_buf_name)
+        end
+        h.state.scopes[keys[i]] = scope
       end
     end
     bufpin.refresh_tabline(true)

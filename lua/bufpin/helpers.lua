@@ -7,37 +7,91 @@ local h = {}
 ---@field selected boolean
 ---@field is_ghost boolean
 
+---@class Scope
+---@field pinned_bufnrs integer[]
+--- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
+--- to nil (or rarely to another buf) on a case-by-case basis per API function.
+---@field ghost_bufnr integer?
+
+--- The key of the current scope in `h.state.scopes`: the current tabpage when
+--- |bufpin.config.tabpage_scope_enabled|, else 0, which no tabpage handle is.
+---@return integer
+function h.get_scope_key()
+  if require("bufpin").config.tabpage_scope_enabled then
+    return vim.api.nvim_get_current_tabpage()
+  end
+  return 0
+end
+
+--- The pinned bufs and ghost buf of the current scope. A new tabpage starts
+--- with an empty scope.
+---@return Scope
+function h.get_scope()
+  local key = h.get_scope_key()
+  if h.state.scopes[key] == nil then
+    h.state.scopes[key] = { pinned_bufnrs = {}, ghost_bufnr = nil }
+  end
+  return h.state.scopes[key]
+end
+
+--- Drop the scopes not in use: those of closed tabpages, and those of the other
+--- value of |bufpin.config.tabpage_scope_enabled|.
+function h.prune_invalid_scopes_from_state()
+  local tabpage_scope_enabled = require("bufpin").config.tabpage_scope_enabled
+  for key, _ in pairs(h.state.scopes) do
+    local is_valid = key == 0
+    if tabpage_scope_enabled then
+      is_valid = key ~= 0 and vim.api.nvim_tabpage_is_valid(key)
+    end
+    if not is_valid then
+      h.state.scopes[key] = nil
+    end
+  end
+end
+
 ---@param config_use_mini_bufremove boolean
 ---@return boolean
 function h.should_use_mini_bufremove(config_use_mini_bufremove)
   return config_use_mini_bufremove and h.has_mini_bufremove()
 end
 
---- For session persistence. Store state in `vim.g.BufpinState`. Deserialize in
---- the autocmd event `SessionLoadPost.` In `pinned_bufs`, full file names are
---- serialized. Note: Neovim has no `SessionWritePre` event:
+--- For session persistence. Store state in `vim.g.BufpinState`, as a list of
+--- scopes: one per tabpage in tab number order when
+--- |bufpin.config.tabpage_scope_enabled|, else a single one. Deserialize in the
+--- autocmd event `SessionLoadPost`. Bufs are serialized as full file names.
+--- Note: Neovim has no `SessionWritePre` event:
 --- <https://github.com/neovim/neovim/issues/22814>.
 ---@param config_ghost_buf_enabled boolean
 function h.serialize_state(config_ghost_buf_enabled)
-  local state = {
-    pinned_buf_names = vim
-      .iter(h.state.pinned_bufnrs)
-      :filter(function(bufnr)
-        return vim.fn.bufexists(bufnr) == 1
-      end)
-      :map(function(bufnr)
-        return vim.api.nvim_buf_get_name(bufnr)
-      end)
-      :totable(),
-  }
-  if
-    config_ghost_buf_enabled
-    and h.state.ghost_bufnr ~= nil
-    and vim.fn.bufexists(h.state.ghost_bufnr) == 1
-  then
-    state.ghost_buf_name = vim.api.nvim_buf_get_name(h.state.ghost_bufnr)
+  local keys = { 0 }
+  if require("bufpin").config.tabpage_scope_enabled then
+    keys = vim.api.nvim_list_tabpages()
   end
-  vim.g.BufpinState = vim.json.encode(state)
+  local scopes = {}
+  for _, key in ipairs(keys) do
+    local scope = h.state.scopes[key] or { pinned_bufnrs = {}, ghost_bufnr = nil }
+    local serialized_scope = {
+      pinned_buf_names = vim
+        .iter(scope.pinned_bufnrs)
+        :filter(function(bufnr)
+          return vim.fn.bufexists(bufnr) == 1
+        end)
+        :map(function(bufnr)
+          return vim.api.nvim_buf_get_name(bufnr)
+        end)
+        :totable(),
+    }
+    if
+      config_ghost_buf_enabled
+      and scope.ghost_bufnr ~= nil
+      and vim.fn.bufexists(scope.ghost_bufnr) == 1
+    then
+      serialized_scope.ghost_buf_name =
+        vim.api.nvim_buf_get_name(scope.ghost_bufnr)
+    end
+    table.insert(scopes, serialized_scope)
+  end
+  vim.g.BufpinState = vim.json.encode(scopes)
 end
 
 --- Escape text for literal display in the tabline. A `%` in a file name would
@@ -431,13 +485,14 @@ function h.on_tabline_buf_drag()
   if mousepos.screenrow ~= 1 then
     return
   end
-  local drag_index = h.table_find_index(h.state.pinned_bufnrs, h.state.drag_bufnr)
+  local drag_index =
+    h.table_find_index(h.get_scope().pinned_bufnrs, h.state.drag_bufnr)
   local target = h.get_item_at_col(h.state.tabline_item_cols, mousepos.screencol)
   if
     -- The ghost buf can neither be dragged nor be a drop target.
     drag_index == nil
     or target == nil
-    or target.index > #h.state.pinned_bufnrs
+    or target.index > #h.get_scope().pinned_bufnrs
     or target.index == drag_index
   then
     return
@@ -454,8 +509,8 @@ function h.on_tabline_buf_drag()
   if target.index < drag_index and mousepos.screencol >= target_mid then
     return
   end
-  table.remove(h.state.pinned_bufnrs, drag_index)
-  table.insert(h.state.pinned_bufnrs, target.index, h.state.drag_bufnr)
+  table.remove(h.get_scope().pinned_bufnrs, drag_index)
+  table.insert(h.get_scope().pinned_bufnrs, target.index, h.state.drag_bufnr)
   require("bufpin").refresh_tabline()
 end
 
@@ -556,12 +611,12 @@ end
 ---@param config_ghost_buf_enabled boolean
 ---@return boolean
 function h.should_include_ghost_buf(config_ghost_buf_enabled)
-  if h.state.ghost_bufnr == nil or not config_ghost_buf_enabled then
+  if h.get_scope().ghost_bufnr == nil or not config_ghost_buf_enabled then
     return false
   end
   -- Do not include ghost buf when there are no pinned bufs.
   -- This is relevant when using vim tabpages only.
-  return #h.state.pinned_bufnrs > 0
+  return #h.get_scope().pinned_bufnrs > 0
 end
 
 function h.set_hl_defaults()
@@ -635,8 +690,8 @@ function h.is_floating_win(win_id)
 end
 
 function h.prune_invalid_pinned_bufs_from_state()
-  h.state.pinned_bufnrs = vim
-    .iter(h.state.pinned_bufnrs)
+  h.get_scope().pinned_bufnrs = vim
+    .iter(h.get_scope().pinned_bufnrs)
     :filter(function(bufnr)
       return vim.fn.bufexists(bufnr) == 1
     end)
@@ -653,15 +708,15 @@ end
 
 function h.prune_invalid_ghost_buf_from_state()
   if
-    vim.tbl_contains(h.state.pinned_bufnrs, h.state.ghost_bufnr)
-    or vim.fn.bufexists(h.state.ghost_bufnr) == 0
+    vim.tbl_contains(h.get_scope().pinned_bufnrs, h.get_scope().ghost_bufnr)
+    or vim.fn.bufexists(h.get_scope().ghost_bufnr) == 0
     -- For some reason uknown to me, help files need special handling.
     or (
-      h.state.ghost_bufnr ~= nil
-      and vim.bo[h.state.ghost_bufnr].buftype == "help"
+      h.get_scope().ghost_bufnr ~= nil
+      and vim.bo[h.get_scope().ghost_bufnr].buftype == "help"
     )
   then
-    h.state.ghost_bufnr = nil
+    h.get_scope().ghost_bufnr = nil
   end
 end
 
@@ -694,24 +749,24 @@ end
 
 ---@param bufnr integer
 function h.pin_by_bufnr(bufnr)
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  local bufnr_index = h.table_find_index(h.get_scope().pinned_bufnrs, bufnr)
   if bufnr_index == nil then
     h.list_buf(bufnr)
-    table.insert(h.state.pinned_bufnrs, bufnr)
+    table.insert(h.get_scope().pinned_bufnrs, bufnr)
   end
 end
 
 ---@param bufnr integer
 function h.unpin_by_bufnr(bufnr)
-  local bufnr_index = h.table_find_index(h.state.pinned_bufnrs, bufnr)
+  local bufnr_index = h.table_find_index(h.get_scope().pinned_bufnrs, bufnr)
   if bufnr_index ~= nil then
-    table.remove(h.state.pinned_bufnrs, bufnr_index)
+    table.remove(h.get_scope().pinned_bufnrs, bufnr_index)
   end
 end
 
 --- Show the tabline only when there is a pinned buf to show.
 function h.show_tabline()
-  if #h.state.pinned_bufnrs > 0 or #vim.api.nvim_list_tabpages() > 1 then
+  if #h.get_scope().pinned_bufnrs > 0 or #vim.api.nvim_list_tabpages() > 1 then
     vim.o.showtabline = 2
   else
     vim.o.showtabline = 0
@@ -768,7 +823,7 @@ function h.normalize_tabline_bufs(config_ghost_buf_enabled)
       basename = vim.fs.basename(full_filename),
       selected = current_bufnr == bufnr,
       differentiator = differentiator,
-      is_ghost = bufnr == h.state.ghost_bufnr,
+      is_ghost = bufnr == h.get_scope().ghost_bufnr,
     })
   end
   return tabline_bufs
@@ -779,9 +834,9 @@ end
 ---@param config_ghost_buf_enabled boolean
 ---@return integer[]
 function h.get_tabline_bufs(config_ghost_buf_enabled)
-  local bufnrs = vim.deepcopy(h.state.pinned_bufnrs)
+  local bufnrs = vim.deepcopy(h.get_scope().pinned_bufnrs)
   if h.should_include_ghost_buf(config_ghost_buf_enabled) then
-    table.insert(bufnrs, h.state.ghost_bufnr)
+    table.insert(bufnrs, h.get_scope().ghost_bufnr)
   end
   return bufnrs
 end
@@ -824,8 +879,8 @@ end
 function h.is_tracked_buf(bufnr)
   return bufnr ~= nil
     and (
-      vim.tbl_contains(h.state.pinned_bufnrs, bufnr)
-      or bufnr == h.state.ghost_bufnr
+      vim.tbl_contains(h.get_scope().pinned_bufnrs, bufnr)
+      or bufnr == h.get_scope().ghost_bufnr
     )
 end
 
@@ -1068,10 +1123,10 @@ end
 
 h.state = {
   hl_cache = {},
-  pinned_bufnrs = {},
-  -- Approach for managing the state of ghost_bufnr: Set in an autocmd, then set
-  -- to nil (or rearely to another buf) on a case-by-case basis per API function.
-  ghost_bufnr = nil,
+  -- Pinned bufs and ghost buf per scope, as `scope key -> Scope`, see
+  -- `h.get_scope_key()`.
+  ---@type table<integer, Scope>
+  scopes = {},
   -- Visit order per buf, as `bufnr -> visit_count` at the time of the visit. The
   -- bufnr with the highest `visit_count` is the most recently visited buf.
   visit_order = {},

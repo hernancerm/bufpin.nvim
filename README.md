@@ -48,6 +48,7 @@ editor, but the distinction is that the bufs are all **manually tracked**.
 - Auto-hide the tabline when there are no pinned bufs.
 - Mouse support to double-left-click a buf in the tabline to pin it.
 - Git integration showing git status per tabline buf.
+- Optionally scope the pinned bufs and the ghost buf per vim tabpage.
 - Expose an API to track the pinned bufs.
 - Show file type icons.
 
@@ -109,6 +110,7 @@ require("bufpin").setup({
   mouse_drag_reorder = true,
   ghost_buf_enabled = true,
   remove_with = "delete",
+  tabpage_scope_enabled = false,
   git_status_enabled = true,
   git_status_symbols = {
     added = "&",

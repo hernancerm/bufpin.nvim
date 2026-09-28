@@ -43,15 +43,6 @@ T["session does not restore the ghost buf given config.ghost_buf_enabled=false"]
   eq(child.lua_get("Bufpin.get_ghost_buf()"), vim.NIL)
 end
 
-T["session restores the pinned bufs of the backwards compatible state"] = function()
-  h.edit_and_pin(child, { "a.txt" })
-  child.lua_func(function(dir)
-    vim.g.BufpinState = vim.json.encode({ pinned_bufs = { dir .. "/b.txt" } })
-  end, h.resources_dir)
-  reload_session()
-  eq(h.get_pinned_basenames(child), { "b.txt" })
-end
-
 T["session draws the tabline"] = function()
   h.edit_and_pin(child, { "a.txt", "b.txt" })
   reload_session()

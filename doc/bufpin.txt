@@ -87,6 +87,7 @@ Default config:
     mouse_drag_reorder = true,
     ghost_buf_enabled = true,
     remove_with = "delete",
+    tabpage_scope_enabled = false,
     git_status_enabled = true,
     git_status_symbols = {
       added = "&",
@@ -149,6 +150,13 @@ visibility in the tabline.
 `("delete"|"wipeout")`
 Set how buf removal is done for both the function |bufpin.remove()| and the
 mouse middle click input on a buf in the tabline.
+
+                                           *bufpin.config.tabpage_scope_enabled*
+`(boolean)`
+When true, each vim tabpage has its own pinned bufs and ghost buf. A new
+tabpage starts with none. The functions which act on or return pinned bufs
+or the ghost buf use those of the current tabpage. When false, all the vim
+tabpages share the same pinned bufs and ghost buf.
 
                                               *bufpin.config.git_status_enabled*
 `(boolean)`
