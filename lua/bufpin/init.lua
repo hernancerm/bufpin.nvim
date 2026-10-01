@@ -192,7 +192,7 @@ bufpin.default_config = {
 --- monochrome, the other icons are colored. Use `hidden` to not display icons
 --- altogether.
 
---- #tag.bufpin.config.sticky_remove_enabled
+--- #tag bufpin.config.sticky_remove_enabled
 --- `(boolean)`
 --- Affects |bufpin.remove()|. When false, the function removes the buf as per
 --- the opt |bufpin.config.remove_with|, that's it. When true, in addition to the
