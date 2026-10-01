@@ -89,3 +89,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.1.0] - 2025-05-18
 
 Initial release.
+
+### Added
+
+- Pinned bufs drawn in the tabline. The tabline is hidden when no buf is pinned, opt
+  `auto_hide_tabline`.
+- Functions `pin()`, `unpin()`, `toggle()`, `remove()`, `edit_by_index()`, `get_pinned_bufs()` and
+  `refresh_tabline()`.
+- Edit the pinned buf to the left or right with `edit_left()` and `edit_right()`, wrapping around
+  at the edges. Re-order with `move_to_left()` and `move_to_right()`.
+- Default keymaps, opt `set_default_keymaps`.
+- Exclude bufs from pinning with opt `exclude`.
+- Buf removal by delete or wipeout, opt `remove_with`. Optionally via `mini.bufremove`, opt
+  `use_mini_bufremove`.
+- Left-click a buf in the tabline to edit it. Middle-click to remove it.
+- Pinned bufs persist in sessions.
+
+[Unreleased]: https://github.com/hernancerm/bufpin.nvim/compare/0.2.2...HEAD
+[0.2.2]: https://github.com/hernancerm/bufpin.nvim/compare/0.2.1...0.2.2
+[0.2.1]: https://github.com/hernancerm/bufpin.nvim/compare/0.2.0...0.2.1
+[0.2.0]: https://github.com/hernancerm/bufpin.nvim/compare/0.1.0...0.2.0
+[0.1.0]: https://github.com/hernancerm/bufpin.nvim/releases/tag/0.1.0
